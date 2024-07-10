@@ -1,4 +1,6 @@
 import copy
+from typing import Union
+
 import numpy as np
 import pandas as pd
 
@@ -180,7 +182,7 @@ class DatasetUtils:
 
 
     @staticmethod
-    def get_samples_by_view(Xs: list, return_as_list: bool = True) -> list|dict:
+    def get_samples_by_view(Xs: list, return_as_list: bool = True) -> Union[list, dict]:
         r"""
         Get the samples for each view in a multi-view dataset.
 
@@ -218,7 +220,7 @@ class DatasetUtils:
 
 
     @staticmethod
-    def get_missing_samples_by_view(Xs: list, return_as_list: bool = True) -> list|dict:
+    def get_missing_samples_by_view(Xs: list, return_as_list: bool = True) -> Union[list, dict]:
         r"""
         Get the samples not present in each view in a multi-view dataset.
 

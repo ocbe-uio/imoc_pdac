@@ -4,8 +4,8 @@ from sklearn.cluster import KMeans
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
 from imvc.decomposition import DFMF, MOFA
-from imvc.preprocessing import MultiViewTransformer, ConcatenateViews, NormalizerNaN
-from imvc.cluster import NEMO, DAIMC, PIMVC, SIMCADC, OSLFIMVC, MSNE, MKKMIK, LFIMVC, EEIMVC
+from imvc.preprocessing import MultiViewTransformer, ConcatenateViews
+from imvc.cluster import NEMO
 
 from settings import INCOMPLETE_RESULTS_PATH, INCOMPLETE_SUBRESULTS_PATH, INCOMPLETE_LOGS_PATH, INCOMPLETE_ERRORS_PATH, \
     TIME_RESULTS_PATH, DATASET_TABLE_PATH, amputation_mechanisms, probs, \
@@ -26,31 +26,16 @@ if args.n_jobs > 1:
     pandarallel.initialize(nb_workers= args.n_jobs)
 
 algorithms = {
-    "DAIMC": {"alg": make_pipeline(MultiViewTransformer(NormalizerNaN().set_output(transform="pandas")),
-                                   DAIMC()), "params": {}},
-    "EEIMVC": {"alg": make_pipeline(MultiViewTransformer(StandardScaler().set_output(transform="pandas")),
-                                    EEIMVC()), "params": {}},
-    "LFIMVC": {"alg": make_pipeline(MultiViewTransformer(StandardScaler().set_output(transform="pandas")),
-                                    LFIMVC()), "params": {}},
-    "MKKMIK": {"alg": make_pipeline(MultiViewTransformer(StandardScaler().set_output(transform="pandas")),
-                                    MKKMIK()), "params": {}},
-    "MSNE": {"alg": make_pipeline(MultiViewTransformer(StandardScaler().set_output(transform="pandas")),
-                                  MSNE()), "params": {}},
-    "OSLFIMVC": {"alg": make_pipeline(MultiViewTransformer(StandardScaler().set_output(transform="pandas")),
-                                      OSLFIMVC()), "params": {}},
-    "SIMCADC": {"alg": make_pipeline(MultiViewTransformer(NormalizerNaN().set_output(transform="pandas")),
-                                     SIMCADC()), "params": {}},
-    "PIMVC": {"alg": make_pipeline(MultiViewTransformer(NormalizerNaN().set_output(transform="pandas")),
-                                   PIMVC()), "params": {}},
-    # "DeepMF": {"alg": make_pipeline(MultiViewTransformer(StandardScaler()), ConcatenateViews(),
-    #                                 DeepMF(), StandardScaler(), KMeans()),
-    #              "params": {}},
+    #"DAIMC": {"alg": make_pipeline(MultiViewTransformer(NormalizerNaN().set_output(transform="pandas")),
+                                   #DAIMC()), "params": {}},     -- will be jNMF (?)
+    "NEMO": {"alg": make_pipeline(MultiViewTransformer(StandardScaler().set_output(transform="pandas")),
+                                    NEMO()), "params": {}},
+
     "DFMF": {"alg": make_pipeline(MultiViewTransformer(StandardScaler().set_output(transform="pandas")), DFMF().set_output(transform="pandas"),
-                                  StandardScaler().set_output(transform="pandas"), KMeans()),
-             "params": {}},
+                                  StandardScaler().set_output(transform="pandas"), KMeans()), "params": {}},
+
     "MOFA": {"alg": make_pipeline(MultiViewTransformer(StandardScaler().set_output(transform="pandas")), MOFA().set_output(transform="pandas"),
-                                  ConcatenateViews(), StandardScaler().set_output(transform="pandas"), KMeans()),
-             "params": {}},
+                                  ConcatenateViews(), StandardScaler().set_output(transform="pandas"), KMeans()), "params": {}},
 }
 incomplete_algorithms = True
 CommonOperations.run_script(dataset_table_path=DATASET_TABLE_PATH, algorithms=algorithms, probs=probs,

@@ -579,51 +579,6 @@ class LoadDataset:
 
 
     @staticmethod
-    def load_tcga(return_y: bool = False, return_metadata: bool = False):
-        r"""
-        This dataset is composed of ten cancer types multi-omics data from The Cancer Genome Atlas (TCGA). This is a subset
-        composed of four kinds of data: mRNA, miRNA, DNA-methylation and proteomics. Two possible targets are provided:
-        origin tissue (10 labels) and survival data (numerical values).
-
-        Samples: 2437; Views: 4; Features: [215, 2000, 131, 1739]; Clusters: 10.
-
-        Parameters
-        ----------
-        return_y: bool, default=False
-            If True, return the label too.
-        return_metadata: bool, default=False
-            If True, return the metadata.
-
-        Returns
-        -------
-        Xs : list of array-likes
-            - Xs length: n_views
-            - Xs[i] shape: (n_samples, n_features_i)
-            A list of different views.
-        y : optional
-            Array with labels
-        metadata : optional
-            Dict with info about the dataset (data modality names, labels, etc.).
-
-        References
-        ----------
-        [paper] Hoadley, Katherine & Yau, Christina & Wolf, Denise & Cherniack, Andrew & Tamborero, David & Ng, Sam &
-        Leiserson, Mark & Niu, Shubin & Mclellan, Michael & Uzunangelov, Vladislav & Zhang, Jiashan & Kandoth, Cyriac &
-        Akbani, Rehan & Shen, Hui & Omberg, Larsson & Chu, Andy & Margolin, Adam & van 't Veer, Laura & López-Bigas, Nuria
-        & Zou, Lihua. (2014). Multiplatform Analysis of 12 Cancer Types Reveals Molecular Classification within and across
-        Tissues of Origin. Cell. 158. 10.1016/j.cell.2014.06.049.
-        [url] https://www.synapse.org
-
-         Examples
-        --------
-        >>> from imvc.datasets import LoadDataset
-        >>> Xs = LoadDataset.load_tcga()
-        """
-        output = LoadDataset.load_dataset(dataset_name= "tcga", return_y = return_y, return_metadata = return_metadata)
-        return output
-
-
-    @staticmethod
     def load_webkb(return_y: bool = False, return_metadata: bool = False):
         r"""
         The dataset consists of course and non-course documents, each offering two representations: the textual content

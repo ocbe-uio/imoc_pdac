@@ -1802,7 +1802,7 @@ def mofa(
     ----------
     adata: an AnnotationData object
     groups_label (optional): a column name in adata.obs for grouping the samples
-    use_raw (optional): use raw slot of AnnData as input values
+    use_raw (optional): use raw_data slot of AnnData as input values
     use_layer (optional): use a specific layer of AnnData as input values (supersedes use_raw option)
     features_subset (optional): .var column with a boolean value to select genes (e.g. "highly_variable"), None by default
     likelihood (optional): likelihood to use, default is guessed from the data

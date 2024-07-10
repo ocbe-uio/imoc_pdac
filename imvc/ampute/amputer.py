@@ -99,7 +99,7 @@ class Amputer(BaseEstimator, TransformerMixin):
 
         Returns
         ----------
-        A dictionnary containing:
+        A dictionary containing:
         'X_init': the initial data matrix.
         'X_incomp': the data with the generated missing values.
         'mask': a matrix indexing the generated missing values.

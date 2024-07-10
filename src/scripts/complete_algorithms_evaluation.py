@@ -1,13 +1,14 @@
 import os.path
 from pandarallel import pandarallel
 import pandas as pd
+from sklearn.decomposition import NMF
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler, MinMaxScaler, FunctionTransformer
 from sklearn.cluster import KMeans
 from mvlearn.decomposition import AJIVE, GroupPCA
 from mvlearn.cluster import MultiviewSpectralClustering, MultiviewCoRegSpectralClustering
 from imvc.preprocessing import MultiViewTransformer, ConcatenateViews
-from imvc.algorithms import NMFC
+
 
 from settings import COMPLETE_SUBRESULTS_PATH, COMPLETE_RESULTS_PATH, COMPLETE_LOGS_PATH, COMPLETE_ERRORS_PATH, \
     TIME_RESULTS_PATH, DATASET_TABLE_PATH, amputation_mechanisms, runs_per_alg, probs, \
@@ -32,7 +33,7 @@ algorithms = {
                                     KMeans()), "params": {}},
     "NMFC": {"alg": make_pipeline(ConcatenateViews(),
                                   MinMaxScaler().set_output(transform='pandas'),
-                                  NMFC().set_output(transform='pandas')), "params": {}},
+                                  NMF().set_output(transform='pandas')), "params": {}},
     "MVSpectralClustering": {"alg": make_pipeline(MultiViewTransformer(StandardScaler().set_output(transform= "pandas")),
                                                   MultiviewSpectralClustering()),
                              "params": {}},
@@ -47,6 +48,7 @@ algorithms = {
               "params": {}},
     "SNF": {"alg": MultiViewTransformer(StandardScaler().set_output(transform="pandas")), "params": {}},
 }
+
 incomplete_algorithms = False
 CommonOperations.run_script(dataset_table_path=DATASET_TABLE_PATH, algorithms=algorithms, probs=probs,
                             amputation_mechanisms=amputation_mechanisms, imputation=imputation,

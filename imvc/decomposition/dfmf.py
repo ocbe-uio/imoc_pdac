@@ -1,3 +1,4 @@
+from typing import Union
 import pandas as pd
 from sklearn.base import TransformerMixin, BaseEstimator
 from sklearn.utils.validation import _generate_get_feature_names_out
@@ -73,7 +74,7 @@ class DFMF(TransformerMixin, BaseEstimator):
     """
 
 
-    def __init__(self, n_components : int = 10, max_iter: int = 100, init_type: str|list =  'random_c', n_run: int = 1,
+    def __init__(self, n_components : int = 10, max_iter: int = 100, init_type: Union[str, list] = 'random_c', n_run: int = 1,
                  stopping=None, stopping_system=None, verbose=0, compute_err=False, callback=None,
                  random_state: int = None, n_jobs=1, fill_value=0):
 

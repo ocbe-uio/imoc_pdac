@@ -39,15 +39,13 @@ class CommonOperations:
 
 
     @staticmethod
-    def load_Xs_y(dataset_name):
+    def load_Xs(dataset_name):
         names = dataset_name.split("_")
         if "simulated" in names:
             names = ["_".join(names)]
-        x_name,y_name = names if len(names) > 1 else (names[0], "0")
-        Xs, y = LoadDataset.load_dataset(dataset_name=x_name, return_y=True)
-        y = y[y_name]
-        n_clusters = y.nunique()
-        return Xs, y, n_clusters
+        x_name = names if len(names) > 1 else (names[0], "0")
+        Xs = LoadDataset.load_dataset(dataset_name=x_name, return_y=True)
+        return Xs
 
 
     @staticmethod
@@ -55,13 +53,13 @@ class CommonOperations:
                        incomplete_algorithms, subresults_path, logs_file, error_file, args,
                        results_path):
 
-        Xs, y, n_clusters = CommonOperations.load_Xs_y(dataset_name=dataset_name)
+        Xs = CommonOperations.load_Xs(dataset_name=dataset_name)
         unfinished_results_dataset = unfinished_results.loc[[dataset_name]]
 
         if args.n_jobs == 1:
             iterator = pd.DataFrame(unfinished_results_dataset.index.to_list(), columns=indexes_names)
             iterator.apply(
-                lambda x: RunClustering.run_iteration(idx=x, results=results, Xs=Xs, y=y, n_clusters=n_clusters,
+                lambda x: RunClustering.run_iteration(idx=x, results=results, Xs=Xs,
                                                       algorithms=algorithms,
                                                       incomplete_algorithms=incomplete_algorithms,
                                                       random_state=RANDOM_STATE,
@@ -75,8 +73,7 @@ class CommonOperations:
                 unfinished_results_dataset_idx = unfinished_results_dataset.xs(0, level="missing_percentage",
                                                                                drop_level=False).index
                 iterator = pd.DataFrame(unfinished_results_dataset_idx.to_list(), columns=indexes_names)
-                iterator.parallel_apply(lambda x: RunClustering.run_iteration(idx=x, results=results, Xs=Xs, y=y,
-                                                                              n_clusters=n_clusters,
+                iterator.parallel_apply(lambda x: RunClustering.run_iteration(idx=x, results=results, Xs=Xs,
                                                                               algorithms=algorithms,
                                                                               incomplete_algorithms=incomplete_algorithms,
                                                                               random_state=RANDOM_STATE,
@@ -95,8 +92,7 @@ class CommonOperations:
             else:
                 iterator = pd.DataFrame(unfinished_results_dataset.index.to_list(), columns=indexes_names)
 
-            iterator.parallel_apply(lambda x: RunClustering.run_iteration(idx=x, results=results, Xs=Xs, y=y,
-                                                                          n_clusters=n_clusters,
+            iterator.parallel_apply(lambda x: RunClustering.run_iteration(idx=x, results=results, Xs=Xs,
                                                                           algorithms=algorithms,
                                                                           incomplete_algorithms=incomplete_algorithms,
                                                                           random_state=RANDOM_STATE,

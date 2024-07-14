@@ -11,7 +11,7 @@ from imvc.datasets import LoadDataset
 from settings import RANDOM_STATE, TIME_LIMIT
 from src.utils.create_result_table import CreateResultTable
 from src.clustering.run_clustering import RunClustering
-
+from imvc.utils.dataset_utils import DatasetUtils
 
 class CommonOperations:
 
@@ -23,13 +23,24 @@ class CommonOperations:
         dataset_table.loc[dataset_table["dataset"] == "nutrimouse", "dataset"] = ["nutrimouse_genotype", "nutrimouse_diet"]
         datasets = dataset_table["dataset"].to_list()
         two_view_datasets = dataset_table[dataset_table["n_features"].apply(lambda x: len(eval(x)) == 2)]["dataset"].to_list()
-        return datasets, two_view_datasets
+        return dataset_table, datasets, two_view_datasets
 
 
     @staticmethod
-    def get_results_table(datasets, algorithms, probs, amputation_mechanisms, imputation, runs_per_alg, two_view_datasets):
-        indexes_results = {"dataset": datasets, "algorithm": list(algorithms.keys()), "missing_percentage": probs,
-                           "amputation_mechanism": amputation_mechanisms, "imputation": imputation, "run_n": runs_per_alg}
+    def get_results_table(datasets, dataset_table, algorithms, n_clusters, probs, amputation_mechanisms, imputation, runs_per_alg, two_view_datasets):
+        # create matrix showing all possible combinations of different views
+        omic_views = dataset_table["dataset"].to_list()
+        combinations_matrix = pd.DataFrame([row for row in itertools.product([0, 1], repeat=len(omic_views)) if sum(row) >= 2], columns=omic_views)
+        combinations_matrix = combinations_matrix.apply(lambda row: ''.join(row.astype(str)), axis=1)
+        # variables in table
+        indexes_results = {"dataset": datasets,
+                           "omic_combinations": list(combinations_matrix),
+                           "algorithm": list(algorithms.keys()),
+                           "n_clusters": n_clusters,
+                           "missing_percentage": probs,
+                           "amputation_mechanism": amputation_mechanisms,
+                           "imputation": imputation,
+                           "run_n": runs_per_alg}
         indexes_names = list(indexes_results.keys())
         results = CreateResultTable.create_results_table(datasets=datasets, indexes_results=indexes_results,
                                                          indexes_names=indexes_names,

@@ -54,7 +54,6 @@ CANCER_CODE <- "PDAC"
 PLATFORM_CODE <- "TCGA"
 # check experiments
 metadata <- curatedTCGAData(diseaseCode = TCGA_CODE, version = "2.0.1")
-metadata[[1]]
 # filter by omics
 omics <- c("RNASeq2GeneNorm*", "RPPA*", "*Methylation*", "*miRNA*", "Mutation")
 curatedTCGAData(diseaseCode = TCGA_CODE, assays = omics, version = "2.0.1")
@@ -86,27 +85,9 @@ patients <- rownames(clinical_data[clinical_data$histological_type == histologic
 # filter patients by histology
 cancer_data <- cancer_data[,colnames(cancer_data)[substr(colnames(cancer_data), 1, 12) %in% patients],]
 cancer_data
-cancer_data[[1]]
-rowData(cancer_data[[6]])
 
-# Extract the rowData
-row_data <- rowData(cancer_data[[6]])
-
-# Ensure that NA values in Chromosome are handled
-row_data$Chromosome[is.na(row_data$Chromosome)] <- ""
-
-# Create a logical vector to identify rows to keep, ensuring no NAs in the logical vector
-keep_rows <- !(is.na(row_data$Gene_Symbol) & row_data$Chromosome == "23")
-
-# Replace NA values in the logical vector with FALSE
-keep_rows[is.na(keep_rows)] <- FALSE
-
-# Subset the SummarizedExperiment object
-cancer_data[[6]] <- cancer_data[[6]][keep_rows, ]
-
-# Check the dimensions to ensure rows are removed
-dim(cancer_data[[6]])
-
+# visualize filtered data
+upsetSamples(cancer_data)
 
 ################################################################################
 
@@ -209,8 +190,6 @@ print(matched_df_ann)
 
 ################################################################################
 
-# visualize filtered data
-upsetSamples(cancer_data)
 # save object
 #filename_rds <- pathJoin(folder_raw_data, paste0("rnaseqnorm_meth_rppa_mirna_", CANCER_CODE, PLATFORM_CODE, ".rds"))
 #saveRDS(cancer_data, filename_rds)

@@ -76,8 +76,9 @@ class RemoveFeaturesLowMAE(BaseEstimator, TransformerMixin):
 
     def fit(self, X, y = None):
         X = X.apply(pd.to_numeric, errors='coerce')
-        var = np.abs(X - np.mean(X, axis = 0))
-        var = np.mean(var, axis = 0)
+        var = np.abs(X - np.median(X, axis = 0))
+        var = np.median(var, axis = 0)
+        var = pd.Series(var, index = X.columns)
         columns = var.nlargest(n = int(X.shape[1] * self.percentage_to_keep)).index
         self.columns_ = X.columns.intersection(columns)
         if self.verbose:

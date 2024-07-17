@@ -2,21 +2,7 @@ utils_path = path.file("src", "utils", "utils.R")
 source(utils_path)
 
 
-datasets = c(
-  "simulated_gm",
-  "simulated_InterSIM",
-  "simulated_netMUG",
-  "nutrimouse_genotype",
-  "nutrimouse_diet",
-  "bbcsport",
-  "buaa",
-  "metabric",
-  "digits",
-  "bdgp",
-  "tcga",
-  "caltech101",
-  "nuswide"
-)
+datasets = rownames(read.csv(DATASET_TABLE_PATH, row.names = 1))
 
 algorithms = c("IntNMF", "COCA", "jNMF", "NEMO")
 
@@ -40,7 +26,7 @@ for (dataset_name in datasets) {
   
   for (alg_name in algorithms) {
     if (!alg_name %in% row.names(results)) {
-      results[alg_name,] <- 0
+      results[alg_name,] <- -1
     }
     time_execution <- results[alg_name, dataset_name]
     if (time_execution > 0 | is.na(time_execution)) {

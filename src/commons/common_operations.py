@@ -3,15 +3,14 @@ import itertools
 import os
 import shutil
 from datetime import datetime
-
 import numpy as np
 import pandas as pd
-
 from imvc.datasets import LoadDataset
+
 from settings import RANDOM_STATE, TIME_LIMIT
 from src.utils.create_result_table import CreateResultTable
 from src.clustering.run_clustering import RunClustering
-from imvc.utils.dataset_utils import DatasetUtils
+
 
 class CommonOperations:
 
@@ -162,9 +161,10 @@ class CommonOperations:
         results["time_limited"] = True
         time_results = pd.read_csv(time_results_path, index_col=0)
         for dataset_name, (alg_name, alg) in itertools.product(datasets, algorithms.items()):
-            time_alg_dat = time_results.loc[alg_name, dataset_name]
-            if (time_alg_dat > TIME_LIMIT) or (time_alg_dat <= 0) or np.isnan(time_alg_dat):
-                results.loc[(dataset_name, alg_name), "time_limited"] = False
+            if (dataset_name in time_results.columns) and (alg_name in time_results.index):
+                time_alg_dat = time_results.loc[alg_name, dataset_name]
+                if (time_alg_dat > TIME_LIMIT) or (time_alg_dat <= 0) or np.isnan(time_alg_dat):
+                    results.loc[(dataset_name, alg_name), "time_limited"] = False
         return results
 
 

@@ -9,7 +9,6 @@ from mvlearn.decomposition import AJIVE, GroupPCA
 from mvlearn.cluster import MultiviewSpectralClustering, MultiviewCoRegSpectralClustering
 from imvc.preprocessing import MultiViewTransformer, ConcatenateViews
 
-
 from settings import COMPLETE_SUBRESULTS_PATH, COMPLETE_RESULTS_PATH, COMPLETE_LOGS_PATH, COMPLETE_ERRORS_PATH, \
     TIME_RESULTS_PATH, DATASET_TABLE_PATH, amputation_mechanisms, runs_per_alg, probs, \
     imputation, COMPLETE_RESULTS_FILE, COMPLETE_ERRORS_FILE, COMPLETE_SUBRESULTS_FOLDER, COMPLETE_LOGS_FILE
@@ -31,16 +30,16 @@ algorithms = {
     "Concat": {"alg": make_pipeline(ConcatenateViews(),
                                     StandardScaler().set_output(transform='pandas'),
                                     KMeans()), "params": {}},
-    "NMFC": {"alg": make_pipeline(ConcatenateViews(),
+    "NMF": {"alg": make_pipeline(ConcatenateViews(),
                                   MinMaxScaler().set_output(transform='pandas'),
-                                  NMF().set_output(transform='pandas')), "params": {}},
-    "MVSpectralClustering": {"alg": make_pipeline(MultiViewTransformer(StandardScaler().set_output(transform= "pandas")),
+                                  NMF().set_output(transform='pandas'), StandardScaler(), KMeans()), "params": {}},
+    "MVSC": {"alg": make_pipeline(MultiViewTransformer(StandardScaler().set_output(transform= "pandas")),
                                                   MultiviewSpectralClustering()),
                              "params": {}},
-    "MVCoRegSpectralClustering": {"alg": make_pipeline(MultiViewTransformer(StandardScaler().set_output(transform= "pandas")),
+    "MVCRSC": {"alg": make_pipeline(MultiViewTransformer(StandardScaler().set_output(transform= "pandas")),
                                                        MultiviewCoRegSpectralClustering()),
                                   "params": {}},
-    "GroupPCA": {"alg": make_pipeline(MultiViewTransformer(StandardScaler()), GroupPCA(), StandardScaler(), KMeans()),
+    "GPCA": {"alg": make_pipeline(MultiViewTransformer(StandardScaler()), GroupPCA(), StandardScaler(), KMeans()),
                  "params": {}},
     "AJIVE": {"alg": make_pipeline(MultiViewTransformer(StandardScaler()), AJIVE(),
                                    MultiViewTransformer(FunctionTransformer(pd.DataFrame)), ConcatenateViews(),
@@ -48,7 +47,6 @@ algorithms = {
               "params": {}},
     "SNF": {"alg": MultiViewTransformer(StandardScaler().set_output(transform="pandas")), "params": {}},
 }
-
 incomplete_algorithms = False
 CommonOperations.run_script(dataset_table_path=DATASET_TABLE_PATH, algorithms=algorithms, probs=probs,
                             amputation_mechanisms=amputation_mechanisms, imputation=imputation,

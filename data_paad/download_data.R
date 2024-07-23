@@ -37,7 +37,6 @@ library(TCGAutils)
 library(UpSetR)
 library(Gmisc)
 
-
 ##############
 ##  SCRIPT  ##
 ##############
@@ -54,12 +53,12 @@ CANCER_CODE <- "PDAC"
 PLATFORM_CODE <- "TCGA"
 # check experiments
 metadata <- curatedTCGAData(diseaseCode = TCGA_CODE, version = "2.0.1")
+metadata
 # filter by omics
-omics <- c("RNASeq2GeneNorm*", "RPPA*", "*Methylation*", "*miRNA*", "Mutation")
+omics <- c("RNASeq2GeneNorm*", "RPPA*", "*Methylation*", "*miRNA*", "Mutation", "CNASNP")
 curatedTCGAData(diseaseCode = TCGA_CODE, assays = omics, version = "2.0.1")
 # download data
 cancer_data <- curatedTCGAData(diseaseCode = TCGA_CODE, assays = omics, dry.run = FALSE, version = "2.0.1")
-cancer_data
 # filter by primary tumor
 sampleTables(cancer_data)
 tums <- TCGAsampleSelect(barcodes = colnames(cancer_data), sampleCodes = "01")
@@ -89,104 +88,111 @@ cancer_data
 # visualize filtered data
 upsetSamples(cancer_data)
 
-################################################################################
+# Visualise type of mutations in each gene
+cancer_data
+rag <- "PAAD_Mutation-20160128"
 
-#### CNV SEGMENT MEAN
+library(ComplexHeatmap)
+library(TxDb.Hsapiens.UCSC.hg19.knownGene)   # older version
 
-BiocManager::install("GenomicRanges", force = TRUE)
-BiocManager::install("TxDb.Hsapiens.UCSC.hg38.knownGene")
-BiocManager::install("org.Hs.eg.db")
-BiocManager::install("biomaRt")
 
-library(GenomicRanges)
-library(TxDb.Hsapiens.UCSC.hg38.knownGene)
-library(org.Hs.eg.db)
-library(biomaRt)
+oncoPrintTCGA(cancer_data, matchassay = rag)
+# Note that hg19 was used, instead of hg38
+# check oncoprint package
 
-# Extract the gene sequences (index column)
-cancer_data[[1]]
-CNV_mean <- assay(cancer_data[[1]], "Segment_Mean")
-index_column <- rownames(CNV_mean)
-print(index_column)
+###################################################
 
-# Setting up a gene annotation template to use
-mart <- useMart(biomart="ensembl", dataset="hsapiens_gene_ensembl")
-#mart <- useMart(biomart="ENSEMBL_MART_ENSEMBL", host="https://grch37.ensembl.org", path="/biomart/martservice", dataset="hsapiens_gene_ensembl")
-genes <- getBM(attributes=c("hgnc_symbol","chromosome_name","start_position","end_position"), mart=mart)
-genes <- genes[genes[,1]!="" & genes[,2] %in% c(1:22,"X","Y"),]
-xidx <- which(genes[,2]=="X")
-yidx <- which(genes[,2]=="Y")
-genes[xidx, 2] <- 23
-genes[yidx, 2] <- 24
-genes[,2] <- sapply(genes[,2],as.integer)
-genes <- genes[order(genes[,3]),]
-genes <- genes[order(genes[,2]),]
-colnames(genes) <- c("GeneSymbol","Chr","Start","End")
+# The CNV data comes in segments rather than by genes, so we have to convert those segments into their corresponding gene(s)
+# The code used to download the data and build the CNV matrices was produced by Hornung and Wright in the paper "Block Forests: random forests for blocks of clinical and omics covariate data."
 
-genes_GR <- makeGRangesFromDataFrame(genes, keep.extra.columns = TRUE)
+# Reference:
+# Hornung, R., Wright, M.N. Block Forests: random forests for blocks of clinical and omics covariate data. BMC Bioinformatics 20, 358 (2019). https://doi.org/10.1186/s12859-019-2942-y
 
-# Function to parse each segment
-parse_segment <- function(segment) {
-  # Split by colons and dashes
-  parts <- unlist(strsplit(segment, "[:-]"))
-  # Create a list with chromosome, start, end, and placeholders for extra fields
-  list(
-    chr = parts[1],
-    start = as.numeric(parts[2]),
-    end = as.numeric(parts[3])
-  )
+
+library(TCGAbiolinks)
+library(SummarizedExperiment)
+library(dplyr)
+
+setwd("C:/Users/alepg/PycharmProjects/imo_clustering/data_paad")
+
+# Download CNV data
+query <- GDCquery(project = "TCGA-PAAD",
+                  data.category = "Copy Number Variation",
+                  data.type = "Copy Number Segment", 
+                  sample.type = "Primary Tumor")
+GDCdownload(query, files.per.chunk=20)
+cnv <- GDCprepare(query)
+
+# Gene names and information (chromosome, start, end)
+load("loci_all.Rdata")
+rows <- loci$ensembl_gene_id
+rownames(loci) <- loci$ensembl_gene_id
+
+# Build CNV function
+build.cnv <- function(i, cnv, loci, cols) {
+  chr.cnv <- cnv[which(cnv$Chromosome==loci$chromosome_name[i]), ]  # subset of cnv with only chromosome chr
+  vec <- chr.cnv$Segment_Mean                   # CNV values for chromosome chr
+  names(vec) <- chr.cnv$Sample
+  positive.samples <- which(chr.cnv$Start<=loci$start_position[i] & chr.cnv$End>=loci$end_position[i])    # cnv values of the gene
+  vec <- vec[positive.samples]
+  res <- rep(NA, length(cols))
+  names(res) <- cols
+  ind <- which(names(res) %in% names(vec))
+  res[ind] <- vec[names(res[ind])]
+  return(res)
 }
 
-# Apply the function to all rows in the index column
-parsed_segments <- lapply(index_column, parse_segment)
+# Build CNV matrices
+names.cnv <- cnv$Sample
+cnv.out <- NULL
+nn.cnv <- unique(names.cnv)
+for(j in 1:length(nn.cnv)) {
+  ind <- which(names.cnv==nn.cnv[j])
+  tt <- table(cnv$Sample[ind])
+  if(length(tt)>1) {
+    cnv.out <- c(cnv.out, names(tt)[-1])
+  }
+}
+ind <- which(!cnv$Sample %in% cnv.out)
+cnv <- cnv[ind, ]
 
-# Convert the list of parsed segments to a data frame
-df <- do.call(rbind, lapply(parsed_segments, as.data.frame))
+# retrieve CNV values for all ensembl IDs
+cols <- unique(cnv$Sample)
+mat.cnv <- apply(as.matrix(1:nrow(loci)), 1, build.cnv, cnv, loci, cols)
+mat.cnv <- t(mat.cnv)
+rownames(mat.cnv) <- loci$ensembl_gene_id
+colnames(mat.cnv) <- cols
+mat.cnv <- as.data.frame(mat.cnv)
 
-# Ensure the dataframe columns are correctly named
-colnames(df) <- c("chr", "start", "end")
-print(df)
-dim(df)
+# Merge both dataframes, keeping all information from loci (for now)
+mat.cnv$ensembl_gene_id <- rownames(mat.cnv)
+cnv_data <- merge(mat.cnv, loci)
+dim(cnv_data)
 
-# Store data as GenomicRanges object
-df_GR <- makeGRangesFromDataFrame(df, na.rm = TRUE)   # Removed 13 NA values (can't work with them because we can't map them)
-df_GR
+# Remove rows containing genes in sexual chromosomes
+cnv_data <- subset(cnv_data, !(chromosome_name %in% c("X", "Y")))
+# Remove rows that have only NA values in patient columns
+patient_columns <- grep("^TCGA-", colnames(cnv_data), value = TRUE)
+cnv_data <- cnv_data[rowSums(is.na(cnv_data[, patient_columns])) < length(patient_columns), ]
+head(cnv_data)
+# Put ensembl IDs as index column
+rownames(cnv_data) <- cnv_data$ensembl_gene_id
+cnv_data$ensembl_gene_id <- NULL
 
-# Overlap regions with reference dataset created
-#hits <- findOverlaps(df_GR, genes_GR, type="within")
-hits <- findOverlaps(genes_GR, df_GR, type="within")
-df_ann <- cbind(df[subjectHits(hits),],genes[queryHits(hits), "GeneSymbol"])
-df_ann <- unique(df_ann)   # remove duplicate rows
-head(df_ann)
-dim(df_ann)
-print(df_ann)
+# Create final dataset with gene names in index and patients as columns, getting median for information in duplicated genes
+cnv_data_subset <- cnv_data[, c("external_gene_name", patient_columns)]
+cnvmean_data <- cnv_data_subset %>%
+  group_by(external_gene_name) %>%
+  summarise(across(everything(), median, na.rm = TRUE))
+cnvmean_data <- as.data.frame(cnvmean_data)
+rownames(cnvmean_data) <- cnvmean_data$external_gene_name
+cnvmean_data$external_gene_name <- NULL
+head(cnvmean_data)
+dim(cnvmean_data)
 
-# Check how many genes appear per sequence
-# Define variables for chr, start, and end
-chr_value <- 1  # Example value for chr
-start_value <- 61735  # Example value for start
-end_value <- 98588  # Example value for end
 
-# Find rows where chr, start, and end match the defined values
-matching_rows <- df_ann$chr == chr_value & df_ann$start == start_value & df_ann$end == end_value
+write.csv(cnvmean_data, "cancer_data_PAAD_CNA-20160128.csv")
 
-# Subset df_ann to show only matching rows
-matched_df_ann <- df_ann[matching_rows, ]
-
-# Print the matched rows
-print(matched_df_ann)
-
-# Convert to a data frame if necessary (in case it's not already)
-#CNV_mean_df <- as.data.frame(CNV_mean)
-
-# Define the file path where you want to save the CSV
-#file_path <- "CNV_mean.csv"
-
-# Write the data to a CSV file
-#write.csv(CNV_mean_df, file = file_path, row.names = TRUE)
-
-# Print a message indicating the file has been saved
-#cat("CNV_mean data has been saved to", file_path)
 
 ################################################################################
 
@@ -195,7 +201,7 @@ print(matched_df_ann)
 #saveRDS(cancer_data, filename_rds)
 exportClass(cancer_data, dir = folder_raw_data, fmt = "csv", ext = ".csv")
 
-
+# FOR SUPERVISED LEARNING (not used in this project)
 
 # split dataset in 60% as training set and remaining 40% as testing set
 patients <- as.data.frame(patients)

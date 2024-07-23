@@ -1,8 +1,6 @@
 import os
 from os.path import dirname
-
 import numpy as np
-import oct2py
 import pandas as pd
 from sklearn.base import BaseEstimator, ClassifierMixin
 from sklearn.cluster import KMeans
@@ -106,9 +104,10 @@ class OMVC(BaseEstimator, ClassifierMixin):
         Xs = check_Xs(Xs, force_all_finite='allow-nan')
 
         if self.engine=="matlab":
+            import oct2py
             matlab_folder = dirname(__file__)
-            matlab_folder = os.path.join(matlab_folder, "_omvc")
-            matlab_files = ["objective_ONMF_Multi.m", "ONMF_Multi_PGD_search.m"]
+            matlab_folder = os.path.join(matlab_folder, "_" + (os.path.basename(__file__).split(".")[0]))
+            matlab_files = [x for x in os.listdir(matlab_folder) if x.endswith(".m")]
             oc = oct2py.Oct2Py(temp_dir= matlab_folder)
             for matlab_file in matlab_files:
                 with open(os.path.join(matlab_folder, matlab_file)) as f:

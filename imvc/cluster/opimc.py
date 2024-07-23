@@ -1,7 +1,6 @@
 import os
 from os.path import dirname
 import numpy as np
-import oct2py
 import pandas as pd
 from sklearn.base import BaseEstimator, ClassifierMixin
 
@@ -98,9 +97,10 @@ class OPIMC(BaseEstimator, ClassifierMixin):
         Xs = check_Xs(Xs, force_all_finite='allow-nan')
 
         if self.engine=="matlab":
+            import oct2py
             matlab_folder = dirname(__file__)
-            matlab_folder = os.path.join(matlab_folder, "_opimc")
-            matlab_files = ["UpdateV.m", "OPIMC.m", "NormalizeFea.m"]
+            matlab_folder = os.path.join(matlab_folder, "_" + (os.path.basename(__file__).split(".")[0]))
+            matlab_files = [x for x in os.listdir(matlab_folder) if x.endswith(".m")]
             oc = oct2py.Oct2Py(temp_dir= matlab_folder)
             for matlab_file in matlab_files:
                 with open(os.path.join(matlab_folder, matlab_file)) as f:
@@ -115,16 +115,16 @@ class OPIMC(BaseEstimator, ClassifierMixin):
             transformed_Xs = [X.T for X in transformed_Xs]
             transformed_Xs = tuple(transformed_Xs)
 
-            w = tuple([oc.diag(missing_view) for missing_view in observed_view_indicator.T])
+            w = tuple([oc.diag(missing_view) for missing_view in observed_view_indicator])
             options = {"block_size": self.block_size, "k": self.n_clusters, "maxiter": self.max_iter,
                        "tol": self.tol, "pass": self.num_passes, "loss": 0, "alpha": self.alpha}
             if self.random_state is not None:
                 oc.rand('seed', self.random_state)
-            labels = oc.OPIMC(transformed_Xs, w, options)
+            labels = oc.OPIMC(transformed_Xs, w, options, observed_view_indicator)
         else:
             raise ValueError("Only engine=='matlab' is currently supported.")
 
-        self.labels_ = labels[:,0].astype(int)
+        self.labels_ = pd.factorize(labels[:,0])[0]
 
         return self
 

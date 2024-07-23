@@ -3,6 +3,7 @@ import pandas as pd
 import snf
 from sklearn.base import BaseEstimator, ClassifierMixin
 from sklearn.cluster import SpectralClustering
+from sklearn.manifold import spectral_embedding
 
 from ..impute import get_observed_view_indicator
 from ..utils import check_Xs
@@ -36,7 +37,7 @@ class NEMO(BaseEstimator, ClassifierMixin):
     random_state : int, default=None
         Determines the randomness. Use an int to make the randomness deterministic.
     engine : str, default='python'
-        Engine to use for computing the model. Must be one of ["python", "R"].
+        Engine to use for computing the model. Must be one of ["python", "r"].
 .    verbose : bool, default=False
         Verbosity mode.
 
@@ -48,6 +49,10 @@ class NEMO(BaseEstimator, ClassifierMixin):
         Final number of clusters.
     num_neighbors_ : int
         Final number of neighbors.
+    affinity_matrix_ : np.array
+        The final representation of the data to be used as input for the clustering step.
+    spectral_graph_ : np.array(n_samples, n_clusters)
+        Spectral embedding.
 
     References
     ----------
@@ -59,12 +64,12 @@ class NEMO(BaseEstimator, ClassifierMixin):
     --------
     >>> from imvc.datasets import LoadDataset
     >>> from imvc.cluster import NEMO
-    >>> Xs = LoadDataset.load_dataset(dataset_name="nutrimouse", p = 0.2)
+    >>> Xs = LoadDataset.load_dataset(dataset_name="nutrimouse")
     >>> estimator = NEMO(n_clusters = 2)
     >>> labels = estimator.fit_predict(Xs)
     """
 
-    def __init__(self, n_clusters: int = 8, num_neighbors = None, num_neighbors_ratio:int = 6, metric='sqeuclidean',
+    def __init__(self, n_clusters: int = 8, num_neighbors = None, num_neighbors_ratio: int = 6, metric='sqeuclidean',
                  random_state:int = None, engine: str = "python", verbose = False):
         self.n_clusters = n_clusters
         self.num_neighbors = num_neighbors
@@ -107,11 +112,12 @@ class NEMO(BaseEstimator, ClassifierMixin):
 
             affinity_matrix = pd.DataFrame(np.zeros((len(samples), len(samples))), columns = samples, index = samples)
             for X, neigh, view_idx in zip(Xs, self.num_neighbors_, range(len(Xs))):
-                X = X.loc[observed_view_indicator[view_idx].astype(bool)]
+                X = X.loc[observed_view_indicator[view_idx]]
                 sim_data = pd.DataFrame(snf.make_affinity(X, metric = self.metric, K=neigh, normalize=False),
                                             index= X.index, columns= X.index)
-                sim_data = sim_data.apply(pd.Series.nlargest, n=neigh, axis=1).fillna(0)
+                sim_data = sim_data.mask(sim_data.rank(axis=1, method='min', ascending=False) > neigh, 0)
                 row_sum = sim_data.sum(1)
+
                 sim_data /= row_sum
                 sim_data += sim_data.T
                 affinity_matrix.loc[sim_data.index, sim_data.columns] += sim_data
@@ -123,20 +129,37 @@ class NEMO(BaseEstimator, ClassifierMixin):
 
             model = SpectralClustering(n_clusters= self.n_clusters_, random_state= self.random_state)
             labels = model.fit_predict(X= affinity_matrix)
+            transformed_Xs = spectral_embedding(model.affinity_matrix_, n_components=self.n_clusters,
+                                                eigen_solver=model.eigen_solver,
+                                                random_state=self.random_state, eigen_tol=model.eigen_tol, drop_first=False)
+
 
         elif self.engine == "R":
-            raise NotImplementedError
-            #todo
-            # clustering = nemo.nemo_clustering(omics_list = Xs, num_clusters= self.n_clusters,
-            #                                   num_neighbors= self.num_neighbors)
-            # labels = clustering
+            from rpy2.robjects.packages import importr
+            from ..utils import _convert_df_to_r_object
+            nemo = importr("nemo")
+            transformed_Xs = _convert_df_to_r_object(Xs)
+
+            affinity_matrix = nemo.nemo.affinity.graph(transformed_Xs, k=self.num_neighbors)
+            if (self.n_clusters is None):
+                self.n_clusters = nemo.nemo.num.clusters(affinity_matrix)
+
+            model = SpectralClustering(n_clusters= self.n_clusters_, random_state= self.random_state)
+            labels = model.fit_predict(X= affinity_matrix)
+            transformed_Xs = spectral_embedding(model.affinity_matrix_, n_components=self.n_clusters,
+                                                eigen_solver=model.eigen_solver,
+                                                random_state=self.random_state, eigen_tol=model.eigen_tol, drop_first=False)
+
 
         else:
-            raise ValueError("Only supports R and python engines.")
+            raise ValueError("Only supports 'r' and 'python' engines.")
 
         self.labels_ = labels
+        self.affinity_matrix_ = affinity_matrix
+        self.spectral_graph_ = transformed_Xs
 
         return self
+
 
     def _predict(self, Xs):
         r"""

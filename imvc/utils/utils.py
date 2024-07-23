@@ -1,9 +1,6 @@
 import numpy as np
 import pandas as pd
 from sklearn.utils import check_array
-import rpy2.robjects as ro
-from rpy2.robjects.packages import importr
-from rpy2.robjects import pandas2ri
 
 
 def check_Xs(Xs, enforce_views=None, copy=False, force_all_finite="allow-nan",return_dimensions=False):

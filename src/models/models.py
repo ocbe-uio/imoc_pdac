@@ -5,7 +5,6 @@ from lightning.pytorch.utilities.seed import isolate_rng
 from sklearn.cluster import SpectralClustering
 from sklearn.manifold import spectral_embedding
 from snf import compute
-from rpy2.robjects.packages import importr
 from torch.utils.data import DataLoader
 from imvc.decomposition import DeepMFDataset
 
@@ -59,6 +58,7 @@ class Model:
 
 
     def intnmf(self, train_Xs, n_clusters, random_state, run_n):
+        from rpy2.robjects.packages import importr
         nmf = importr("IntNMF")
         model = self.alg["alg"]
         train_Xs = model.fit_transform(train_Xs)
@@ -69,6 +69,7 @@ class Model:
 
 
     def coca(self, train_Xs, n_clusters, random_state, run_n):
+        from rpy2.robjects.packages import importr
         base, coca = importr("base"), importr("coca")
         model = self.alg["alg"]
         train_Xs = model.fit_transform(train_Xs)

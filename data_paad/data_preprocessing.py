@@ -39,8 +39,7 @@ methylation_data = InitialProcessing("data_paad/raw_data/cancer_data_PAAD_Methyl
 methylation_pipeline = make_pipeline(
     RemoveFeaturesWithNaN(threshold=0.2, verbose=True),
     RemoveFeaturesLowMAE(percentage_to_keep=0.01, verbose=True),
-    RemoveCorrelatedFeatures(threshold=0.85, verbose=True),
-    ValueImputation(verbose=True)
+    RemoveCorrelatedFeatures(threshold=0.85, verbose=True)
 )
 methylation_new = methylation_pipeline.fit_transform(methylation_data)
 methylation_new.to_csv("data_paad/preprocessed_data_missing_views/processed_cancer_data_PAAD_Methylation-20160128.csv")

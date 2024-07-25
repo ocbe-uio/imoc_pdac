@@ -39,8 +39,10 @@ COMPLETE_ERRORS_PATH = os.path.join(RESULTS_FOLDER, COMPLETE_ERRORS_FILE)
 INCOMPLETE_ERRORS_PATH = os.path.join(RESULTS_FOLDER, INCOMPLETE_ERRORS_FILE)
 TIME_ERRORS_PATH = os.path.join(RESULTS_FOLDER, TIME_ERRORS_FILE)
 
-amputation_mechanisms = ["EDM", 'MCAR', 'MAR', 'MNAR', "PM"]
+#amputation_mechanisms = ["EDM", 'MCAR', 'MAR', 'MNAR', "PM"]
+amputation_mechanisms = ["EDM"]
 n_clusters = 2
-probs = np.arange(100, step = 10)
+#probs = np.arange(100, step = 10)
+probs = 0
 imputation = [True, False]
 runs_per_alg = np.arange(3)

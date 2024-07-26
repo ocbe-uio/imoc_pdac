@@ -76,6 +76,65 @@ class LoadDataset:
             out = Xs
         return out
 
+
+    def load_incomplete_PDAC(p, return_y: bool = False, shuffle: bool = True, assess_percentage: bool = True,
+                             random_state: int = None):
+        r"""
+        Load an incomplete multi-view version of the PDAC dataset, a five-view dataset from a multi-omic study on PDAC
+        patients.
+
+        Parameters
+        ----------
+        p: list or float
+            The percentage that each view will have for missing samples. If p is float, all the views will have the
+            same percentage
+        return_y: bool, default False
+            If True, return the label too
+        shuffle: bool, default False
+            If True, shuffle the dataset.
+        assess_percentage: bool
+            If False, each view is dropped independently.
+        random_state: int, default None
+            If int, random_state is the seed used by the random number generator.
+
+        Returns
+        -------
+        Xs : list of array-likes
+            - Xs length: n_views
+            - Xs[i] shape: (n_samples_i, n_features_i)
+            A list of different views.
+        ys : optional list of array-likes
+            Array with labels
+
+        Notes
+        -----
+        This data consists of five views from a TCGA multi-omics study of 90 PDAC patients:
+        - RPPA : protein expression of 192 proteins
+        - miRNA: miRNA expression of 553 miRNA
+        - RNAseq: gene expression of 1565 genes
+        - methylation: methylation of 2187 CpG sites
+        - mutations: mutations (yes/no) of 71 genes
+        >>> from imvc.datasets import LoadDataset
+        >>> Xs = LoadDataset.load_incomplete_PDAC(p=0)
+        """
+        filenames = ["complete_cancer_data_PDAC_RPPAArray-20160128.csv",
+                     "complete_cancer_data_PDAC_miRNASeqGene-20160128.csv",
+                     "complete_cancer_data_PDAC_RNASeq2GeneNorm-20160128.csv",
+                     "complete_cancer_data_PDAC_Methylation-20160128.csv",
+                     "complete_cancer_data_PDAC_Mutation-20160128.csv"]
+        module_path = dirname(__file__)
+        Xs = [pd.read_csv(os.path.join(module_path, "data", "PDAC", filename)) for filename in filenames]
+        Xs = DatasetUtils.ampute(Xs=Xs, p=p, assess_percentage=assess_percentage, random_state=random_state)
+        if shuffle:
+            Xs = DatasetUtils.shuffle_imvd(Xs=Xs, random_state=random_state)
+        if return_y:
+            ys = None
+            out = (Xs, ys)
+        else:
+            out = Xs
+        return out
+
+
     @staticmethod
     def load_incomplete_nutrimouse(p, return_y: bool = False, shuffle: bool = True, assess_percentage: bool = True,
                                    random_state: int = None):

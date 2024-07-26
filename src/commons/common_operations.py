@@ -54,8 +54,8 @@ class CommonOperations:
         names = dataset_name.split("_")
         if "simulated" in names:
             names = ["_".join(names)]
-        x_name = names if len(names) > 1 else (names[0], "0")
-        Xs = LoadDataset.load_dataset(dataset_name=x_name, return_y=True)
+        x_name = names if len(names) > 1 else names[0]
+        Xs = LoadDataset.load_dataset(dataset_name=x_name, return_y=False)
         return Xs
 
 
@@ -70,8 +70,8 @@ class CommonOperations:
         if args.n_jobs == 1:
             iterator = pd.DataFrame(unfinished_results_dataset.index.to_list(), columns=indexes_names)
             iterator.apply(
-                lambda x: RunClustering.run_iteration(idx=x, results=results, Xs=Xs,
-                                                      algorithms=algorithms,
+                lambda x: RunClustering.run_iteration(idx=x, results=results, Xs=Xs, y=None,
+                                                      algorithms=algorithms, n_clusters=n_clusters,
                                                       incomplete_algorithms=incomplete_algorithms,
                                                       random_state=RANDOM_STATE,
                                                       subresults_path=subresults_path, logs_file=logs_file,

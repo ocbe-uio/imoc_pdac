@@ -3,6 +3,10 @@ import pandas as pd
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.preprocessing import FunctionTransformer, StandardScaler
 from sklearn.impute import KNNImputer
+from sklearn.decomposition import PCA
+from sklearn.cluster import KMeans
+from sklearn.metrics import euclidean_distances
+from collections import defaultdict
 
 
 class InitialProcessing:
@@ -68,7 +72,7 @@ class RemoveFeaturesWithNaN(BaseEstimator, TransformerMixin):
         return transformed_X
 
 
-class RemoveFeaturesLowMAE(BaseEstimator, TransformerMixin):
+class RemoveFeaturesLowMAD(BaseEstimator, TransformerMixin):
 
     def __init__(self, percentage_to_keep: float, verbose: bool = False):
         self.percentage_to_keep = percentage_to_keep
@@ -106,7 +110,7 @@ class RemoveCorrelatedFeatures(BaseEstimator, TransformerMixin):
             print(f"{self.__class__.__name__} keeping {len(X.columns) - len(self.columns_to_drop_)} features")
         return self
 
-    def transform(self, X, y=None):
+    def transform(self, X, y = None):
         transformed_X = X.drop(columns = self.columns_to_drop_)
         return transformed_X
 
@@ -152,7 +156,7 @@ class ValueImputation(BaseEstimator, TransformerMixin):
         self.imputer.fit(X_scaled)
         return self
 
-    def transform(self, X, y=None):
+    def transform(self, X, y = None):
         missing_values = X.isna().sum().sum()
         X_scaled = self.scaler.transform(X)
         X_imputed = self.imputer.transform(X_scaled)
@@ -161,3 +165,37 @@ class ValueImputation(BaseEstimator, TransformerMixin):
         if self.verbose:
             print(f"{self.__class__.__name__} transforming {missing_values} values")
         return transformed_X
+
+
+class PrincipalFeatures(BaseEstimator, TransformerMixin):
+    def __init__(self, diff_n_features, explained_var, verbose=False):
+        self.verbose = verbose
+        self.scaler = StandardScaler()
+        self.diff_n_features = diff_n_features
+        self.explained_var = explained_var
+
+    def fit(self, X, y = None):
+        X_scaled = self.scaler.fit_transform(X)
+        pca = PCA().fit(X_scaled)
+        explained_variance = pca.explained_variance_ratio_
+        cumulative_expl_var = np.cumsum(explained_variance)
+        q = np.argmax(cumulative_expl_var >= self.explained_var) + 1
+        A_q = pca.components_.T[:, :q]
+        clusternumber = min(q + self.diff_n_features, X.shape[1])
+        kmeans = KMeans(n_clusters=clusternumber).fit(A_q)
+        clusters = kmeans.predict(A_q)
+        cluster_centers = kmeans.cluster_centers_
+        dists = defaultdict(list)
+        for i, c in enumerate(clusters):
+            dist = euclidean_distances([A_q[i, :]], [cluster_centers[c, :]])[0][0]
+            dists[c].append((i, dist))
+        self.indices_ = [sorted(f, key=lambda x: x[1])[0][0] for f in dists.values()]
+        if self.verbose:
+            print(f"{self.__class__.__name__} keeping {len(self.indices_)} features")
+        self.feature_names_ = X.columns if hasattr(X, 'columns') else np.arange(X.shape[1])
+        self.selected_features_ = [self.feature_names_[i] for i in self.indices_]
+        return self
+
+    def transform(self, X, y = None):
+        X_transformed = pd.DataFrame(X, columns=self.selected_features_, index=X.index)
+        return X_transformed

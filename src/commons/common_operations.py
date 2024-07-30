@@ -28,7 +28,7 @@ class CommonOperations:
     @staticmethod
     def get_results_table(datasets, algorithms, probs, amputation_mechanisms, imputation, runs_per_alg, two_view_datasets):
         # create matrix showing all possible combinations of different views
-        PDAC_omics = ["RPPA", "miRNA", "RNAseq", "Methylation", "Mutations"]
+        PDAC_omics = ["CNA", "RPPA", "miRNA", "RNAseq", "Methylation", "Mutations"]
         combinations = [row for row in itertools.product([0, 1], repeat=len(PDAC_omics)) if sum(row) >= 2]
         combinations_matrix = pd.DataFrame(combinations, columns=PDAC_omics)
         combinations_matrix = combinations_matrix.apply(lambda row: ''.join(row.astype(str)), axis=1)

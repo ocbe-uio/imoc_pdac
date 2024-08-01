@@ -11,10 +11,13 @@ from imvc.impute import get_observed_view_indicator
 from settings import PROFILES_PATH, DATASET_TABLE_PATH, RANDOM_STATE, probs, amputation_mechanisms, runs_per_alg
 from src.commons import CommonOperations
 
-parser = argparse.ArgumentParser()
-parser.add_argument('-continue_indxs', default=False, action='store_true')
-parser.add_argument('-save_results', default=False, action='store_true')
-args = parser.parse_args()
+#parser = argparse.ArgumentParser()
+#parser.add_argument('-continue_indxs', default=False, action='store_true')
+#parser.add_argument('-save_results', default=False, action='store_true')
+#args = parser.parse_args()
+args = lambda: None
+args.save_results = True
+args.continue_indxs = False
 
 if not args.continue_indxs:
     shutil.rmtree(PROFILES_PATH, ignore_errors=True)
@@ -23,7 +26,7 @@ if not args.continue_indxs:
 datasets, two_view_datasets = CommonOperations.get_list_of_datasets(DATASET_TABLE_PATH)
 
 for dataset_name in datasets:
-    Xs, y, n_clusters = CommonOperations.load_Xs_y(dataset_name=dataset_name)
+    Xs, y, n_clusters = CommonOperations.load_Xs(dataset_name=dataset_name)
 
     for prob, amputation_mechanism, run_n in itertools.product(probs, amputation_mechanisms, runs_per_alg):
         if prob == 0:

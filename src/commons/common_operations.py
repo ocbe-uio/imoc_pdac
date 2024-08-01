@@ -6,10 +6,9 @@ from datetime import datetime
 import numpy as np
 import pandas as pd
 
-import settings
 from imvc.datasets import LoadDataset
 
-from settings import RANDOM_STATE, TIME_LIMIT, n_clusters
+from settings import RANDOM_STATE, TIME_LIMIT
 from src.utils.create_result_table import CreateResultTable
 from src.clustering.run_clustering import RunClustering
 
@@ -26,17 +25,16 @@ class CommonOperations:
 
 
     @staticmethod
-    def get_results_table(datasets, algorithms, probs, amputation_mechanisms, imputation, runs_per_alg, two_view_datasets):
+    def get_results_table(datasets, omic_views, n_clusters, algorithms, probs, amputation_mechanisms, imputation, runs_per_alg, two_view_datasets):
         # create matrix showing all possible combinations of different views
-        PDAC_omics = ["CNA", "RPPA", "miRNA", "RNAseq", "Methylation", "Mutations"]
-        combinations = [row for row in itertools.product([0, 1], repeat=len(PDAC_omics)) if sum(row) >= 2]
-        combinations_matrix = pd.DataFrame(combinations, columns=PDAC_omics)
+        combinations = [row for row in itertools.product([0, 1], repeat=len(omic_views)) if sum(row) >= 2]
+        combinations_matrix = pd.DataFrame(combinations, columns=omic_views)
         combinations_matrix = combinations_matrix.apply(lambda row: ''.join(row.astype(str)), axis=1)
-        # variables in table
+        # variables in results_table
         indexes_results = {"dataset": datasets,
                            "omic_combinations": list(combinations_matrix),
                            "algorithm": list(algorithms.keys()),
-                           "n_clusters": settings.n_clusters,
+                           "n_clusters": n_clusters,
                            "missing_percentage": probs,
                            "amputation_mechanism": amputation_mechanisms,
                            "imputation": imputation,
@@ -62,7 +60,7 @@ class CommonOperations:
     @staticmethod
     def run_processing(unfinished_results, dataset_name, indexes_names, results, algorithms,
                        incomplete_algorithms, subresults_path, logs_file, error_file, args,
-                       results_path):
+                       results_path, n_clusters):
 
         Xs = CommonOperations.load_Xs(dataset_name=dataset_name)
         unfinished_results_dataset = unfinished_results.loc[[dataset_name]]
@@ -84,7 +82,7 @@ class CommonOperations:
                 unfinished_results_dataset_idx = unfinished_results_dataset.xs(0, level="missing_percentage",
                                                                                drop_level=False).index
                 iterator = pd.DataFrame(unfinished_results_dataset_idx.to_list(), columns=indexes_names)
-                iterator.parallel_apply(lambda x: RunClustering.run_iteration(idx=x, results=results, Xs=Xs,
+                iterator.parallel_apply(lambda x: RunClustering.run_iteration(idx=x, results=results, Xs=Xs, y=None,
                                                                               algorithms=algorithms,
                                                                               incomplete_algorithms=incomplete_algorithms,
                                                                               random_state=RANDOM_STATE,
@@ -103,7 +101,7 @@ class CommonOperations:
             else:
                 iterator = pd.DataFrame(unfinished_results_dataset.index.to_list(), columns=indexes_names)
 
-            iterator.parallel_apply(lambda x: RunClustering.run_iteration(idx=x, results=results, Xs=Xs,
+            iterator.parallel_apply(lambda x: RunClustering.run_iteration(idx=x, results=results, Xs=Xs, y=None,
                                                                           algorithms=algorithms,
                                                                           incomplete_algorithms=incomplete_algorithms,
                                                                           random_state=RANDOM_STATE,
@@ -172,10 +170,10 @@ class CommonOperations:
     @staticmethod
     def get_unfinished_results(dataset_table_path, algorithms, probs, amputation_mechanisms, imputation, runs_per_alg,
                                args, subresults_path, logs_file, error_file, results_path, time_results_path,
-                               incomplete_algorithms):
+                               incomplete_algorithms, omic_views, n_clusters):
         datasets, two_view_datasets = CommonOperations.get_list_of_datasets(dataset_table_path)
         indexes_names, results = CommonOperations.get_results_table(datasets=datasets, algorithms=algorithms,
-                                                                    probs=probs,
+                                                                    probs=probs, omic_views=omic_views, n_clusters=n_clusters,
                                                                     amputation_mechanisms=amputation_mechanisms,
                                                                     imputation=imputation, runs_per_alg=runs_per_alg,
                                                                     two_view_datasets=two_view_datasets)
@@ -194,10 +192,11 @@ class CommonOperations:
 
 
     @staticmethod
-    def run_script(dataset_table_path, algorithms, probs, amputation_mechanisms, imputation, runs_per_alg, args,
-                   subresults_path, logs_file, error_file, results_path, time_results_path,incomplete_algorithms):
+    def run_script(dataset_table_path, omic_views, n_clusters, algorithms, probs, amputation_mechanisms, imputation, runs_per_alg,
+                   args, subresults_path, logs_file, error_file, results_path, time_results_path,incomplete_algorithms):
         indexes_names, results, unfinished_results = CommonOperations.get_unfinished_results(
             dataset_table_path=dataset_table_path,
+            omic_views=omic_views, n_clusters=n_clusters,
             algorithms=algorithms, probs=probs,
             amputation_mechanisms=amputation_mechanisms,
             imputation=imputation,
@@ -213,7 +212,7 @@ class CommonOperations:
         for dataset_name in unfinished_results.index.get_level_values("dataset").unique():
             results = CommonOperations.run_processing(unfinished_results=unfinished_results, dataset_name=dataset_name,
                                                       indexes_names=indexes_names, results=results,
-                                                      algorithms=algorithms,
+                                                      algorithms=algorithms, n_clusters=n_clusters,
                                                       incomplete_algorithms=incomplete_algorithms,
                                                       subresults_path=subresults_path,
                                                       logs_file=logs_file, error_file=error_file, args=args,

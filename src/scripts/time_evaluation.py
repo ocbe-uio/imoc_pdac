@@ -113,7 +113,7 @@ else:
     open(TIME_ERRORS_PATH, 'w').close()
 
 for dataset_name in datasets:
-    Xs, y, n_clusters = CommonOperations.load_Xs_y(dataset_name=dataset_name)
+    Xs, y, n_clusters = CommonOperations.load_Xs(dataset_name=dataset_name)
 
     for idx, row in results[(~results["finished"]) & (results["dataset"] == dataset_name)].iterrows():
         alg_name = row["algorithm"]

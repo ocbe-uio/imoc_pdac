@@ -26,8 +26,9 @@ class RunClustering:
             with open(logs_file, "a") as f:
                 f.write(f'\n {row.drop(columns=row.columns).reset_index().to_dict(orient="records")[0]} \t {datetime.now()}')
             row_index = row.index
-            dataset_name, alg_name, p, amputation_mechanism, impute, run_n = (
+            dataset_name, view_combinations, alg_name, p, amputation_mechanism, impute, run_n = (
                 row_index.get_level_values("dataset")[0],
+                row_index.get_level_values("omic_combinations")[0],
                 row_index.get_level_values("algorithm")[0],
                 row_index.get_level_values("missing_percentage")[0],
                 row_index.get_level_values("amputation_mechanism")[0],
@@ -46,6 +47,7 @@ class RunClustering:
             observed_view_indicator = pd.DataFrame.from_dict(observed_view_indicator)
             observed_view_indicator.index = observed_view_indicator.index.astype(int)
             observed_view_indicator.columns = observed_view_indicator.columns.astype(int)
+
             train_Xs = DatasetUtils.convert_to_imvd(Xs=Xs, observed_view_indicator=observed_view_indicator)
             train_Xs = [X.loc[observed_view_indicator.index] for X in train_Xs]
             y_train = y.loc[train_Xs[0].index]

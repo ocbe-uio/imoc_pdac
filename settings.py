@@ -6,15 +6,15 @@ RANDOM_STATE = 42
 TIME_LIMIT = 300
 
 RESULTS_FOLDER = 'results'
-AUX_DATA_FOLDER = "aux_data"
+AUX_DATA_FOLDER = 'aux_data'
 PROFILES_FOLDER = 'profiles'
+DATA_FOLDER = 'data'
 PROFILES_PATH = os.path.join(AUX_DATA_FOLDER, PROFILES_FOLDER)
 
 COMPLETE_SUBRESULTS_FOLDER = 'complete_subresults'
 INCOMPLETE_SUBRESULTS_FOLDER = 'incomplete_subresults'
 COMPLETE_SUBRESULTS_PATH = os.path.join(RESULTS_FOLDER, COMPLETE_SUBRESULTS_FOLDER)
 INCOMPLETE_SUBRESULTS_PATH = os.path.join(RESULTS_FOLDER, INCOMPLETE_SUBRESULTS_FOLDER)
-
 
 COMPLETE_RESULTS_FILE = 'complete_algorithms_evaluation.csv'
 INCOMPLETE_RESULTS_FILE = 'incomplete_algorithms_evaluation.csv'
@@ -39,10 +39,11 @@ COMPLETE_ERRORS_PATH = os.path.join(RESULTS_FOLDER, COMPLETE_ERRORS_FILE)
 INCOMPLETE_ERRORS_PATH = os.path.join(RESULTS_FOLDER, INCOMPLETE_ERRORS_FILE)
 TIME_ERRORS_PATH = os.path.join(RESULTS_FOLDER, TIME_ERRORS_FILE)
 
-#amputation_mechanisms = ["EDM", 'MCAR', 'MAR', 'MNAR', "PM"]
-amputation_mechanisms = ["EDM"]
-n_clusters = 2
-#probs = np.arange(100, step = 10)
-probs = 0
+omic_views = ["CNA", "Methylation", "Mutations", "RNAseq", "RPPA", "miRNA"]
+amputation_mechanisms = ["EDM", 'MCAR', 'MAR', 'MNAR', "PM"]
+amputation_mechanisms_zero = ["EDM"]
+n_clusters = [2]
+probs = np.arange(100, step = 10)
+probs_zero = [0]
 imputation = [True, False]
 runs_per_alg = np.arange(3)

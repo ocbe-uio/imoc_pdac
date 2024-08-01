@@ -1,7 +1,7 @@
 import os
-from os.path import dirname
 import pandas as pd
 import json
+from settings import DATA_FOLDER
 
 
 class LoadDataset:
@@ -774,8 +774,7 @@ class LoadDataset:
         >>> from imvc.datasets import LoadDataset
         >>> Xs = LoadDataset.load_dataset(dataset_name = "PDAC")
         """
-        module_path = dirname(__file__)
-        data_path = os.path.join(module_path, "data", dataset_name)
+        data_path = os.path.join(DATA_FOLDER, dataset_name)
         data_files = [filename for filename in os.listdir(data_path)]
         data_files = sorted(data_files)
         data_files = [os.path.join(data_path, filename) for filename in data_files if dataset_name in filename and not filename.endswith("y.csv")]

@@ -15,6 +15,7 @@ class CreateResultTable:
         # merge result df with all experimental options
         for k, v in {k: v for k, v in indexes_results.items() if k != "dataset"}.items():
             results = results.merge(pd.Series(v, name=k), how="cross")
+
         # change the name when there is no missing
         results.loc[(results["amputation_mechanism"] == "EDM") & (
                 results["missing_percentage"] == 0), "amputation_mechanism"] = "No"
@@ -24,12 +25,14 @@ class CreateResultTable:
         idx_to_drop = results.xs(0, level="missing_percentage",
                                  drop_level=False).xs(True, level="imputation", drop_level=False).index
         results = results.drop(idx_to_drop)
+
         # remove experiments when missing percentage is 0 and there is amputation
         for amputation_mechanism in amputation_mechanisms[1:]:
             idx_to_drop = results.xs(0, level="missing_percentage",
                                      drop_level=False).xs(amputation_mechanism, level="amputation_mechanism",
                                                           drop_level=False).index
             results = results.drop(idx_to_drop)
+
         # keep only one experiment when there is no missing
         results_amputation_mechanism_none = results.xs(0, level="missing_percentage", drop_level=False)
         results_amputation_mechanism_none_tochange = results_amputation_mechanism_none.index.to_frame()

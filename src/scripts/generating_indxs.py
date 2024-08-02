@@ -8,7 +8,7 @@ from sklearn.utils import shuffle
 from imvc.ampute import Amputer
 from imvc.impute import get_observed_view_indicator
 
-from settings import PROFILES_PATH, DATASET_TABLE_PATH, RANDOM_STATE, probs, amputation_mechanisms, runs_per_alg
+from settings import PROFILES_PATH, DATASET_TABLE_PATH, RANDOM_STATE, probs_zero, amputation_mechanisms, runs_per_alg
 from src.commons import CommonOperations
 
 #parser = argparse.ArgumentParser()
@@ -26,9 +26,9 @@ if not args.continue_indxs:
 datasets, two_view_datasets = CommonOperations.get_list_of_datasets(DATASET_TABLE_PATH)
 
 for dataset_name in datasets:
-    Xs, y, n_clusters = CommonOperations.load_Xs(dataset_name=dataset_name)
+    Xs = CommonOperations.load_Xs(dataset_name=dataset_name)
 
-    for prob, amputation_mechanism, run_n in itertools.product(probs, amputation_mechanisms, runs_per_alg):
+    for prob, amputation_mechanism, run_n in itertools.product(probs_zero, amputation_mechanisms, runs_per_alg):
         if prob == 0:
             if amputation_mechanism == "EDM":
                 amputation_mechanism = "No"
@@ -43,7 +43,7 @@ for dataset_name in datasets:
             random_state = RANDOM_STATE + run_n
             if (dataset_name in two_view_datasets) and (amputation_mechanism in ["MAR", "MNAR"]):
                 continue
-            *train_Xs, y_train = shuffle(*Xs, y, random_state=random_state)
+            *train_Xs, = shuffle(*Xs, random_state=random_state)
             p = prob/100
 
             if p != 0:

@@ -52,6 +52,9 @@ class RunClustering:
             train_Xs = [X.loc[observed_view_indicator.index] for X in train_Xs]
             y_train = y.loc[train_Xs[0].index]
 
+            view_combinations = [bool(int(value)) for value in view_combinations]
+            train_Xs = [view for i, view in enumerate(train_Xs) if view_combinations[i] == True]
+
             if impute:
                 train_Xs = MultiViewTransformer(SimpleImputer(strategy="mean").set_output(
                     transform="pandas")).fit_transform(train_Xs)

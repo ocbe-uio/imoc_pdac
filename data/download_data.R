@@ -2,6 +2,7 @@
 #################
 ##  LIBRARIES  ##
 #################
+
 install.packages("Gmisc")
 install.packages("UpSetR")
 if (!require("BiocManager", quietly = TRUE))
@@ -36,6 +37,9 @@ library(curatedTCGAData)
 library(TCGAutils)
 library(UpSetR)
 library(Gmisc)
+library(TCGAbiolinks)
+library(SummarizedExperiment)
+library(dplyr)
 
 ##############
 ##  SCRIPT  ##
@@ -55,7 +59,7 @@ PLATFORM_CODE <- "TCGA"
 metadata <- curatedTCGAData(diseaseCode = TCGA_CODE, version = "2.0.1")
 metadata
 # filter by omics
-omics <- c("RNASeq2GeneNorm*", "RPPA*", "*Methylation*", "*miRNA*", "Mutation", "CNASNP")
+omics <- c("RNASeq2GeneNorm*", "RPPA*", "*Methylation*", "*miRNA*", "Mutation", "GISTIC_ThresholdedByGene")
 curatedTCGAData(diseaseCode = TCGA_CODE, assays = omics, version = "2.0.1")
 # download data
 cancer_data <- curatedTCGAData(diseaseCode = TCGA_CODE, assays = omics, dry.run = FALSE, version = "2.0.1")
@@ -104,16 +108,11 @@ oncoPrintTCGA(cancer_data, matchassay = rag)
 
 # The CNV data comes in segments rather than by genes, so we have to convert those segments into their corresponding gene(s)
 # The code used to download the data and build the CNV matrices was produced by Hornung and Wright in the paper "Block Forests: random forests for blocks of clinical and omics covariate data."
+# The code in this script is adapted from the code provided by the authors in the supplementary files of their paper. 
 
-# Reference:
-# Hornung, R., Wright, M.N. Block Forests: random forests for blocks of clinical and omics covariate data. BMC Bioinformatics 20, 358 (2019). https://doi.org/10.1186/s12859-019-2942-y
+# References:
+# [paper] Hornung, R., Wright, M.N. Block Forests: random forests for blocks of clinical and omics covariate data. BMC Bioinformatics 20, 358 (2019). https://doi.org/10.1186/s12859-019-2942-y
 
-
-library(TCGAbiolinks)
-library(SummarizedExperiment)
-library(dplyr)
-
-setwd("C:/Users/alepg/PycharmProjects/imo_clustering/data_paad")
 
 # Download CNV data
 query <- GDCquery(project = "TCGA-PAAD",
@@ -199,7 +198,15 @@ write.csv(cnvmean_data, "cancer_data_PAAD_CNA-20160128.csv")
 # save object
 #filename_rds <- pathJoin(folder_raw_data, paste0("rnaseqnorm_meth_rppa_mirna_", CANCER_CODE, PLATFORM_CODE, ".rds"))
 #saveRDS(cancer_data, filename_rds)
-exportClass(cancer_data, dir = folder_raw_data, fmt = "csv", ext = ".csv")
+getwd()
+exportClass(cancer_data, dir = 'C:/Users/alepg/PycharmProjects/imo_clustering/data/raw_data', fmt = "csv", ext = ".csv")
+# CNV data (since we have to get all the information in the matrix to analyse)
+cnv_data <- as.matrix(assay(cancer_data[[1]]))
+cnv_row_data <- as.data.frame(rowData(cancer_data[[1]]))
+cnv_complete <- cbind(cnv_row_data, cnv_data)
+write.csv(cnv_complete, 'cancer_data_PAAD_CNA1-20160128.csv')
+
+
 
 # FOR SUPERVISED LEARNING (not used in this project)
 

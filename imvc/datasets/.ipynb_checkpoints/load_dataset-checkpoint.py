@@ -122,7 +122,7 @@ class LoadDataset:
                      "complete_cancer_data_PDAC_RNASeq2GeneNorm-20160128.csv",
                      "complete_cancer_data_PDAC_Methylation-20160128.csv",
                      "complete_cancer_data_PDAC_Mutation-20160128.csv",
-                     "complete_cancer_data_PDAC_CNA-20160128.csv"]
+                     "complete_cancer_data_PDAC_CNA_GISTIC-20160128.csv"]
         module_path = dirname(__file__)
         Xs = [pd.read_csv(os.path.join(module_path, "data", "PDAC", filename)) for filename in filenames]
         Xs = DatasetUtils.ampute(Xs=Xs, p=p, assess_percentage=assess_percentage, random_state=random_state)

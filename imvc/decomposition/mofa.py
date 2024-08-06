@@ -54,21 +54,21 @@ class MOFA(TransformerMixin, BaseEstimator):
         Entry point as the original library. This can be used for data analysis and explainability.
     mofa_model_ : Class around HDF5-based model on disk
         This can be used for data analysis and explainability. It provides utility functions to get factors, weights,
-         features, and samples info in the form of Pandas dataframes, and data as a NumPy array.
+        features, and samples info in the form of Pandas dataframes, and data as a NumPy array.
     weights_: ndarray
         Weights of the MOFA model.
 
     References
     ----------
-    [paper1] Argelaguet R, Velten B, Arnol D, Dietrich S, Zenz T, Marioni JC, Buettner F, Huber W, Stegle O
-        (2018). “Multi‐Omics Factor Analysis—a framework for unsupervised integration of multi‐omics data sets.”
-        Molecular Systems Biology, 14. doi:10.15252/msb.20178124.
-    [paper2] Argelaguet R, Arnol D, Bredikhin D, Deloro Y, Velten B, Marioni JC, Stegle O (2020). “MOFA+: a statistical
-        framework for comprehensive integration of multi-modal single-cell data.” Genome Biology, 21.
-        doi:10.1186/s13059-020-02015-1.
-    [url] https://biofam.github.io/MOFA2/index.html
+    .. [#mofapaper1] Argelaguet R, Velten B, Arnol D, Dietrich S, Zenz T, Marioni JC, Buettner F, Huber W, Stegle O
+                    (2018). “Multi‐Omics Factor Analysis—a framework for unsupervised integration of multi‐omics data
+                    sets.” Molecular Systems Biology, 14. doi:10.15252/msb.20178124.
+    .. [#mofapaper2] Argelaguet R, Arnol D, Bredikhin D, Deloro Y, Velten B, Marioni JC, Stegle O (2020). “MOFA+: a
+                     statistical framework for comprehensive integration of multi-modal single-cell data.” Genome
+                     Biology, 21. doi:10.1186/s13059-020-02015-1.
+    .. [#mofacode] https://biofam.github.io/MOFA2/index.html
 
-    Examples
+    Example
     --------
     >>> from imvc.datasets import LoadDataset
     >>> from imvc.decomposition import MOFA
@@ -108,10 +108,10 @@ class MOFA(TransformerMixin, BaseEstimator):
         ----------
         Xs : list of array-likes
             - Xs length: n_views
-            - Xs[i] shape: (n_samples_i, n_features_i)
+            - Xs[i] shape: (n_samples, n_features_i)
             A list of different views.
-        y : array-like, shape (n_samples,)
-            Labels for each sample. Only used by supervised algorithms.
+        y : Ignored
+            Not used, present here for API consistency by convention.
 
         Returns
         -------
@@ -167,6 +167,37 @@ class MOFA(TransformerMixin, BaseEstimator):
                               for X,transformed_X in zip(Xs,transformed_Xs)]
         return transformed_Xs
 
+
+    def impute(self, Xs):
+        r"""
+        Impute incomplete multi-view dataset.
+
+        Parameters
+        ----------
+        Xs : list of array-likes
+            - Xs length: n_views
+            - Xs[i] shape: (n_samples_i, n_features_i)
+            A list of different views.
+
+        Returns
+        -------
+        transformed_Xs : list of array-likes, shape (n_samples, n_features)
+            The imputed multi-view dataset.
+        """
+        ws = self.weights_
+        winv = [np.linalg.pinv(w) for w in ws]
+        transformed_Xs = [np.dot(X, w.T) for X,w in zip(Xs, winv)]
+        imputed_Xs = copy.deepcopy(Xs)
+        for idx, (transformed_X, w) in enumerate(zip(transformed_Xs, ws)):
+            imputed_X = np.dot(np.nan_to_num(transformed_X, nan=0.0), w.T)
+            imputed_X = pd.DataFrame(imputed_X, columns=imputed_Xs[idx].columns)
+            imputed_Xs[idx] = imputed_Xs[idx].fillna(imputed_X)
+
+        if self.transform_ == "pandas":
+            imputed_Xs = [pd.DataFrame(transformed_X, columns=self._columns, index=X.index)
+                              for X,transformed_X in zip(Xs,imputed_Xs)]
+        return imputed_Xs
+
     
     def _run_mofa(self, data):
         self.mofa_.set_data_options(**self.data_options)
@@ -186,11 +217,32 @@ class MOFA(TransformerMixin, BaseEstimator):
         return None
 
 
-    def get_feature_names_out(self, *args, **params):
+    def get_feature_names_out(self):
+        r"""
+        Get output feature names for transformation.
+
+        Returns
+        -------
+        Returns:
+        feature_names_out: list of str objects
+            Transformed feature names.
+        """
         return self._columns
 
-    def set_output(self, *, transform=None):
-        self.transform_ = "pandas"
-        return self
 
+    def set_output(self, *, transform=None):
+        r"""
+        Set output container.
+
+        Parameters
+        ----------
+        transform : str
+            Only 'pandas' is currently supported.
+
+        Returns
+        -------
+        self:  returns and instance of self.
+        """
+        self.transform_ = transform
+        return self
 

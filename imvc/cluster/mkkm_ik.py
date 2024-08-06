@@ -44,8 +44,8 @@ class MKKMIK(BaseEstimator, ClassifierMixin):
     ----------
     labels_ : array-like of shape (n_samples,)
         Labels of each point in training data.
-    H_ : array-like
-        Consensus clustering matrix.
+    embedding_ :
+        Consensus clustering matrix to be used as input for the KMeans clustering step.
     gamma_ : array-like
         Kernel weights.
     K_ : array-like
@@ -60,7 +60,7 @@ class MKKMIK(BaseEstimator, ClassifierMixin):
             doi: 10.1109/TPAMI.2019.2892416.
     [code]  https://github.com/wangsiwei2010/multiple_kernel_clustering_with_absent_kernel
 
-    Examples
+    Example
     --------
     >>> from sklearn.pipeline import make_pipeline
     >>> from imvc.datasets import LoadDataset
@@ -145,7 +145,7 @@ class MKKMIK(BaseEstimator, ClassifierMixin):
 
         model = KMeans(n_clusters=self.n_clusters, random_state=self.random_state)
         self.labels_ = model.fit_predict(X=H_normalized)
-        self.H_, self.gamma_, self.KA_, self.loss_ = H_normalized, gamma, KA, obj
+        self.embedding_, self.gamma_, self.KA_, self.loss_ = H_normalized, gamma, KA, obj
 
         return self
 

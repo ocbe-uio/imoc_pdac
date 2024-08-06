@@ -49,7 +49,7 @@ class NEMO(BaseEstimator, ClassifierMixin):
         Final number of clusters.
     num_neighbors_ : int
         Final number of neighbors.
-    affinity_matrix_ : np.array
+    embedding_ : np.array
         The final representation of the data to be used as input for the clustering step.
     spectral_graph_ : np.array(n_samples, n_clusters)
         Spectral embedding.
@@ -60,7 +60,7 @@ class NEMO(BaseEstimator, ClassifierMixin):
             Bioinformatics. 2019;35(18):3348–3356. doi: 10.1093/bioinformatics/btz058.
     [code]  https://github.com/Shamir-Lab/NEMO
 
-    Examples
+    Example
     --------
     >>> from imvc.datasets import LoadDataset
     >>> from imvc.cluster import NEMO
@@ -155,7 +155,7 @@ class NEMO(BaseEstimator, ClassifierMixin):
             raise ValueError("Only supports 'r' and 'python' engines.")
 
         self.labels_ = labels
-        self.affinity_matrix_ = affinity_matrix
+        self.embedding_ = affinity_matrix
         self.spectral_graph_ = transformed_Xs
 
         return self

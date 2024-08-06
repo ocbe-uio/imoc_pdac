@@ -136,7 +136,7 @@ def extract_ncut(a: np.ndarray, k: int):
     v = u[:, u.shape[1] - k:]
 
     kmeans = KMeans(n_clusters=k).fit(v)
-    return kmeans.labels_
+    return kmeans.labels_, v
 
 
 def extract_max_value(h: np.ndarray):

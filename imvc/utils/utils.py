@@ -9,16 +9,15 @@ def check_Xs(Xs, enforce_views=None, copy=False, force_all_finite="allow-nan",re
 
     Parameters
     ----------
-    Xs : nd-array, list
-        Input data.
+    Xs : list of array-likes
+        - Xs length: n_views
+        - Xs[i] shape: (n_samples, n_features_i)
+        A list of different views.
     enforce_views : int, (default=not checked)
         If provided, ensures this number of views in Xs. Otherwise not checked.
     copy : boolean, (default=False)
-        If True, the returned Xs is a copy of the input Xs,
-        and operations on the output will not affect
-        the input.
-        If False, the returned Xs is a view of the input Xs,
-        and operations on the output will change the input.
+        If True, the returned Xs is a copy of the input Xs, and operations on the output will not affect the input.
+        If False, the returned Xs is a view of the input Xs, and operations on the output will change the input.
     force_all_finite : bool or 'allow-nan', default='allow-nan'
         Whether to raise an error on np.inf, np.nan, pd.NA in array. The possibilities are:
         - True: Force all values of array to be finite.
@@ -26,15 +25,15 @@ def check_Xs(Xs, enforce_views=None, copy=False, force_all_finite="allow-nan",re
         - 'allow-nan': accepts only np.nan and pd.NA values in array. Values
           cannot be infinite.
     return_dimensions : boolean, (default=False)
-        If True, the function also returns the dimensions of the multiview
-        dataset. The dimensions are n_views, n_samples, n_features where
-        n_samples and n_views are respectively the number of views and the
-        number of samples, and n_features is a list of length n_views
-        containing the number of features of each view.
+        If True, the function also returns the dimensions of the multiview dataset. The dimensions are n_views,
+        n_samples, n_features where n_samples and n_views are respectively the number of views and the number of
+        samples, and n_features is a list of length n_views containing the number of features of each view.
 
     References
     ----------
-    Adapted from mvlearn package.
+    .. [#checkxscode] Perry, Ronan, et al. "mvlearn: Multiview Machine Learning in Python." Journal of Machine
+                      Learning Research 22.109 (2021): 1-7.
+    .. [#checkxspaper] https://mvlearn.github.io/references/utils.html
 
     Returns
     -------
@@ -65,17 +64,10 @@ def check_Xs(Xs, enforce_views=None, copy=False, force_all_finite="allow-nan",re
         msg = "Length of input list must be greater than 0"
         raise ValueError(msg)
 
-    if n_views == 1:
-        msg = "Must provide at least two data matrices"
-        raise ValueError(msg)
     if enforce_views is not None and n_views != enforce_views:
         msg = "Wrong number of views. Expected {} but found {}".format(
             enforce_views, n_views
         )
-        raise ValueError(msg)
-
-    if not len(set([X.shape[0] for X in Xs])) == 1:
-        msg = "All views must have the same number of samples"
         raise ValueError(msg)
 
     pandas_format = True if isinstance(Xs[0],pd.DataFrame) else False
@@ -93,7 +85,7 @@ def check_Xs(Xs, enforce_views=None, copy=False, force_all_finite="allow-nan",re
         return Xs
 
 
-def _convert_df_to_r_object(dataframe):
+def _convert_df_to_r_object(dataframe):  # pragma: no cover
     import rpy2.robjects as ro
     from rpy2.robjects.packages import importr
     from rpy2.robjects import pandas2ri

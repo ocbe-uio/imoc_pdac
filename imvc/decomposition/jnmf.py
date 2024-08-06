@@ -12,8 +12,6 @@ class jNMF(TransformerMixin, BaseEstimator):
     jNMF decompose the matrices to two low-dimensional factor matrices. It can deal with both view- and
     single-wise missing.
 
-    R library "nnTensor" should be installed. This can be done using the R command: install.packages("nnTensor")
-
     Parameters
     ----------
     n_components : int, default=10
@@ -54,7 +52,7 @@ class jNMF(TransformerMixin, BaseEstimator):
     verbose : bool, default=False
         Verbosity mode.
     engine : str, default='r'
-        Engine to use for computing the model.
+        Engine to use for computing the model. Currently only 'r' is supported.
 
     Attributes
     ----------
@@ -71,19 +69,20 @@ class jNMF(TransformerMixin, BaseEstimator):
 
     References
     ----------
-    [paper1] Liviu Badea, (2008) Extracting Gene Expression Profiles Common to Colon and Pancreatic Adenocarcinoma
-            using Simultaneous nonnegative matrix factorization. Pacific Symposium on Biocomputing 13:279-290.
-    [paper2] Shihua Zhang, et al. (2012) Discovery of multi-dimensional modules by integrative analysis of cancer
-            genomic data. Nucleic Acids Research 40(19), 9379-9391.
-    [paper3] Zi Yang, et al. (2016) A non-negative matrix factorization method for detecting modules in heterogeneous
-            omics multi-modal data, Bioinformatics 32(1), 1-8.
-    [paper4] Y. Kenan Yilmaz et al., (2010) Probabilistic Latent Tensor Factorization, International Conference on
-            Latent Variable Analysis and Signal Separation 346-353.
-    [paper5] N. Fujita et al., (2018) Biomarker discovery by integrated joint non-negative matrix factorization and
-            pathway signature analyses, Scientific Report.
-    [code] https://rdrr.io/cran/nnTensor/man/jNMF.html
+    .. [#jnmfpaper1] Liviu Badea, (2008) Extracting Gene Expression Profiles Common to Colon and Pancreatic
+                    Adenocarcinoma using Simultaneous nonnegative matrix factorization. Pacific Symposium on
+                    Biocomputing 13:279-290.
+    .. [#jnmfpaper2] Shihua Zhang, et al. (2012) Discovery of multi-dimensional modules by integrative analysis of
+                     cancer genomic data. Nucleic Acids Research 40(19), 9379-9391.
+    .. [#jnmfpaper3] Zi Yang, et al. (2016) A non-negative matrix factorization method for detecting modules in
+                     heterogeneous omics multi-modal data, Bioinformatics 32(1), 1-8.
+    .. [#jnmfpaper4] Y. Kenan Yilmaz et al., (2010) Probabilistic Latent Tensor Factorization, International Conference
+                     on Latent Variable Analysis and Signal Separation 346-353.
+    .. [#jnmfpaper5] N. Fujita et al., (2018) Biomarker discovery by integrated joint non-negative matrix factorization
+                     and pathway signature analyses, Scientific Report.
+    .. [#jnmfcode] https://rdrr.io/cran/nnTensor/man/jNMF.html
 
-    Examples
+    Example
     --------
     >>> from imvc.datasets import LoadDataset
     >>> from imvc.decomposition import jNMF
@@ -153,7 +152,7 @@ class jNMF(TransformerMixin, BaseEstimator):
                 weights=self.weights)
             if self.random_state is not None:
                 base = importr("base")
-                base.set_seed(self.random_state)
+                base.set_seed((self.random_state))
 
             W, V, H, recerror, train_recerror, test_recerror, relchange = nnTensor.jNMF(
                 X= transformed_Xs, M=transformed_mask, J=self.n_components,
@@ -168,6 +167,7 @@ class jNMF(TransformerMixin, BaseEstimator):
             raise ValueError("Only engine=='r' is currently supported.")
 
         self.H_ = H
+        self.V_ = V
         self.reconstruction_err_ = list(recerror)
         self.observed_reconstruction_err_ = list(train_recerror)
         self.missing_reconstruction_err_ = list(test_recerror)
@@ -219,7 +219,19 @@ class jNMF(TransformerMixin, BaseEstimator):
 
 
     def set_output(self, *, transform=None):
-        self.transform_ = "pandas"
+        r"""
+        Set output container.
+
+        Parameters
+        ----------
+        transform : str
+            Only 'pandas' is currently supported.
+
+        Returns
+        -------
+        self:  returns and instance of self.
+        """
+        self.transform_ = transform
         return self
 
 

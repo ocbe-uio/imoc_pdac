@@ -13,11 +13,7 @@ class NormalizerNaN(Normalizer):
         The norm to use to normalize each non zero sample. If norm=’max’ is used, values will be rescaled by
         the maximum of the absolute values.
 
-    Attributes
-    ----------
-    features_view_mean_list_ : array-like of shape (n_views,)
-        The mean value of each feature in the corresponding view, if value='mean'
-    Examples
+    Example
     --------
     >>> from imvc.utils import DatasetUtils
     >>> from imvc.datasets import LoadDataset
@@ -34,7 +30,6 @@ class NormalizerNaN(Normalizer):
     def __init__(self, norm : str = 'l2'):
 
         super().__init__(norm)
-
         values = ['l1', 'l2', 'max']
         if norm not in values:
             raise ValueError(f"Invalid value. Expected one of: {values}")
@@ -50,7 +45,7 @@ class NormalizerNaN(Normalizer):
         X : array-like of shape (n_samples, n_features)
             Training vector, where n_samples is the number of samples and n_features is the number of features.
         y : Ignored
-                Not used, present here for API consistency by convention.
+            Not used, present here for API consistency by convention.
         Returns
         -------
         self :  returns and instance of self.
@@ -69,7 +64,7 @@ class NormalizerNaN(Normalizer):
         X : array-like of shape (n_samples, n_features)
             Training vector, where n_samples is the number of samples and n_features is the number of features.
         y : Ignored
-                Not used, present here for API consistency by convention.
+            Not used, present here for API consistency by convention.
 
         Returns
         -------
@@ -79,13 +74,11 @@ class NormalizerNaN(Normalizer):
 
         X = check_array(X, force_all_finite='allow-nan')
         if self.norm == "l1":
-            norms = np.abs(X).sum(axis=1)
+            norms = np.nansum(np.abs(X), axis=1)
         elif self.norm == "l2":
-            norms = (X**2).sum(axis=1)**0.5
+            norms = np.nansum(X**2, axis=1)
         elif self.norm == "max":
-            norms = np.abs(X).sum(axis=1).max(axis=1)
-        else:
-            raise ValueError(f"Invalid value. Expected one of: ['l1', 'l2', 'max']")
+            norms = np.nanmax(np.abs(X), axis=1)
         norms[norms == 0] = 1.
         transformed_X = X / norms[:,None]
         return transformed_X

@@ -2,6 +2,7 @@ import os.path
 from pandarallel import pandarallel
 import pandas as pd
 from sklearn.decomposition import NMF
+from sklearn.feature_selection import VarianceThreshold
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler, MinMaxScaler, FunctionTransformer
 from sklearn.cluster import KMeans
@@ -27,25 +28,32 @@ if args.n_jobs > 1:
     pandarallel.initialize(nb_workers= args.n_jobs)
 
 algorithms = {
-    "Concat": {"alg": make_pipeline(ConcatenateViews(),
+    "Concat": {"alg": make_pipeline(MultiViewTransformer(VarianceThreshold().set_output(transform="pandas")),
+                                  ConcatenateViews(),
                                     StandardScaler().set_output(transform='pandas'),
                                     KMeans()), "params": {}},
-    "NMF": {"alg": make_pipeline(ConcatenateViews(),
+    "NMF": {"alg": make_pipeline(MultiViewTransformer(VarianceThreshold().set_output(transform="pandas")),
+                                  ConcatenateViews(),
                                   MinMaxScaler().set_output(transform='pandas'),
                                   NMF().set_output(transform='pandas'), StandardScaler(), KMeans()), "params": {}},
-    "MVSC": {"alg": make_pipeline(MultiViewTransformer(StandardScaler().set_output(transform= "pandas")),
+    "MVSC": {"alg": make_pipeline(MultiViewTransformer(VarianceThreshold().set_output(transform="pandas")),
+                                  MultiViewTransformer(StandardScaler().set_output(transform= "pandas")),
                                                   MultiviewSpectralClustering()),
                              "params": {}},
-    "MVCRSC": {"alg": make_pipeline(MultiViewTransformer(StandardScaler().set_output(transform= "pandas")),
+    "MVCRSC": {"alg": make_pipeline(MultiViewTransformer(VarianceThreshold().set_output(transform="pandas")),
+                                  MultiViewTransformer(StandardScaler().set_output(transform= "pandas")),
                                                        MultiviewCoRegSpectralClustering()),
                                   "params": {}},
-    "GPCA": {"alg": make_pipeline(MultiViewTransformer(StandardScaler()), GroupPCA(), StandardScaler(), KMeans()),
+    "GPCA": {"alg": make_pipeline(MultiViewTransformer(VarianceThreshold().set_output(transform="pandas")),
+                                  MultiViewTransformer(StandardScaler()), GroupPCA(), StandardScaler(), KMeans()),
                  "params": {}},
-    "AJIVE": {"alg": make_pipeline(MultiViewTransformer(StandardScaler()), AJIVE(),
+    "AJIVE": {"alg": make_pipeline(MultiViewTransformer(VarianceThreshold().set_output(transform="pandas")),
+                                  MultiViewTransformer(StandardScaler()), AJIVE(),
                                    MultiViewTransformer(FunctionTransformer(pd.DataFrame)), ConcatenateViews(),
                                    StandardScaler(), KMeans()),
               "params": {}},
-    "SNF": {"alg": MultiViewTransformer(StandardScaler().set_output(transform="pandas")), "params": {}},
+    "SNF": {"alg": make_pipeline(MultiViewTransformer(VarianceThreshold().set_output(transform="pandas")),
+                                  MultiViewTransformer(StandardScaler().set_output(transform= "pandas"))), "params": {}},
 }
 incomplete_algorithms = False
 CommonOperations.run_script(dataset_table_path=DATASET_TABLE_PATH, algorithms=algorithms, probs=probs,

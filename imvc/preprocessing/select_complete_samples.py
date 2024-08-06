@@ -1,3 +1,4 @@
+import pandas as pd
 from sklearn.preprocessing import FunctionTransformer
 
 from ..impute import get_observed_view_indicator
@@ -6,17 +7,10 @@ from ..utils import check_Xs
 
 class SelectCompleteSamples(FunctionTransformer):
     r"""
-    Remove incomplete samples from a multi-view dataset.
+    Remove incomplete samples from a multi-view dataset. Apply FunctionTransformer (from Scikit-learn)
+    with select_complete_samples as a function.
 
-    Parameters
-    ----------
-    -
-
-    Attributes
-    ----------
-    -
-
-    Examples
+    Example
     --------
     >>> from imvc.datasets import LoadDataset
     >>> from imvc.preprocessing import SelectCompleteSamples
@@ -46,12 +40,26 @@ def select_complete_samples(Xs: list):
     -------
     transformed_Xs : list of array-likes, shape (n_samples, n_features_i)
         The transformed data.
+
+    Example
+    --------
+    >>> from imvc.datasets import LoadDataset
+    >>> from imvc.preprocessing import select_complete_samples
+    >>> from imvc.ampute import Amputer
+    >>> Xs = LoadDataset.load_dataset(dataset_name="nutrimouse")
+    >>> Xs = Amputer(p=0.2, mechanism="MCAR", random_state=42).fit_transform(Xs)
+    >>> select_complete_samples(Xs)
     """
 
     Xs = check_Xs(Xs, force_all_finite='allow-nan')
+    pandas_format = isinstance(Xs[0], pd.DataFrame)
+    if not pandas_format:
+        Xs = [pd.DataFrame(X) for X in Xs]
     sample_views = get_observed_view_indicator(Xs)
     complete_samples = sample_views.all(axis= 1)
     transformed_Xs = [X.loc[complete_samples] for X in Xs]
+    if not pandas_format:
+        transformed_Xs = [X.values for X in transformed_Xs]
     return transformed_Xs
 
 

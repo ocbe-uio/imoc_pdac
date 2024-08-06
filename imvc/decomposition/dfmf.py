@@ -1,4 +1,5 @@
 from typing import Union
+
 import pandas as pd
 from sklearn.base import TransformerMixin, BaseEstimator
 from sklearn.utils.validation import _generate_get_feature_names_out
@@ -9,6 +10,8 @@ from ._skfusion import fusion
 
 class DFMF(TransformerMixin, BaseEstimator):
     r"""
+    Data Fusion by Matrix Factorization (DFMF).
+
     DMFM is a data fusion approach with penalized matrix tri-factorization (DFMF) that simultaneously factorizes
     data matrices to reveal hidden associations. This method can deal with both view- and single-wise missing.
 
@@ -54,11 +57,12 @@ class DFMF(TransformerMixin, BaseEstimator):
 
     References
     ----------
-    [paper] M. Žitnik and B. Zupan, "Data Fusion by Matrix Factorization," in IEEE Transactions on Pattern Analysis
-             and Machine Intelligence, vol. 37, no. 1, pp. 41-53, 1 Jan. 2015, doi: 10.1109/TPAMI.2014.2343973.
-    [code] https://github.com/mims-harvard/scikit-fusion/tree/master
+    .. [#dfmfpaper] M. Žitnik and B. Zupan, "Data Fusion by Matrix Factorization," in IEEE Transactions on Pattern
+                    Analysis and Machine Intelligence, vol. 37, no. 1, pp. 41-53, 1 Jan. 2015,
+                    doi: 10.1109/TPAMI.2014.2343973.
+    .. [#dfmfcode] https://github.com/mims-harvard/scikit-fusion/tree/master
 
-    Examples
+    Example
     --------
     >>> from imvc.datasets import LoadDataset
     >>> from imvc.decomposition import DFMF
@@ -159,10 +163,38 @@ class DFMF(TransformerMixin, BaseEstimator):
 
 
     def set_output(self, *, transform=None):
-        self.transform_ = "pandas"
+        r"""
+        Set output container.
+
+        Parameters
+        ----------
+        transform : str
+            Only 'pandas' is currently supported.
+
+        Returns
+        -------
+        self:  returns and instance of self.
+        """
+        self.transform_ = transform
         return self
 
 
     def get_feature_names_out(self, input_features=None):
+        r"""
+        Get output feature names for transformation. The feature names out will prefixed by the lowercased class name.
+        For example, if the transformer outputs 3 features, then the feature names out are: ["class_name0",
+        "class_name1", "class_name2"].
+
+        Parameters
+        ----------
+        input_features: array-like of str or None, default=None.
+            Only used to validate feature names with the names seen in fit.
+
+        Returns
+        -------
+        Returns:
+        feature_names_out: list of str objects
+            Transformed feature names.
+        """
         return _generate_get_feature_names_out(self, self.n_components, input_features=input_features)
 

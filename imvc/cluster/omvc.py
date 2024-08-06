@@ -43,8 +43,8 @@ class OMVC(BaseEstimator, ClassifierMixin):
         Basis matrix.
     V_ : np.array
         Latent feature matrix.
-    U_star_loss_ : np.array
-        Common consensus, latent feature matrix across all the views.
+    embedding_ :
+        Common consensus, latent feature matrix across all the views to be used as input for the KMeans clustering step.
     loss_ : float
         Value of the loss function.
 
@@ -55,7 +55,7 @@ class OMVC(BaseEstimator, ClassifierMixin):
              doi: 10.1109/BigData.2016.7840701.
     [code]  https://github.com/software-shao/online-multiview-clustering-with-incomplete-view
 
-    Examples
+    Example
     --------
     >>> from sklearn.pipeline import make_pipeline
     >>> from imvc.datasets import LoadDataset
@@ -140,7 +140,7 @@ class OMVC(BaseEstimator, ClassifierMixin):
         self.labels_ = model.fit_predict(X= u_star_loss)
         self.U_ = u
         self.V_ = v
-        self.U_star_loss_ = u_star_loss
+        self.embedding_ = u_star_loss
         self.loss_ = loss
 
         return self

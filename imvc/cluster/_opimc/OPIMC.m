@@ -1,4 +1,4 @@
-function Clu_result = OPIMC(X, W, option, ind)
+function [Clu_result, V] = OPIMC(X, W, option, ind)
 % If you use the code, please cite the following papers:
 % [1] Hu M, Chen S. One-pass incomplete multi-view clustering[C]//Proceedings of the AAAI conference on artificial intelligence. 2019, 33(01): 3838-3845.
 % [2] Jie Wen, Zheng Zhang, Lunke Fei, Bob Zhang, Yong Xu, Zhao Zhang, Jinxing Li, A Survey on Incomplete Multi-view Clustering, IEEE TRANSACTIONS ON SYSTEMS, MAN, AND CYBERNETICS: SYSTEMS, 2022.

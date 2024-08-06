@@ -3,6 +3,7 @@ from typing import Union
 import numpy as np
 import pandas as pd
 
+from . import check_Xs
 from ..impute.observed_view_indicator import get_observed_view_indicator
 
 
@@ -22,7 +23,7 @@ class DatasetUtils:
             - Xs length: n_views
             - Xs[i] shape: (n_samples, n_features_i)
             A list of different views.
-        observed_view_indicator: pd.DataFrame
+        observed_view_indicator: array-like of shape (n_samples, n_views)
             Boolean array-like indicating observed views for each sample.
 
         Returns
@@ -32,27 +33,30 @@ class DatasetUtils:
             - Xs[i] shape: (n_samples, n_features_i)
             A list of different views.
 
-         Examples
+        Examples
         --------
-        >>> from imvc.utils import DatasetUtils
         >>> from imvc.datasets import LoadDataset
+        >>> from imvc.impute import ObservedViewIndicator
         >>> from imvc.ampute import Amputer
         >>> from sklearn.pipeline import make_pipeline
         >>> Xs = LoadDataset.load_dataset(dataset_name="nutrimouse")
-        >>> transformer = make_pipeline(Amputer(p=0.2, mechanism="MCAR", random_state=42),
-                                        ObservedViewIndicator().set_output(transformed="pandas"))
-        >>> Xs = transformer.fit_transform(Xs)
-        >>> observed_view_indicator = get_observed_view_indicator(Xs)
+        >>> transformer = make_pipeline(Amputer(p=0.2, mechanism="MCAR", random_state=42), ObservedViewIndicator().set_output(transformed="pandas"))
+        >>> observed_view_indicator = transformer.fit_transform(Xs)
         >>> DatasetUtils.convert_to_imvd(Xs = Xs, observed_view_indicator = observed_view_indicator)
         """
+        Xs = check_Xs(Xs=Xs, force_all_finite="allow-nan")
         transformed_Xs = []
-        if not isinstance(Xs, pd.DataFrame):
-            observed_view_indicator = pd.DataFrame(observed_view_indicator)
+        if isinstance(observed_view_indicator, pd.DataFrame):
+            observed_view_indicator = observed_view_indicator.values
         for X_idx, X in enumerate(Xs):
-            idxs_to_remove = observed_view_indicator[observed_view_indicator[X_idx] == False].index
+            idxs_to_remove = observed_view_indicator[:,X_idx] == False
+            if isinstance(X, pd.DataFrame):
+                X = X.values
             transformed_X = copy.deepcopy(X)
-            transformed_X.loc[idxs_to_remove] = np.nan
+            transformed_X[idxs_to_remove, :] = np.nan
             transformed_Xs.append(transformed_X)
+        if isinstance(Xs[0], pd.DataFrame):
+            transformed_Xs = [pd.DataFrame(transformed_X, columns=X.columns, index=X.index) for X, transformed_X in zip(Xs, transformed_Xs)]
 
         return transformed_Xs
 
@@ -81,7 +85,7 @@ class DatasetUtils:
         >>> Xs = LoadDataset.load_dataset(dataset_name="nutrimouse")
         >>> DatasetUtils.get_n_views(Xs = Xs)
         """
-
+        Xs = check_Xs(Xs=Xs, force_all_finite="allow-nan")
         n_views = len(Xs)
         return n_views
 
@@ -110,7 +114,7 @@ class DatasetUtils:
         >>> Xs = LoadDataset.load_dataset(dataset_name="nutrimouse")
         >>> DatasetUtils.get_n_samples_by_view(Xs = Xs)
         """
-
+        Xs = check_Xs(Xs=Xs, force_all_finite="allow-nan")
         n_samples_by_view = get_observed_view_indicator(Xs)
         n_samples_by_view = n_samples_by_view.sum(axis=0)
         return n_samples_by_view
@@ -142,8 +146,10 @@ class DatasetUtils:
         >>> Xs = Amputer(p=0.2, mechanism="MCAR", random_state=42).fit_transform(Xs)
         >>> DatasetUtils.get_complete_sample_names(Xs = Xs)
         """
-
+        Xs = check_Xs(Xs=Xs, force_all_finite="allow-nan")
         samples = get_observed_view_indicator(Xs)
+        if not isinstance(samples, pd.DataFrame):
+            samples = pd.DataFrame(samples)
         samples = samples[samples.all(1)].index
         return samples
 
@@ -174,9 +180,46 @@ class DatasetUtils:
         >>> Xs = Amputer(p=0.2, mechanism="MCAR", random_state=42).fit_transform(Xs)
         >>> DatasetUtils.get_incomplete_sample_names(Xs = Xs)
         """
-
+        Xs = check_Xs(Xs=Xs, force_all_finite="allow-nan")
         samples = get_observed_view_indicator(Xs)
+        if not isinstance(samples, pd.DataFrame):
+            samples = pd.DataFrame(samples)
         samples = samples[~samples.all(1)].index
+        return samples
+
+
+    @staticmethod
+    def get_sample_names(Xs: list) -> pd.Index:
+        r"""
+        Get samples in a multi-view dataset.
+
+        Parameters
+        ----------
+        Xs : list of array-likes
+            - Xs length: n_views
+            - Xs[i] shape: (n_samples_i, n_features_i)
+            A list of different views.
+
+        Returns
+        -------
+        samples: pd.Index (n_samples,)
+            Sample names.
+
+        Examples
+        --------
+        >>> from imvc.utils import DatasetUtils
+        >>> from imvc.ampute import Amputer
+        >>> from imvc.datasets import LoadDataset
+        >>> Xs = LoadDataset.load_dataset(dataset_name="nutrimouse")
+        >>> Xs = Amputer(p=0.2, mechanism="MCAR", random_state=42).fit_transform(Xs)
+        >>> DatasetUtils.get_sample_names(Xs = Xs)
+        """
+        Xs = check_Xs(Xs=Xs, force_all_finite="allow-nan")
+        if not isinstance(Xs[0], pd.DataFrame):
+            Xs = [pd.DataFrame(X) for X in Xs]
+        samples = [X.index.to_list() for X in Xs]
+        samples = [x for xs in samples for x in xs]
+        samples = pd.Index(sorted(set(samples), key=samples.index))
         return samples
 
 
@@ -209,12 +252,15 @@ class DatasetUtils:
         >>> Xs = Amputer(p=0.2, mechanism="MCAR", random_state=42).fit_transform(Xs)
         >>> DatasetUtils.get_samples_by_view(Xs = Xs)
         """
-
         observed_view_indicator = get_observed_view_indicator(Xs)
-        if return_as_list:
-            samples = [view_profile[view_profile == 1].index for X_idx, view_profile in observed_view_indicator.items()]
+        if isinstance(Xs[0], pd.DataFrame):
+            observed_view_indicator = pd.DataFrame(observed_view_indicator, index=Xs[0].index)
         else:
-            samples = {X_idx: view_profile[view_profile == 1].index for X_idx, view_profile in observed_view_indicator.items()}
+            observed_view_indicator = pd.DataFrame(observed_view_indicator)
+        if return_as_list:
+            samples = [view_profile[view_profile].index for X_idx, view_profile in observed_view_indicator.items()]
+        else:
+            samples = {X_idx: view_profile[view_profile].index for X_idx, view_profile in observed_view_indicator.items()}
         return samples
 
 
@@ -235,8 +281,8 @@ class DatasetUtils:
 
         Returns
         -------
-        samples: dict of pd.Index
-            Dictionary of missing samples for each view.
+        samples: dict of pd.Index or list of pd.Index.
+            Dictionary or list of missing samples for each view.
 
         Examples
         --------
@@ -254,10 +300,10 @@ class DatasetUtils:
         else:
             observed_view_indicator = pd.DataFrame(observed_view_indicator)
         if return_as_list:
-            samples = [view_profile[view_profile == 0].index.to_list()
+            samples = [view_profile[view_profile == False].index.to_list()
                        for X_idx, view_profile in observed_view_indicator.items()]
         else:
-            samples = {X_idx: view_profile[view_profile == 0].index.to_list()
+            samples = {X_idx: view_profile[view_profile == False].index.to_list()
                        for X_idx, view_profile in observed_view_indicator.items()}
         return samples
 
@@ -276,7 +322,8 @@ class DatasetUtils:
 
         Returns
         -------
-        int: number of complete samples.
+        n_samples: int
+            number of complete samples.
 
         Examples
         --------
@@ -287,7 +334,7 @@ class DatasetUtils:
         >>> Xs = Amputer(p=0.2, mechanism="MCAR", random_state=42).fit_transform(Xs)
         >>> DatasetUtils.get_n_complete_samples(Xs = Xs)
         """
-
+        Xs = check_Xs(Xs=Xs, force_all_finite="allow-nan")
         n_samples = len(DatasetUtils.get_complete_sample_names(Xs=Xs))
         return n_samples
 
@@ -306,7 +353,8 @@ class DatasetUtils:
 
         Returns
         -------
-        int: number of incomplete samples.
+        n_samples: int
+            number of incomplete samples.
 
         Examples
         --------
@@ -317,7 +365,7 @@ class DatasetUtils:
         >>> Xs = Amputer(p=0.2, mechanism="MCAR", random_state=42).fit_transform(Xs)
         >>> DatasetUtils.get_n_incomplete_samples(Xs = Xs)
         """
-
+        Xs = check_Xs(Xs=Xs, force_all_finite="allow-nan")
         n_samples = len(DatasetUtils.get_incomplete_sample_names(Xs=Xs))
         return n_samples
 
@@ -336,7 +384,8 @@ class DatasetUtils:
 
         Returns
         -------
-        float: percentage of complete samples.
+        percentage_samples: float
+            percentage of complete samples.
 
         Examples
         --------
@@ -347,7 +396,7 @@ class DatasetUtils:
         >>> Xs = Amputer(p=0.2, mechanism="MCAR", random_state=42).fit_transform(Xs)
         >>> DatasetUtils.get_percentage_complete_samples(Xs = Xs)
         """
-
+        Xs = check_Xs(Xs=Xs, force_all_finite="allow-nan")
         percentage_samples = DatasetUtils.get_n_complete_samples(Xs=Xs) / len(Xs[0]) * 100
         return percentage_samples
 
@@ -366,7 +415,8 @@ class DatasetUtils:
 
         Returns
         -------
-        float: percentage of incomplete samples.
+        percentage_samples: float
+            percentage of incomplete samples.
 
         Examples
         --------
@@ -377,14 +427,15 @@ class DatasetUtils:
         >>> Xs = Amputer(p=0.2, mechanism="MCAR", random_state=42).fit_transform(Xs)
         >>> DatasetUtils.get_percentage_incomplete_samples(Xs = Xs)
         """
-
+        Xs = check_Xs(Xs=Xs, force_all_finite="allow-nan")
         percentage_samples = DatasetUtils.get_n_incomplete_samples(Xs=Xs) / len(Xs[0]) * 100
         return percentage_samples
 
 
+    @staticmethod
     def remove_missing_sample_from_view(Xs: list) -> list:
         r"""
-        Remove missing samples from each specific views.
+        Remove missing samples from each specific view.
 
         Parameters
         ----------
@@ -409,36 +460,17 @@ class DatasetUtils:
         >>> Xs = Amputer(p=0.2, mechanism="MCAR", random_state=42).fit_transform(Xs)
         >>> DatasetUtils.remove_missing_sample_from_view(Xs = Xs)
         """
-
-        transformed_Xs = [X[np.invert(np.isnan(X).all(1))] for X in Xs]
+        Xs = check_Xs(Xs=Xs, force_all_finite="allow-nan")
+        if isinstance(Xs[0], pd.DataFrame):
+            transformed_Xs = [X.values for X in Xs]
+        else:
+            transformed_Xs = copy.deepcopy(Xs)
+        transformed_Xs = [X[np.invert(np.isnan(X).all(1))] for X in transformed_Xs]
         return transformed_Xs
 
 
-    def force_all_samples(Xs: list):
-        r"""
-        Add missing samples to each view, in a way that all the views will have all samples.
-
-        Parameters
-        ----------
-        Xs : list of array-likes
-            - Xs length: n_views
-            - Xs[i] shape: (n_samples, n_features_i)
-            A list of different views.
-
-        Returns
-        -------
-        Xs: list of array-likes.
-            - Xs length: n_views
-            - Xs[i] shape: (n_samples, n_features_i)
-        """
-
-        samples = set(sum([X.index.to_list() for X in Xs], []))
-        Xs = [pd.concat([X, pd.DataFrame(np.nan, index= pd.Index(samples).difference(X.index),
-                                         columns= X.columns)]).loc[samples] for X in Xs]
-        return Xs
-
-
-    def convert_mvd_from_list_to_dict(Xs: list, keys: list):
+    @staticmethod
+    def convert_mvd_from_list_to_dict(Xs: list, keys: list = None) -> dict:
         r"""
         Convert a multi-view dataset in list format to a dict format.
 
@@ -448,28 +480,40 @@ class DatasetUtils:
             - Xs length: n_views
             - Xs[i] shape: (n_samples, n_features_i)
             A list of different views.
+        keys : list, default=None
+            keys for the dict. If None, it will use numbers starting from 0.
 
         Returns
         -------
         transformed_Xs: dict of array-likes.
             - Xs length: n_views
             - Xs[key] shape: (n_samples, n_features_i)
+
+        Examples
+        --------
+        >>> from imvc.utils import DatasetUtils
+        >>> from imvc.datasets import LoadDataset
+        >>> Xs = LoadDataset.load_dataset(dataset_name="nutrimouse")
+        >>> DatasetUtils.convert_mvd_from_list_to_dict(Xs = Xs)
         """
+        Xs = check_Xs(Xs=Xs, force_all_finite="allow-nan")
+        if keys is None:
+            keys = list(range(len(Xs)))
 
         transformed_Xs = {key:X for key,X in zip(keys, Xs)}
         return transformed_Xs
 
 
-    def convert_mvd_from_dict_to_list(Xs: list, keys: list):
+    @staticmethod
+    def convert_mvd_from_dict_to_list(Xs: dict) -> list:
         r"""
         Convert a multi-view dataset in list format to a dict format.
 
         Parameters
         ----------
-        Xs : list of array-likes
+        Xs : dict of array-likes
             - Xs length: n_views
-            - Xs[i] shape: (n_samples, n_features_i)
-            A list of different views.
+            - Xs[key] shape: (n_samples, n_features_i)
 
         Returns
         -------
@@ -477,56 +521,17 @@ class DatasetUtils:
             - Xs length: n_views
             - Xs[i] shape: (n_samples, n_features_i)
             A list of different views.
-        """
 
+        Examples
+        --------
+        >>> from imvc.utils import DatasetUtils
+        >>> from imvc.datasets import LoadDataset
+        >>> Xs = LoadDataset.load_dataset(dataset_name="nutrimouse")
+        >>> Xs_dict = DatasetUtils.convert_mvd_from_list_to_dict(Xs = Xs)
+        >>> DatasetUtils.convert_mvd_from_dict_to_list(Xs = Xs_dict)
+        """
         transformed_Xs = list(Xs.values())
         return transformed_Xs
-
-
-    def select_complete_samples(Xs: list):
-        r"""
-        Remove samples with missing views from the whole multi-view dataset.
-
-        Parameters
-        ----------
-        Xs : list of array-likes
-            - Xs length: n_views
-            - Xs[i] shape: (n_samples, n_features_i)
-            A list of different views.
-
-        Returns
-        -------
-        Xs: list of array-likes.
-            - Xs length: n_views
-            - Xs[i] shape: (n_samples, n_features_i)
-        """
-
-        samples = DatasetUtils.get_complete_sample_names(Xs=Xs)
-        Xs = [X.loc[samples] for X in Xs]
-        return Xs
-
-
-    def select_incomplete_samples(Xs: list):
-        r"""
-        Remove samples with no missing views from the whole multi-view dataset.
-
-        Parameters
-        ----------
-        Xs : list of array-likes
-            - Xs length: n_views
-            - Xs[i] shape: (n_samples, n_features_i)
-            A list of different views.
-
-        Returns
-        -------
-        Xs: list of array-likes.
-            - Xs length: n_views
-            - Xs[i] shape: (n_samples, n_features_i)
-        """
-
-        samples = DatasetUtils.get_incomplete_sample_names(Xs=Xs)
-        Xs = [X.loc[samples] for X in Xs]
-        return Xs
 
 
 

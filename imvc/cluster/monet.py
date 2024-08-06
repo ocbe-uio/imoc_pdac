@@ -35,6 +35,8 @@ class MONET(BaseEstimator, ClassifierMixin):
 
     Parameters
     ----------
+    n_clusters : Ignored
+        Ignored.
     num_repeats : int (default=15)
         Times the algorithm will be repeated in order to avoid suboptimal (local maximum) solutions. The best solution
         will be returned.
@@ -92,7 +94,7 @@ class MONET(BaseEstimator, ClassifierMixin):
     [paper] Rappoport N, Safra R, Shamir R (2020) MONET: Multi-omic module discovery by omic selection. PLoS Comput
         Biol 16(9): e1008182. https://doi.org/10.1371/journal.pcbi.1008182.
 
-    Examples
+    Example
     --------
     >>> from imvc.datasets import LoadDataset
     >>> from imvc.cluster import MONET
@@ -101,7 +103,7 @@ class MONET(BaseEstimator, ClassifierMixin):
     >>> labels = estimator.fit_predict(Xs)
     """
 
-    def __init__(self, num_repeats: int = 15, similarity_mode: str = 'corr', init_modules: dict = None,
+    def __init__(self, n_clusters: int = None, num_repeats: int = 15, similarity_mode: str = 'corr', init_modules: dict = None,
                  iters: int = 500, num_of_seeds: int = 10, num_of_samples_in_seed: int = 10, min_mod_size: int = 10,
                  max_sams_per_action: int = 10, percentile_remove_edge: int = None, random_state: int = None,
                  verbose: bool = False, n_jobs: int = None):

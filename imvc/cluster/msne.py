@@ -51,7 +51,7 @@ class MSNE(BaseEstimator, ClassifierMixin):
             integration in cancer subtyping. Methods. 192, 67–76. doi: 10.1016/j.ymeth.2020.08.001.
     [code] https://github.com/GaoLabXDU/MSNE
 
-    Examples
+    Example
     --------
     >>> from imvc.datasets import LoadDataset
     >>> from imvc.cluster import MSNE

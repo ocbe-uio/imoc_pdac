@@ -22,10 +22,10 @@ class GetMetrics:
             'F1': metrics.f1_score(y_true=y_true, y_pred=perm_clust_labels, average='macro'),
             'precision': metrics.precision_score(y_true=y_true, y_pred=perm_clust_labels, average='macro', zero_division=0),
             'recall': metrics.recall_score(y_true=y_true, y_pred=perm_clust_labels, average='macro', zero_division=0),
-            "bal_acc": metrics.balanced_accuracy_score(y_true=y_true, y_pred=y_pred),
+            "bal_acc": metrics.balanced_accuracy_score(y_true=y_true, y_pred=perm_clust_labels),
             "ami": metrics.adjusted_mutual_info_score(labels_true=y_true, labels_pred=y_pred),
             "ari": metrics.adjusted_rand_score(labels_true=y_true, labels_pred=y_pred),
-            "completeness": metrics.completeness_score(labels_true=y_true, labels_pred=y_pred),
+            "completeness": metrics.completeness_score(labels_true=y_true, labels_pred=perm_clust_labels),
             "random_acc": metrics.accuracy_score(y_true=y_true, y_pred=random_preds),
             "random_f1": metrics.f1_score(y_true=y_true, y_pred=random_preds, average='macro'),
         }

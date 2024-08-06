@@ -21,7 +21,7 @@ class MultiViewTransformer(BaseEstimator, TransformerMixin):
     same_transformer_ : boolean
         A booleaing indicating if the same transformer will be applied on each view of data.
 
-    Examples
+    Example
     --------
     >>> from imvc.datasets import LoadDataset
     >>> from imvc.preprocessing import MultiViewTransformer
@@ -33,9 +33,21 @@ class MultiViewTransformer(BaseEstimator, TransformerMixin):
 
 
     def __init__(self, transformer):
-        
-        self.transformer = transformer
         self.same_transformer_ = False if isinstance(transformer, list) else True
+        if self.same_transformer_:
+            transformer_object = deepcopy(transformer)
+            try:
+                assert hasattr(transformer_object, "fit") and callable(getattr(transformer_object, "fit"))
+            except AssertionError:
+                raise ValueError("transformer must be a scikit-learn transformer like object")
+        else:
+            for transformer_object in transformer:
+                try:
+                    assert hasattr(transformer_object, "fit") and callable(getattr(transformer_object, "fit"))
+                except AssertionError:
+                    raise ValueError("transformer must be a scikit-learn transformer like object")
+
+        self.transformer = transformer
         self.transformer_list_ = [] if self.same_transformer_ else transformer
 
 
@@ -64,9 +76,10 @@ class MultiViewTransformer(BaseEstimator, TransformerMixin):
             self.transformer_list_[X_idx].fit(X, y)
         return self
 
+
     def transform(self, Xs):
         r"""
-        Transform the input data using the preprocessing.
+        Transform the input data using the transformers.
 
         Parameters
         ----------

@@ -21,9 +21,6 @@ class DAIMC(BaseEstimator, ClassifierMixin):
     It is recommended to normalize (Normalizer or NormalizerNaN in case incomplete views) the data before applying
     this algorithm.
 
-    octave-control and octave-statistics should be installed. You can install them with
-    'sudo apt install octave-control' and 'sudo apt install octave-statistics'.
-
     Parameters
     ----------
     n_clusters : int, default=8
@@ -35,20 +32,18 @@ class DAIMC(BaseEstimator, ClassifierMixin):
     random_state : int, default=None
         Determines the randomness. Use an int to make the randomness deterministic.
     engine : str, default=matlab
-        Engine to use for computing the model. Current options are 'matlab'. If engine == 'matlab',
-        packages 'statistics' and 'control' should be installed in Octave. In linux, you can run: sudo apt-get install
-        octave-statistics; sudo apt-get install octave-control.
-.   verbose : bool, default=False
+        Engine to use for computing the model. Current options are 'matlab'.
+    verbose : bool, default=False
         Verbosity mode.
 
     Attributes
     ----------
     labels_ : array-like of shape (n_samples,)
         Labels of each point in training data.
+    embedding_ :
+        Commont latent feature matrix to be used as input for the KMeans clustering step.
     U_ : np.array
         Basis matrix.
-    V_ : np.array
-        Commont latent feature matrix.
     B_ : np.array
         Regression coefficient matrices.
 
@@ -60,7 +55,7 @@ class DAIMC(BaseEstimator, ClassifierMixin):
              Multi-view Clustering, IEEE TRANSACTIONS ON SYSTEMS, MAN, AND CYBERNETICS: SYSTEMS, 2022.
     [code]  https://github.com/DarrenZZhang/Survey_IMC
 
-    Examples
+    Example
     --------
     >>> from sklearn.pipeline import make_pipeline
     >>> from imvc.datasets import LoadDataset
@@ -136,7 +131,7 @@ class DAIMC(BaseEstimator, ClassifierMixin):
         model = KMeans(n_clusters= self.n_clusters, random_state= self.random_state)
         self.labels_ = model.fit_predict(X= v)
         self.U_ = u
-        self.V_ = v
+        self.embedding_ = v
         self.B_ = b
 
         return self

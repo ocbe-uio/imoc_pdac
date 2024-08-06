@@ -141,3 +141,4 @@ nemo.clustering <- function(omics.list, num.clusters=NULL, num.neighbors=NA) {
   names(clustering) = colnames(graph)
   return(clustering)
 }
+

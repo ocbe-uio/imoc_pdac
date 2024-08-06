@@ -52,8 +52,8 @@ class PIMVC(BaseEstimator, ClassifierMixin):
     ----------
     labels_ : array-like of shape (n_samples,)
         Labels of each point in training data.
-    V_ : np.array
-        Commont latent feature matrix.
+    embedding_ :
+        Commont latent feature matrix to be used as input for the KMeans clustering step.
     loss_ : float
         Value of the loss function.
 
@@ -63,7 +63,7 @@ class PIMVC(BaseEstimator, ClassifierMixin):
             Transactions on Neural Networks and Learning Systems, doi: 10.1109/TNNLS.2023.3242473.
     [code]  https://github.com/Dshijie/PIMVC
 
-    Examples
+    Example
     --------
     >>> from sklearn.pipeline import make_pipeline
     >>> from imvc.datasets import LoadDataset
@@ -137,7 +137,7 @@ class PIMVC(BaseEstimator, ClassifierMixin):
         model = KMeans(n_clusters= self.n_clusters, random_state= self.random_state)
         v = v.T
         self.labels_ = model.fit_predict(X= v)
-        self.V_ = v
+        self.embedding_ = v
         self.loss_ = loss
 
         return self

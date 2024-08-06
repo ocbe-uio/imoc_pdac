@@ -66,6 +66,10 @@ class SUMO(BaseEstimator, ClassifierMixin):
 
     Attributes
     ----------
+    labels_ : array-like of shape (n_samples,)
+        Labels of each point in training data.
+    embedding_ :
+        The final spectral representation of the data to be used as input for the KMeans clustering step.
     graph_ :
         Multiview graph.
     nmf_ : None
@@ -76,8 +80,6 @@ class SUMO(BaseEstimator, ClassifierMixin):
         Object created by SUMO
     pac_list_ :
         Object created by SUMO
-    labels_ : array-like of shape (n_samples,)
-        Labels of each point in training data.
 
     References
     ----------
@@ -87,7 +89,7 @@ class SUMO(BaseEstimator, ClassifierMixin):
     [documentation] https://python-sumo.readthedocs.io/en/latest/index.html
     [code] https://github.com/ratan-lab/sumo/tree/master
 
-    Examples
+    Example
     --------
     >>> from imvc.datasets import LoadDataset
     >>> from imvc.cluster import SUMO
@@ -249,6 +251,7 @@ class SUMO(BaseEstimator, ClassifierMixin):
 
         self.cophenet_list_ = out_arrays["cophenet"]
         self.pac_list_ = out_arrays["pac"]
+        self.embedding_ = out_arrays["embedding"]
         self.labels_ = out_arrays["clusters"][:,1].astype(int)
         return self
 
@@ -393,7 +396,7 @@ class SUMO(BaseEstimator, ClassifierMixin):
 
         if verbose:
             print("#Extracting final clustering result, using normalized cut")
-        consensus_labels = extract_ncut(consensus, k=k)
+        consensus_labels, embeddings = extract_ncut(consensus, k=k)
 
         cluster_array = np.empty((sumo_run.graph_.sample_names.shape[0], 2), dtype=np.object)
         cluster_array[:, 0] = sumo_run.graph_.sample_names
@@ -421,6 +424,7 @@ class SUMO(BaseEstimator, ClassifierMixin):
             "unfiltered_consensus": org_con,
             "quality": np.array(quality),
             "samples": sumo_run.graph_.sample_names,
+            "embedding": embeddings,
             "config": conf_array
         })
 

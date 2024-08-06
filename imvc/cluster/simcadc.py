@@ -43,8 +43,8 @@ class SIMCADC(BaseEstimator, ClassifierMixin):
     ----------
     labels_ : array-like of shape (n_samples,)
         Labels of each point in training data.
-    U_ : np.array
-        Basis matrix.
+    embedding_ :
+        Consensus clustering matrix to be used as input for the KMeans clustering step.
     V_ : np.array
         Commont latent feature matrix.
     A_ : np.array
@@ -62,7 +62,7 @@ class SIMCADC(BaseEstimator, ClassifierMixin):
             completion. Information Sciences, 649, 119562. doi:10.1016/j.ins.2023.119562.
     [code]  https://github.com/DarrenZZhang/INS23-SIMC_ADC
 
-    Examples
+    Example
     --------
     >>> from sklearn.pipeline import make_pipeline
     >>> from imvc.datasets import LoadDataset
@@ -141,8 +141,7 @@ class SIMCADC(BaseEstimator, ClassifierMixin):
 
         model = KMeans(n_clusters= self.n_clusters, random_state= self.random_state)
         self.labels_ = model.fit_predict(X= u)
-        # todo
-        self.U_ = u
+        self.embedding_ = u
         self.V_ = v
         self.A_ = a
         self.Z_, self.loss_, self.iter_ = z, obj, iter

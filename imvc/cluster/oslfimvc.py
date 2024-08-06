@@ -32,8 +32,7 @@ class OSLFIMVC(BaseEstimator, ClassifierMixin):
     random_state : int, default=None
         Determines the randomness. Use an int to make the randomness deterministic.
     engine : str, default=matlab
-        Engine to use for computing the model. Current options are 'matlab'. If engine == 'matlab',
-        package 'statistics' should be installed in Octave. In linux, you can run: sudo apt-get install octave-statistics.
+        Engine to use for computing the model. Current options are 'matlab'.
 .   verbose : bool, default=False
         Verbosity mode.
 
@@ -41,8 +40,8 @@ class OSLFIMVC(BaseEstimator, ClassifierMixin):
     ----------
     labels_ : array-like of shape (n_samples,)
         Labels of each point in training data.
-    H_ : array-like
-        Consensus clustering matrix.
+    embedding_ :
+        Consensus clustering matrix to be used as input for the KMeans clustering step.
     WP_ : array-like
         p-th permutation matrix.
     C_ : array-like
@@ -60,7 +59,7 @@ class OSLFIMVC(BaseEstimator, ClassifierMixin):
              https://doi.org/10.1145/3474085.3475204.
     [code]   https://github.com/ethan-yizhang/OSLF-IMVC
 
-    Examples
+    Example
     --------
     >>> from sklearn.pipeline import make_pipeline
     >>> from imvc.datasets import LoadDataset
@@ -137,7 +136,7 @@ class OSLFIMVC(BaseEstimator, ClassifierMixin):
 
         model = KMeans(n_clusters= self.n_clusters, random_state= self.random_state)
         self.labels_ = model.fit_predict(X= U)
-        self.H_, self.WP_, self.C_, self.beta_, self.loss_ = U, WP, C, beta, obj
+        self.embedding_, self.WP_, self.C_, self.beta_, self.loss_ = U, WP, C, beta, obj
 
         return self
 

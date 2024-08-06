@@ -9,23 +9,41 @@ from ..utils import DatasetUtils
 
 class Amputer(BaseEstimator, TransformerMixin):
     r"""
-    Generate view missingness patterns in complete multi-view datasets.
+    Ampute a complete multi-view datasets.
 
     Parameters
     ----------
-    Xs : list of array-likes
-        - Xs length: n_views
-        - Xs[i] shape: (n_samples, n_features_i)
-        A list of different views.
     p: float
         Percentaje of incomplete samples.
     mechanism: str, default="EDM"
         One of ["EDM", 'MCAR', 'MAR', 'MNAR', 'PM'].
+    opt: str, default="logistic"
+        The type of model to be used for generating missing views. Current options are: regression ("logistic"),
+        quantile censorship ("quantile") or logistic regression for generating a self-masked MNAR
+        mechanism ("selfmasked"). Only relevant for mechanism = "MNAR".
+    p_obs: float, default=0.1
+        Proportion of views with no missing that will be used for the logistic masking model. Relevant only for
+        mechanism = "MAR" or "MNAR" with opt = "logistic" or "quantile".
+    q: float, default=0.3
+        Quantile level at which the cuts should occur.  Relevant only for mechanism= "MNAR" with opt = "logistic"
+        or "quantile".
+    exclude_inputs: bool, default=True
+        Whether to exclude the original input views when generating missing. If True, only the generated missing views
+        are considered.
+    p_params: float, default=0.3
+        Proportion of missing views to generate for views that will be missing.
+    cut: str, default='both'
+        Specifies the type of cut for generating missing values. Options include: both', 'upper' or 'lower'.
     random_state: int, default=None
         If int, random_state is the seed used by the random number generator.
-    #todo fill args
 
-    Examples
+    References
+    ----------
+    .. [#amputerpaper] Mayer, I., Sportisse, A., Josse, J., Tierney, N., & Vialaneix, N. (2024). R-miss-tastic: a
+                        unified platform for missing values methods and workflows. https://arxiv.org/abs/1908.04822
+    .. [#amputercode] https://rmisstastic.netlify.app/
+
+    Example
     --------
     >>> from imvc.ampute import Amputer
     >>> from imvc.datasets import LoadDataset
@@ -34,9 +52,8 @@ class Amputer(BaseEstimator, TransformerMixin):
     >>> transformer.fit_transform(Xs)
     """
 
-    def __init__(self, p:float, mechanism: str = "EDM", random_state: int = None,
-                 opt:str = "logistic", p_obs:float = 0.1, q= 0.3, exclude_inputs:bool = True,
-                 p_params= 0.3, cut='both', mcar:bool = False):
+    def __init__(self, p:float, mechanism: str = "EDM", opt:str = "logistic", p_obs:float = 0.1, q= 0.3,
+                 exclude_inputs:bool = True, p_params= 0.3, cut='both', mcar:bool = False, random_state: int = None):
         possible_mechanisms = ["EDM", 'MCAR', 'MAR', 'MNAR', "PM"]
         if mechanism not in possible_mechanisms:
             raise ValueError(f"Invalid mechanism. Expected one of: {possible_mechanisms}")
@@ -54,11 +71,42 @@ class Amputer(BaseEstimator, TransformerMixin):
 
 
     def fit(self, Xs: list, y=None):
+        r"""
+        Fit the transformer to the input data.
+
+        Parameters
+        ----------
+        Xs : list of array-likes
+            - Xs length: n_views
+            - Xs[i] shape: (n_samples, n_features_i)
+            A list of different views.
+        y : Ignored
+            Not used, present here for API consistency by convention.
+
+        Returns
+        -------
+        self :  returns and instance of self.
+        """
         self.n_views = len(Xs)
         return self
 
 
-    def transform(self, Xs: list, y=None):
+    def transform(self, Xs: list):
+        r"""
+        Ampute a multi-view dataset.
+
+        Parameters
+        ----------
+        Xs : list of array-likes
+            - Xs length: n_views
+            - Xs[i] shape: (n_samples, n_features_i)
+            A list of different views.
+
+        Returns
+        -------
+        transformed_Xs : list of array-likes, shape (n_samples, n_Features)
+            The amputed multi-view dataset.
+        """
         sample_names = Xs[0].index
 
         if self.mechanism == "EDM":
@@ -91,9 +139,12 @@ class Amputer(BaseEstimator, TransformerMixin):
         mecha : str,
                 Indicates the missing-data mechanism to be used. "MCAR" by default, "MAR", "MNAR" or "MNARsmask"
         opt: str,
-             For mecha = "MNAR", it indicates how the missing-data mechanism is generated: using a logistic regression ("logistic"), quantile censorship ("quantile") or logistic regression for generating a self-masked MNAR mechanism ("selfmasked").
+             For mecha = "MNAR", it indicates how the missing-data mechanism is generated: using a logistic
+             regression ("logistic"), quantile censorship ("quantile") or logistic regression for generating a
+             self-masked MNAR mechanism ("selfmasked").
         p_obs : float
-                If mecha = "MAR", or mecha = "MNAR" with opt = "logistic" or "quanti", proportion of variables with *no* missing values that will be used for the logistic masking model.
+                If mecha = "MAR", or mecha = "MNAR" with opt = "logistic" or "quanti", proportion of variables
+                with *no* missing values that will be used for the logistic masking model.
         q : float
             If mecha = "MNAR" and opt = "quanti", quantile level at which the cuts should occur.
 
@@ -119,7 +170,7 @@ class Amputer(BaseEstimator, TransformerMixin):
         elif self.mechanism == "MNAR" and self.opt == "quantile":
             mask = self._MNAR_mask_quantiles(X=missing_X, p=self.p, q=self.q, p_params=self.p_params, cut=self.cut, MCAR=self.mcar)
         elif self.mechanism == "MNAR" and self.opt == "selfmasked":
-            mask = self.MNAR_self_mask_logistic(X=missing_X, p=self.p)
+            mask = self._MNAR_self_mask_logistic(X=missing_X, p=self.p)
         else:
             raise ValueError("MNAR mechanism can only be 'logistic', 'quantile' or 'selfmasked'")
 
@@ -259,7 +310,7 @@ class Amputer(BaseEstimator, TransformerMixin):
 
         return mask
 
-    def MNAR_self_mask_logistic(self, X, p):
+    def _MNAR_self_mask_logistic(self, X, p):
         """
         Missing not at random mechanism with a logistic self-masking model. Variables have missing values probabilities
         given by a logistic model, taking the same variable as input (hence, missingness is independent from one variable

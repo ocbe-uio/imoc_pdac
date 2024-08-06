@@ -41,6 +41,8 @@ class OPIMC(BaseEstimator, ClassifierMixin):
     ----------
     labels_ : array-like of shape (n_samples,)
         Labels of each point in training data.
+    embedding_ :
+        Consensus clustering matrix to be used as input for the KMeans clustering step.
 
     References
     ----------
@@ -51,7 +53,7 @@ class OPIMC(BaseEstimator, ClassifierMixin):
              Multi-view Clustering, IEEE TRANSACTIONS ON SYSTEMS, MAN, AND CYBERNETICS: SYSTEMS, 2022.
     [code]  https://github.com/DarrenZZhang/Survey_IMC
 
-    Examples
+    Example
     --------
     >>> from sklearn.pipeline import make_pipeline
     >>> from imvc.datasets import LoadDataset
@@ -120,11 +122,12 @@ class OPIMC(BaseEstimator, ClassifierMixin):
                        "tol": self.tol, "pass": self.num_passes, "loss": 0, "alpha": self.alpha}
             if self.random_state is not None:
                 oc.rand('seed', self.random_state)
-            labels = oc.OPIMC(transformed_Xs, w, options, observed_view_indicator)
+            labels, V = oc.OPIMC(transformed_Xs, w, options, observed_view_indicator, nout= 2)
         else:
             raise ValueError("Only engine=='matlab' is currently supported.")
 
         self.labels_ = pd.factorize(labels[:,0])[0]
+        self.embedding_ = V
 
         return self
 

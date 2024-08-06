@@ -40,8 +40,8 @@ class EEIMVC(BaseEstimator, ClassifierMixin):
     ----------
     labels_ : array-like of shape (n_samples,)
         Labels of each point in training data.
-    H_ : array-like
-        Consensus clustering matrix.
+    embedding_ :
+        Consensus clustering matrix to be used as input for the KMeans clustering step.
     WP_ : array-like
         p-th permutation matrix.
     HP_ : array-like
@@ -58,7 +58,7 @@ class EEIMVC(BaseEstimator, ClassifierMixin):
              doi: 10.1109/TPAMI.2020.2974828.
     [code]   https://github.com/xinwangliu/TPAMI_EEIMVC
 
-    Examples
+    Example
     --------
     >>> from sklearn.pipeline import make_pipeline
     >>> from imvc.datasets import LoadDataset
@@ -133,7 +133,7 @@ class EEIMVC(BaseEstimator, ClassifierMixin):
 
         model = KMeans(n_clusters= self.n_clusters, random_state= self.random_state)
         self.labels_ = model.fit_predict(X= H_normalized)
-        self.H_, self.WP_, self.HP_, self.beta_, self.loss_ = H_normalized, WP, HP, beta, obj
+        self.embedding_, self.WP_, self.HP_, self.beta_, self.loss_ = H_normalized, WP, HP, beta, obj
 
         return self
 

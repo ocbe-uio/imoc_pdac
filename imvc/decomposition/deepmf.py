@@ -77,7 +77,7 @@ class DeepMF(pl.LightningModule):
             method. BMC Bioinformatics 20 (Suppl 23), 648 (2019). https://doi.org/10.1186/s12859-019-3291-6.
     [code] https://github.com/paprikachan/DeepMF
 
-    Examples
+    Example
     --------
     #todo
     >>> from imvc.datasets import LoadDataset

@@ -2,18 +2,19 @@ import argparse
 import os
 import time
 from datetime import datetime
-import numpy as np
 import pandas as pd
 import torch
 from sklearn.cluster import KMeans
 from sklearn.decomposition import NMF
+from sklearn.feature_selection import VarianceThreshold
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler, MinMaxScaler, FunctionTransformer
 from mvlearn.decomposition import AJIVE, GroupPCA
 from mvlearn.cluster import MultiviewSpectralClustering, MultiviewCoRegSpectralClustering
-from imvc.cluster import OSLFIMVC, DAIMC, EEIMVC, LFIMVC, MKKMIK, MSNE, SIMCADC, PIMVC, IMSR, OMVC, OPIMC, SUMO
+from imvc.cluster import OSLFIMVC, DAIMC, EEIMVC, LFIMVC, MKKMIK, MSNE, SIMCADC, PIMVC, IMSR, OMVC, OPIMC, SUMO, NEMO, \
+    IMSCAGL
 from imvc.cluster.monet import MONET
-from imvc.decomposition import DFMF, MOFA, DeepMF
+from imvc.decomposition import DFMF, MOFA, DeepMF, jNMF
 from imvc.preprocessing import MultiViewTransformer, NormalizerNaN, ConcatenateViews
 
 from src.models import Model
@@ -26,63 +27,94 @@ if "nutrimouse" in datasets:
     datasets[pos:pos + 1] = ('nutrimouse_genotype', 'nutrimouse_diet')
 
 algorithms = {
-    "Concat": {"alg": make_pipeline(ConcatenateViews(),
+    "Concat": {"alg": make_pipeline(MultiViewTransformer(VarianceThreshold().set_output(transform="pandas")),
+                                  ConcatenateViews(),
                                     StandardScaler().set_output(transform='pandas'),
                                     KMeans()), "params": {}},
-    "NMF": {"alg": make_pipeline(ConcatenateViews(),
+    "NMF": {"alg": make_pipeline(MultiViewTransformer(VarianceThreshold().set_output(transform="pandas")),
+                                  ConcatenateViews(),
                                   MinMaxScaler().set_output(transform='pandas'),
                                   NMF().set_output(transform='pandas'), StandardScaler(), KMeans()), "params": {}},
-    "MVSC": {"alg": make_pipeline(MultiViewTransformer(StandardScaler().set_output(transform= "pandas")),
+    "MVSC": {"alg": make_pipeline(MultiViewTransformer(VarianceThreshold().set_output(transform="pandas")),
+                                  MultiViewTransformer(StandardScaler().set_output(transform= "pandas")),
                                                   MultiviewSpectralClustering()),
                              "params": {}},
-    "MVCRSC": {"alg": make_pipeline(MultiViewTransformer(StandardScaler().set_output(transform= "pandas")),
+    "MVCRSC": {"alg": make_pipeline(MultiViewTransformer(VarianceThreshold().set_output(transform="pandas")),
+                                  MultiViewTransformer(StandardScaler().set_output(transform= "pandas")),
                                                        MultiviewCoRegSpectralClustering()),
                                   "params": {}},
-    "GPCA": {"alg": make_pipeline(MultiViewTransformer(StandardScaler()), GroupPCA(), StandardScaler(), KMeans()),
+    "GPCA": {"alg": make_pipeline(MultiViewTransformer(VarianceThreshold().set_output(transform="pandas")),
+                                  MultiViewTransformer(StandardScaler()), GroupPCA(), StandardScaler(), KMeans()),
                  "params": {}},
-    "AJIVE": {"alg": make_pipeline(MultiViewTransformer(StandardScaler()), AJIVE(),
+    "AJIVE": {"alg": make_pipeline(MultiViewTransformer(VarianceThreshold().set_output(transform="pandas")),
+                                  MultiViewTransformer(StandardScaler()), AJIVE(),
                                    MultiViewTransformer(FunctionTransformer(pd.DataFrame)), ConcatenateViews(),
                                    StandardScaler(), KMeans()),
               "params": {}},
-    "SNF": {"alg": MultiViewTransformer(StandardScaler().set_output(transform="pandas")), "params": {}},
-    "DAIMC": {"alg": make_pipeline(MultiViewTransformer(NormalizerNaN().set_output(transform="pandas")),
+    "SNF": {"alg": make_pipeline(MultiViewTransformer(VarianceThreshold().set_output(transform="pandas")),
+                                  MultiViewTransformer(StandardScaler().set_output(transform= "pandas"))), "params": {}},
+    "DAIMC": {"alg": make_pipeline(MultiViewTransformer(VarianceThreshold().set_output(transform="pandas")),
+                                   MultiViewTransformer(NormalizerNaN().set_output(transform="pandas")),
                                    DAIMC()), "params": {}},
-    "EEIMVC": {"alg": make_pipeline(MultiViewTransformer(StandardScaler().set_output(transform="pandas")),
+    "EEIMVC": {"alg": make_pipeline(MultiViewTransformer(VarianceThreshold().set_output(transform="pandas")),
+                                    MultiViewTransformer(StandardScaler().set_output(transform="pandas")),
                                     EEIMVC()), "params": {}},
-    "IMSR": {"alg": make_pipeline(MultiViewTransformer(NormalizerNaN().set_output(transform="pandas")),
+    "IMSCAGL": {"alg": make_pipeline(MultiViewTransformer(VarianceThreshold().set_output(transform="pandas")),
+                                  MultiViewTransformer(NormalizerNaN().set_output(transform="pandas")),
+                                   IMSCAGL()), "params": {}},
+    "IMSR": {"alg": make_pipeline(MultiViewTransformer(VarianceThreshold().set_output(transform="pandas")),
+                                  MultiViewTransformer(NormalizerNaN().set_output(transform="pandas")),
                                    IMSR()), "params": {}},
-    "LFIMVC": {"alg": make_pipeline(MultiViewTransformer(StandardScaler().set_output(transform="pandas")),
+    "LFIMVC": {"alg": make_pipeline(MultiViewTransformer(VarianceThreshold().set_output(transform="pandas")),
+                                    MultiViewTransformer(StandardScaler().set_output(transform="pandas")),
                                     LFIMVC()), "params": {}},
-    "MKKMIK": {"alg": make_pipeline(MultiViewTransformer(StandardScaler().set_output(transform="pandas")),
+    "MKKMIK": {"alg": make_pipeline(MultiViewTransformer(VarianceThreshold().set_output(transform="pandas")),
+                                    MultiViewTransformer(StandardScaler().set_output(transform="pandas")),
                                     MKKMIK()), "params": {}},
-    "MONET": {"alg": make_pipeline(MultiViewTransformer(StandardScaler().set_output(transform="pandas")),
-                                    MONET()), "params": {}},
-    "MSNE": {"alg": make_pipeline(MultiViewTransformer(StandardScaler().set_output(transform="pandas")),
+    "MONET": {"alg": make_pipeline(MultiViewTransformer(VarianceThreshold().set_output(transform="pandas")),
+                                   MultiViewTransformer(StandardScaler().set_output(transform="pandas")),
+                                   MONET()), "params": {}},
+    "MSNE": {"alg": make_pipeline(MultiViewTransformer(VarianceThreshold().set_output(transform="pandas")),
+                                  MultiViewTransformer(StandardScaler().set_output(transform="pandas")),
                                   MSNE()), "params": {}},
-    "OMVC": {"alg": make_pipeline(MultiViewTransformer(StandardScaler().set_output(transform="pandas")),
+    "OMVC": {"alg": make_pipeline(MultiViewTransformer(VarianceThreshold().set_output(transform="pandas")),
+                                  MultiViewTransformer(StandardScaler().set_output(transform="pandas")),
                                   OMVC()), "params": {}},
-    "OPIMC": {"alg": make_pipeline(MultiViewTransformer(NormalizerNaN().set_output(transform="pandas")),
+    "OPIMC": {"alg": make_pipeline(MultiViewTransformer(VarianceThreshold().set_output(transform="pandas")),
+                                   MultiViewTransformer(NormalizerNaN().set_output(transform="pandas")),
                                      OPIMC()), "params": {}},
-    "OSLFIMVC": {"alg": make_pipeline(MultiViewTransformer(StandardScaler().set_output(transform="pandas")),
+    "OSLFIMVC": {"alg": make_pipeline(MultiViewTransformer(VarianceThreshold().set_output(transform="pandas")),
+                                      MultiViewTransformer(StandardScaler().set_output(transform="pandas")),
                                       OSLFIMVC()), "params": {}},
-    "PIMVC": {"alg": make_pipeline(MultiViewTransformer(NormalizerNaN().set_output(transform="pandas")),
+    "PIMVC": {"alg": make_pipeline(MultiViewTransformer(VarianceThreshold().set_output(transform="pandas")),
+                                   MultiViewTransformer(NormalizerNaN().set_output(transform="pandas")),
                                    PIMVC()), "params": {}},
-    "SIMCADC": {"alg": make_pipeline(MultiViewTransformer(NormalizerNaN().set_output(transform="pandas")),
+    "SIMCADC": {"alg": make_pipeline(MultiViewTransformer(VarianceThreshold().set_output(transform="pandas")),
+                                     MultiViewTransformer(NormalizerNaN().set_output(transform="pandas")),
                                      SIMCADC()), "params": {}},
-    "SUMO": {"alg": make_pipeline(MultiViewTransformer(StandardScaler().set_output(transform="pandas")),
-                                      SUMO()), "params": {}},
-    "DeepMF": {"alg": make_pipeline(ConcatenateViews(), StandardScaler(),
+    "SUMO": {"alg": make_pipeline(MultiViewTransformer(VarianceThreshold().set_output(transform="pandas")),
+                                  MultiViewTransformer(StandardScaler().set_output(transform="pandas")),
+                                  SUMO()), "params": {}},
+    "DeepMF": {"alg": make_pipeline(MultiViewTransformer(VarianceThreshold().set_output(transform="pandas")),
+                                    ConcatenateViews(), StandardScaler(),
                                     FunctionTransformer(lambda x: torch.from_numpy(x).float().cuda().t()),
                                     DeepMF(), FunctionTransformer(lambda x: x.cpu().detach().numpy()),
                                     StandardScaler(), KMeans()),
                  "params": {}},
-    "DFMF": {"alg": make_pipeline(MultiViewTransformer(StandardScaler().set_output(transform="pandas")),
+    "DFMF": {"alg": make_pipeline(MultiViewTransformer(VarianceThreshold().set_output(transform="pandas")),
+                                  MultiViewTransformer(StandardScaler().set_output(transform="pandas")),
                                   DFMF().set_output(transform="pandas"),
                                   StandardScaler().set_output(transform="pandas"), KMeans()),
              "params": {}},
-    "MOFA": {"alg": make_pipeline(MultiViewTransformer(StandardScaler().set_output(transform="pandas")),
+    "MOFA": {"alg": make_pipeline(MultiViewTransformer(VarianceThreshold().set_output(transform="pandas")),
+                                  MultiViewTransformer(StandardScaler().set_output(transform="pandas")),
                                   MOFA().set_output(transform="pandas"),
                                   ConcatenateViews(), StandardScaler().set_output(transform="pandas"), KMeans()),
+             "params": {}},
+    "jNMF": {"alg": make_pipeline(MultiViewTransformer(VarianceThreshold().set_output(transform="pandas")),
+                                  MultiViewTransformer(MinMaxScaler().set_output(transform="pandas")),
+                                  jNMF().set_output(transform="pandas"),
+                                  StandardScaler().set_output(transform="pandas"), KMeans()),
              "params": {}},
 }
 
@@ -99,9 +131,8 @@ if not args.save_results:
 if os.path.exists(TIME_RESULTS_PATH):
     results = pd.read_csv(TIME_RESULTS_PATH)
 else:
-    algorithms = pd.DataFrame(algorithms.keys(), columns=["algorithm"])
-    datasets = pd.DataFrame(datasets, columns=["dataset"])
-    results = algorithms.merge(datasets, how='cross')
+    results = pd.DataFrame(algorithms.keys(), columns=["algorithm"]).merge(pd.DataFrame(datasets, columns=["dataset"]),
+                                                                           how='cross')
     results["time"] = -1
     results["finished"] = False
     results["completed"] = False
@@ -117,6 +148,8 @@ for dataset_name in datasets:
 
     for idx, row in results[(~results["finished"]) & (results["dataset"] == dataset_name)].iterrows():
         alg_name = row["algorithm"]
+        if alg_name in ["IntNMF", "COCA", "jNMF", "NEMO"]:
+            continue
         alg = algorithms[alg_name]
         with open(TIME_LOGS_PATH, "a") as f:
             f.write(f'\n {dataset_name} \t {alg_name} \t {datetime.now()}')

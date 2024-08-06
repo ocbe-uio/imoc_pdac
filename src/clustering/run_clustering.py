@@ -1,7 +1,7 @@
 import json
 import os
 import time
-from collections import defaultdict
+#from collections import defaultdict
 from datetime import datetime
 import numpy as np
 import pandas as pd
@@ -45,8 +45,8 @@ class RunClustering:
                 else:
                     raise ValueError(observed_view_indicator["error"])
             observed_view_indicator = pd.DataFrame.from_dict(observed_view_indicator)
-            observed_view_indicator.index = observed_view_indicator.index.astype(int)
-            observed_view_indicator.columns = observed_view_indicator.columns.astype(int)
+            #observed_view_indicator.index = observed_view_indicator.index.astype(int)
+            #observed_view_indicator.columns = observed_view_indicator.columns.astype(int)
 
             train_Xs = DatasetUtils.convert_to_imvd(Xs=Xs, observed_view_indicator=observed_view_indicator)
             train_Xs = [X.loc[observed_view_indicator.index] for X in train_Xs]

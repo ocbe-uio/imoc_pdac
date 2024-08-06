@@ -3,7 +3,6 @@ import itertools
 import json
 import os.path
 import shutil
-import numpy as np
 from sklearn.utils import shuffle
 from imvc.ampute import Amputer
 from imvc.impute import get_observed_view_indicator
@@ -11,13 +10,10 @@ from imvc.impute import get_observed_view_indicator
 from settings import PROFILES_PATH, DATASET_TABLE_PATH, RANDOM_STATE, probs_zero, amputation_mechanisms, runs_per_alg
 from src.commons import CommonOperations
 
-#parser = argparse.ArgumentParser()
-#parser.add_argument('-continue_indxs', default=False, action='store_true')
-#parser.add_argument('-save_results', default=False, action='store_true')
-#args = parser.parse_args()
-args = lambda: None
-args.save_results = True
-args.continue_indxs = False
+parser = argparse.ArgumentParser()
+parser.add_argument('-continue_indxs', default=False, action='store_true')
+parser.add_argument('-save_results', default=False, action='store_true')
+args = parser.parse_args()
 
 if not args.continue_indxs:
     shutil.rmtree(PROFILES_PATH, ignore_errors=True)
@@ -51,12 +47,7 @@ for dataset_name in datasets:
                 train_Xs = amp.fit_transform(train_Xs)
 
             observed_view_indicator = get_observed_view_indicator(train_Xs)
-            try:
-                lower_index = observed_view_indicator.index.astype(np.int16)
-                assert (train_Xs[0].index == lower_index).all()
-                observed_view_indicator.index = lower_index
-            except AssertionError:
-                assert (train_Xs[0].index == observed_view_indicator.index).all()
+            assert (train_Xs[0].index == observed_view_indicator.index).all()
 
             dict_indxs = {
                 "observed_view_indicator": observed_view_indicator.to_dict(),
@@ -74,5 +65,3 @@ for dataset_name in datasets:
                 json.dump(dict_indxs, f)
 
 print("Completed successfully!")
-
-

@@ -52,6 +52,8 @@ class DatasetUtils:
             idxs_to_remove = observed_view_indicator[:,X_idx] == False
             if isinstance(X, pd.DataFrame):
                 X = X.values
+            if X.dtype.kind in "iu":
+                X = X.astype(float)
             transformed_X = copy.deepcopy(X)
             transformed_X[idxs_to_remove, :] = np.nan
             transformed_Xs.append(transformed_X)

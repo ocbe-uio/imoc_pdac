@@ -67,7 +67,7 @@ class CommonOperations:
         if args.n_jobs == 1:
             iterator = pd.DataFrame(unfinished_results_dataset.index.to_list(), columns=indexes_names)
             iterator.apply(
-                lambda x: RunClustering.run_iteration(idx=x, results=results, Xs=Xs, y=None,
+                lambda x: RunClustering.run_iteration(idx=x, results=results, Xs=Xs,
                                                       algorithms=algorithms, n_clusters=n_clusters,
                                                       incomplete_algorithms=incomplete_algorithms,
                                                       random_state=RANDOM_STATE,
@@ -81,8 +81,8 @@ class CommonOperations:
                 unfinished_results_dataset_idx = unfinished_results_dataset.xs(0, level="missing_percentage",
                                                                                drop_level=False).index
                 iterator = pd.DataFrame(unfinished_results_dataset_idx.to_list(), columns=indexes_names)
-                iterator.parallel_apply(lambda x: RunClustering.run_iteration(idx=x, results=results, Xs=Xs, y=None,
-                                                                              algorithms=algorithms,
+                iterator.parallel_apply(lambda x: RunClustering.run_iteration(idx=x, results=results, Xs=Xs,
+                                                                              algorithms=algorithms, n_clusters=n_clusters,
                                                                               incomplete_algorithms=incomplete_algorithms,
                                                                               random_state=RANDOM_STATE,
                                                                               subresults_path=subresults_path,
@@ -100,8 +100,8 @@ class CommonOperations:
             else:
                 iterator = pd.DataFrame(unfinished_results_dataset.index.to_list(), columns=indexes_names)
 
-            iterator.parallel_apply(lambda x: RunClustering.run_iteration(idx=x, results=results, Xs=Xs, y=None,
-                                                                          algorithms=algorithms,
+            iterator.parallel_apply(lambda x: RunClustering.run_iteration(idx=x, results=results, Xs=Xs,
+                                                                          algorithms=algorithms, n_clusters=n_clusters,
                                                                           incomplete_algorithms=incomplete_algorithms,
                                                                           random_state=RANDOM_STATE,
                                                                           subresults_path=subresults_path,

@@ -60,8 +60,11 @@ class CreateResultTable:
             subresults_files = subresults_files[subresults_files.apply(os.path.isfile)]
             # if there are files
             if len(subresults_files) > 0:
+                # prevents string of omic_combinations to turning into numeric
+                def read_file(file):
+                    return pd.read_csv(file, dtype={'omic_combinations': str})
                 # read files and concat them
-                subresults_files = pd.concat(subresults_files.apply(pd.read_csv).to_list())
+                subresults_files = pd.concat(subresults_files.apply(read_file).to_list())
                 # put same format as result df
                 subresults_files = subresults_files.set_index(indexes_names)
                 # include only those finished

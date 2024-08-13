@@ -3,11 +3,10 @@ from pandarallel import pandarallel
 from sklearn.cluster import KMeans
 from sklearn.feature_selection import VarianceThreshold
 from sklearn.pipeline import make_pipeline
-from sklearn.preprocessing import StandardScaler
-from imvc.decomposition import DFMF, MOFA #, jNMF
-from imvc.preprocessing import MultiViewTransformer, ConcatenateViews
-from imvc.cluster import NEMO
-
+from sklearn.preprocessing import StandardScaler, MinMaxScaler
+from imvc.decomposition import DFMF, MOFA, jNMF
+from imvc.preprocessing import MultiViewTransformer, ConcatenateViews, NormalizerNaN
+from imvc.cluster import NEMO, DAIMC
 from settings import INCOMPLETE_RESULTS_PATH, INCOMPLETE_SUBRESULTS_PATH, INCOMPLETE_LOGS_PATH, INCOMPLETE_ERRORS_PATH, \
     TIME_RESULTS_PATH, DATASET_TABLE_PATH, amputation_mechanisms, probs, \
     imputation, runs_per_alg, INCOMPLETE_RESULTS_FILE, INCOMPLETE_LOGS_FILE, INCOMPLETE_ERRORS_FILE, \
@@ -27,6 +26,9 @@ if args.n_jobs > 1:
     pandarallel.initialize(nb_workers= args.n_jobs)
 
 algorithms = {
+    "DAIMC": {"alg": make_pipeline(MultiViewTransformer(VarianceThreshold().set_output(transform="pandas")),
+                                    MultiViewTransformer(NormalizerNaN().set_output(transform="pandas")),
+                                    DAIMC()), "params": {}},
     "NEMO": {"alg": make_pipeline(MultiViewTransformer(VarianceThreshold().set_output(transform="pandas")),
                                   MultiViewTransformer(StandardScaler().set_output(transform="pandas")),
                                     NEMO()), "params": {}},

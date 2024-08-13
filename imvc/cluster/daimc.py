@@ -8,7 +8,6 @@ from sklearn.cluster import KMeans
 from ..impute import get_observed_view_indicator, simple_view_imputer
 from ..utils import check_Xs
 
-
 class DAIMC(BaseEstimator, ClassifierMixin):
     r"""
     Doubly Aligned Incomplete Multi-view Clustering (DAIMC).

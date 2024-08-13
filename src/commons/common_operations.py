@@ -145,7 +145,9 @@ class CommonOperations:
             open(error_file, 'w').close()
 
         else:
-            finished_results = pd.read_csv(results_path, index_col=indexes_names)
+            def read_file(file, index_col=None):
+                return pd.read_csv(file, dtype={'omic_combinations': str}, index_col=index_col)
+            finished_results = read_file(results_path, index_col=indexes_names)
             results.loc[finished_results.index, finished_results.columns] = finished_results
             finished_results = CreateResultTable.collect_subresults(results=results.copy(),
                                                                     subresults_path=subresults_path,

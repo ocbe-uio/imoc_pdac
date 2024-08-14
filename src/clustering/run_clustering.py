@@ -64,7 +64,8 @@ class RunClustering:
             clusters, train_X = Model(alg_name=alg_name, alg=alg).method(train_Xs=train_Xs, n_clusters=number_of_clusters,
                                                                          random_state=random_state, run_n=run_n)
             elapsed_time = time.perf_counter() - start_time
-            train_X = pd.DataFrame(train_X, index=observed_view_indicator.index)
+            if not isinstance(train_X, pd.DataFrame):
+                train_X = pd.DataFrame(train_X, index=observed_view_indicator.index)
             clusters = pd.Series(clusters, index=train_X.index)
 
             if isinstance(train_X, list):

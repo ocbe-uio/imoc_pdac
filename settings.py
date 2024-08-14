@@ -41,10 +41,9 @@ TIME_ERRORS_PATH = os.path.join(RESULTS_FOLDER, TIME_ERRORS_FILE)
 
 omic_views = ["CNA", "Methylation", "Mutations", "RNAseq", "RPPA", "miRNA"]
 amputation_mechanisms = ["EDM", 'MCAR', 'MAR', 'MNAR', "PM"]
-n_clusters = [2]
+n_clusters = [2, 3]
 probs = np.arange(100, step = 10)
 imputation = [True, False]
-runs_per_alg = np.arange(1)
-# If there is no amputation, set probs=probs_zero and amputation_mechanisms=amputation_mechanisms_zero
+runs_per_alg = np.arange(10)
 probs_zero = [0]
 amputation_mechanisms_zero = ["EDM"]

@@ -3,10 +3,10 @@ from pandarallel import pandarallel
 from sklearn.cluster import KMeans
 from sklearn.feature_selection import VarianceThreshold
 from sklearn.pipeline import make_pipeline
-from sklearn.preprocessing import StandardScaler, MinMaxScaler
-from imvc.decomposition import DFMF, MOFA, jNMF
+from sklearn.preprocessing import StandardScaler
+from imvc.decomposition import DFMF, MOFA
 from imvc.preprocessing import MultiViewTransformer, ConcatenateViews, NormalizerNaN
-from imvc.cluster import NEMO, DAIMC
+from imvc.cluster import NEMO, PIMVC
 from settings import INCOMPLETE_RESULTS_PATH, INCOMPLETE_SUBRESULTS_PATH, INCOMPLETE_LOGS_PATH, INCOMPLETE_ERRORS_PATH, \
     TIME_RESULTS_PATH, DATASET_TABLE_PATH, amputation_mechanisms, probs, \
     imputation, runs_per_alg, INCOMPLETE_RESULTS_FILE, INCOMPLETE_LOGS_FILE, INCOMPLETE_ERRORS_FILE, \
@@ -26,9 +26,9 @@ if args.n_jobs > 1:
     pandarallel.initialize(nb_workers= args.n_jobs)
 
 algorithms = {
-    "DAIMC": {"alg": make_pipeline(MultiViewTransformer(VarianceThreshold().set_output(transform="pandas")),
-                                    MultiViewTransformer(NormalizerNaN().set_output(transform="pandas")),
-                                    DAIMC()), "params": {}},
+    "PIMVC": {"alg": make_pipeline(MultiViewTransformer(VarianceThreshold().set_output(transform="pandas")),
+                                   MultiViewTransformer(NormalizerNaN().set_output(transform="pandas")),
+                                   PIMVC()), "params": {}},
     "NEMO": {"alg": make_pipeline(MultiViewTransformer(VarianceThreshold().set_output(transform="pandas")),
                                   MultiViewTransformer(StandardScaler().set_output(transform="pandas")),
                                     NEMO()), "params": {}},
@@ -42,13 +42,10 @@ algorithms = {
                                   MOFA().set_output(transform="pandas"),
                                   ConcatenateViews(), StandardScaler().set_output(transform="pandas"), KMeans()),
              "params": {}},
-    # "jNMF": {"alg": make_pipeline(MultiViewTransformer(VarianceThreshold().set_output(transform="pandas")),
-    #                               MultiViewTransformer(MinMaxScaler().set_output(transform="pandas")),
-    #                               jNMF().set_output(transform="pandas"),
-    #                               StandardScaler().set_output(transform="pandas"), KMeans()),
-    #          "params": {}},
 }
 incomplete_algorithms = True
+# If there is amputation, set probs=probs and amputation_mechanisms=amputation_mechanisms
+# If there is no amputation, set probs=probs_zero and amputation_mechanisms=amputation_mechanisms_zero
 CommonOperations.run_script(dataset_table_path=DATASET_TABLE_PATH, algorithms=algorithms, probs=probs_zero, omic_views=omic_views,
                             amputation_mechanisms=amputation_mechanisms_zero, imputation=imputation, n_clusters=n_clusters,
                             runs_per_alg=runs_per_alg, args=args, subresults_path=INCOMPLETE_SUBRESULTS_PATH,

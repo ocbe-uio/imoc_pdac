@@ -22,23 +22,27 @@ class CreateResultTable:
         results = results.set_index(indexes_names)
 
         # remove experiments when there is no missing and imputation is True
-        idx_to_drop = results.xs(0, level="missing_percentage",
-                                 drop_level=False).xs(True, level="imputation", drop_level=False).index
-        results = results.drop(idx_to_drop)
+        if (results.index.get_level_values("missing_percentage") == 0).any():
+            idx_to_drop = results.xs(0, level="missing_percentage",
+                                     drop_level=False).xs(True, level="imputation", drop_level=False).index
+            results = results.drop(idx_to_drop)
 
         # remove experiments when missing percentage is 0 and there is amputation
         for amputation_mechanism in amputation_mechanisms[1:]:
-            idx_to_drop = results.xs(0, level="missing_percentage",
-                                     drop_level=False).xs(amputation_mechanism, level="amputation_mechanism",
-                                                          drop_level=False).index
-            results = results.drop(idx_to_drop)
+            if (results.index.get_level_values("missing_percentage") == 0).any():
+                idx_to_drop = results.xs(0, level="missing_percentage",
+                                         drop_level=False).xs(amputation_mechanism, level="amputation_mechanism",
+                                                              drop_level=False).index
+                results = results.drop(idx_to_drop)
 
         # keep only one experiment when there is no missing
-        results_amputation_mechanism_none = results.xs(0, level="missing_percentage", drop_level=False)
-        results_amputation_mechanism_none_tochange = results_amputation_mechanism_none.index.to_frame()
-        results_amputation_mechanism_none_tochange["amputation_mechanism"] = "'None'"
-        results.loc[results_amputation_mechanism_none.index].index = pd.MultiIndex.from_frame(
-            results_amputation_mechanism_none_tochange)
+        if (results.index.get_level_values("missing_percentage") == 0).any():
+            results_amputation_mechanism_none = results.xs(0, level="missing_percentage", drop_level=False)
+            if not results_amputation_mechanism_none.empty:
+                results_amputation_mechanism_none_tochange = results_amputation_mechanism_none.index.to_frame()
+                results_amputation_mechanism_none_tochange["amputation_mechanism"] = "'None'"
+                results.loc[results_amputation_mechanism_none.index].index = pd.MultiIndex.from_frame(
+                    results_amputation_mechanism_none_tochange)
 
         # when there are only two views, remove amputation for multiple views
         for amputation_mechanism, dataset in itertools.product(["MAR", "MNAR"], two_view_datasets):

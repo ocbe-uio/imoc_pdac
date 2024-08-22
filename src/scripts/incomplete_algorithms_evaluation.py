@@ -10,7 +10,7 @@ from imvc.cluster import NEMO, PIMVC
 from settings import INCOMPLETE_RESULTS_PATH, INCOMPLETE_SUBRESULTS_PATH, INCOMPLETE_LOGS_PATH, INCOMPLETE_ERRORS_PATH, \
     TIME_RESULTS_PATH, DATASET_TABLE_PATH, amputation_mechanisms, probs, \
     imputation, runs_per_alg, INCOMPLETE_RESULTS_FILE, INCOMPLETE_LOGS_FILE, INCOMPLETE_ERRORS_FILE, \
-    INCOMPLETE_SUBRESULTS_FOLDER, omic_views, n_clusters, probs_zero, amputation_mechanisms_zero
+    INCOMPLETE_SUBRESULTS_FOLDER, views, n_clusters
 from src.commons import CommonOperations
 
 args = CommonOperations.get_args()
@@ -44,11 +44,13 @@ algorithms = {
              "params": {}},
 }
 incomplete_algorithms = True
-# If there is amputation, set probs=probs and amputation_mechanisms=amputation_mechanisms
-# If there is no amputation, set probs=probs_zero and amputation_mechanisms=amputation_mechanisms_zero
-CommonOperations.run_script(dataset_table_path=DATASET_TABLE_PATH, algorithms=algorithms, probs=probs_zero, omic_views=omic_views,
-                            amputation_mechanisms=amputation_mechanisms_zero, imputation=imputation, n_clusters=n_clusters,
+run_amputation = True                               # Set to True if want to ampute data (probs and mechanisms from settings)
+best_combination = ["CNA", "RNAseq", "miRNA"]       # Set to False if there is no set combination of data types to use (will run all possible combinations of data types)
+
+CommonOperations.run_script(dataset_table_path=DATASET_TABLE_PATH, algorithms=algorithms, probs=probs, views=views,
+                            amputation_mechanisms=amputation_mechanisms, imputation=imputation, n_clusters=n_clusters,
                             runs_per_alg=runs_per_alg, args=args, subresults_path=INCOMPLETE_SUBRESULTS_PATH,
                             logs_file=INCOMPLETE_LOGS_PATH, error_file=INCOMPLETE_ERRORS_PATH,
                             results_path=INCOMPLETE_RESULTS_PATH, time_results_path=TIME_RESULTS_PATH,
-                            incomplete_algorithms=incomplete_algorithms)
+                            incomplete_algorithms=incomplete_algorithms, best_combination=best_combination,
+                            run_amputation=run_amputation)

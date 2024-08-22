@@ -39,11 +39,9 @@ COMPLETE_ERRORS_PATH = os.path.join(RESULTS_FOLDER, COMPLETE_ERRORS_FILE)
 INCOMPLETE_ERRORS_PATH = os.path.join(RESULTS_FOLDER, INCOMPLETE_ERRORS_FILE)
 TIME_ERRORS_PATH = os.path.join(RESULTS_FOLDER, TIME_ERRORS_FILE)
 
-omic_views = ["CNA", "Methylation", "Mutations", "RNAseq", "RPPA", "miRNA"]
+views = ["CNA", "Methylation", "Mutations", "RNAseq", "RPPA", "miRNA"]  # Note that the views have to be ordered according to python syntax
+n_clusters = [2]
 amputation_mechanisms = ["EDM", 'MCAR', 'MAR', 'MNAR', "PM"]
-n_clusters = [2, 3]
-probs = np.arange(100, step = 10)
-imputation = [True, False]
-runs_per_alg = np.arange(10)
-probs_zero = [0]
-amputation_mechanisms_zero = ["EDM"]
+probs = [20, 40, 60, 80]
+imputation = [False]
+runs_per_alg = np.arange(1)

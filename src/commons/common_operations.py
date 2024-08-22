@@ -24,14 +24,24 @@ class CommonOperations:
 
 
     @staticmethod
-    def get_results_table(datasets, omic_views, n_clusters, algorithms, probs, amputation_mechanisms, imputation, runs_per_alg, two_view_datasets):
-        # create matrix showing all possible combinations of different views
-        combinations = [row for row in itertools.product([0, 1], repeat=len(omic_views)) if sum(row) >= 2]
-        combinations_matrix = pd.DataFrame(combinations, columns=omic_views)
-        combinations_matrix = combinations_matrix.apply(lambda row: ''.join(row.astype(str)), axis=1)
+    def get_results_table(datasets, views, n_clusters, algorithms, probs, amputation_mechanisms, imputation,
+                          runs_per_alg, two_view_datasets, best_combination, run_amputation):
+        if best_combination:
+            if isinstance(best_combination, list) and len(best_combination) > 1:
+                view_combinations = ['1' if view in best_combination else '0' for view in views]
+                combinations_matrix = [''.join(view_combinations)]
+            else:
+                raise ValueError("best_combination must be a list with at least two views")
+        else:
+            view_combinations = [row for row in itertools.product([0, 1], repeat=len(views)) if sum(row) >= 2]
+            combinations_matrix = pd.DataFrame(view_combinations, columns=views)
+            combinations_matrix = combinations_matrix.apply(lambda row: ''.join(row.astype(str)), axis=1)
+        if run_amputation == False:
+            probs = [0]
+            amputation_mechanisms = ["EDM"]
         # variables in results_table
         indexes_results = {"dataset": datasets,
-                           "omic_combinations": list(combinations_matrix),
+                           "view_combination": list(combinations_matrix),
                            "algorithm": list(algorithms.keys()),
                            "n_clusters": n_clusters,
                            "missing_percentage": probs,
@@ -172,17 +182,18 @@ class CommonOperations:
     @staticmethod
     def get_unfinished_results(dataset_table_path, algorithms, probs, amputation_mechanisms, imputation, runs_per_alg,
                                args, subresults_path, logs_file, error_file, results_path, time_results_path,
-                               incomplete_algorithms, omic_views, n_clusters):
+                               incomplete_algorithms, views, n_clusters, best_combination, run_amputation):
         datasets, two_view_datasets = CommonOperations.get_list_of_datasets(dataset_table_path)
         indexes_names, results = CommonOperations.get_results_table(datasets=datasets, algorithms=algorithms,
-                                                                    probs=probs, omic_views=omic_views, n_clusters=n_clusters,
+                                                                    probs=probs, views=views, n_clusters=n_clusters,
                                                                     amputation_mechanisms=amputation_mechanisms,
                                                                     imputation=imputation, runs_per_alg=runs_per_alg,
-                                                                    two_view_datasets=two_view_datasets)
+                                                                    two_view_datasets=two_view_datasets,
+                                                                    best_combination=best_combination,
+                                                                    run_amputation=run_amputation)
         results = CommonOperations.load_benchmarking(args=args, results=results, subresults_path=subresults_path,
                                                      logs_file=logs_file, error_file=error_file,
-                                                     results_path=results_path,
-                                                     indexes_names=indexes_names)
+                                                     results_path=results_path, indexes_names=indexes_names)
         results = CommonOperations.limit_time(results=results, time_results_path=time_results_path, datasets=datasets,
                                               algorithms=algorithms)
 
@@ -194,11 +205,12 @@ class CommonOperations:
 
 
     @staticmethod
-    def run_script(dataset_table_path, omic_views, n_clusters, algorithms, probs, amputation_mechanisms, imputation, runs_per_alg,
-                   args, subresults_path, logs_file, error_file, results_path, time_results_path,incomplete_algorithms):
+    def run_script(dataset_table_path, views, n_clusters, algorithms, probs, amputation_mechanisms, imputation, runs_per_alg,
+                   args, subresults_path, logs_file, error_file, results_path, time_results_path, incomplete_algorithms,
+                   best_combination, run_amputation):
         indexes_names, results, unfinished_results = CommonOperations.get_unfinished_results(
             dataset_table_path=dataset_table_path,
-            omic_views=omic_views, n_clusters=n_clusters,
+            views=views, n_clusters=n_clusters,
             algorithms=algorithms, probs=probs,
             amputation_mechanisms=amputation_mechanisms,
             imputation=imputation,
@@ -209,7 +221,9 @@ class CommonOperations:
             error_file=error_file,
             results_path=results_path,
             time_results_path=time_results_path,
-            incomplete_algorithms=incomplete_algorithms)
+            incomplete_algorithms=incomplete_algorithms,
+            best_combination=best_combination,
+            run_amputation=run_amputation)
 
         for dataset_name in unfinished_results.index.get_level_values("dataset").unique():
             results = CommonOperations.run_processing(unfinished_results=unfinished_results, dataset_name=dataset_name,
@@ -223,8 +237,3 @@ class CommonOperations:
         print("Completed successfully!")
         with open(logs_file, "a") as f:
             f.write(f'\n Completed successfully \t {datetime.now()}')
-
-
-
-
-

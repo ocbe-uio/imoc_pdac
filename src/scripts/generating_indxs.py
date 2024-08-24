@@ -7,15 +7,14 @@ from sklearn.utils import shuffle
 from imvc.ampute import Amputer
 from imvc.impute import get_observed_view_indicator
 
-from settings import PROFILES_PATH, DATASET_TABLE_PATH, RANDOM_STATE, probs, amputation_mechanisms, runs_per_alg
+from settings import (PROFILES_PATH, DATASET_TABLE_PATH, RANDOM_STATE, probs, amputation_mechanisms, runs_per_alg,
+                      best_combination, views, run_amputation)
 from src.commons import CommonOperations
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-continue_indxs', default=False, action='store_true')
 parser.add_argument('-save_results', default=False, action='store_true')
 args = parser.parse_args()
-
-run_amputation = True      # Set to True if want to ampute data (probs and mechanisms in settings)
 
 if not args.continue_indxs:
     shutil.rmtree(PROFILES_PATH, ignore_errors=True)
@@ -24,19 +23,35 @@ if not args.continue_indxs:
 datasets, two_view_datasets = CommonOperations.get_list_of_datasets(DATASET_TABLE_PATH)
 
 for dataset_name in datasets:
-    Xs = CommonOperations.load_Xs(dataset_name=dataset_name)
+
+    if best_combination:
+        if isinstance(best_combination, list) and len(best_combination) > 1:
+            binary_combination = ['1' if view in best_combination else '0' for view in views]
+            binary_combination = [''.join(binary_combination)]
+        else:
+            raise ValueError("best_combination must be a list with at least two views.")
+    elif best_combination == False:
+        binary_combination = [row for row in itertools.product([0, 1], repeat=len(views)) if sum(row) >= 2]
+        binary_combination = [''.join(map(str, combination)) for combination in binary_combination]
+    else:
+        raise TypeError
+
     if run_amputation == False:
         probs = [0]
         amputation_mechanisms = ["EDM"]
 
-    for prob, amputation_mechanism, run_n in itertools.product(probs, amputation_mechanisms, runs_per_alg):
+    for binary_combination, prob, amputation_mechanism, run_n in itertools.product(binary_combination, probs, amputation_mechanisms, runs_per_alg):
+        Xs = CommonOperations.load_Xs(dataset_name=dataset_name)
+        view_combinations = [bool(int(value)) for value in binary_combination]
+        Xs = [view for i, view in enumerate(Xs) if view_combinations[i] == True]
+
         if prob == 0:
             if amputation_mechanism == "EDM":
                 amputation_mechanism = "No"
             else:
                 continue
 
-        path = f"{dataset_name}_{prob}_{amputation_mechanism}_{run_n}.json"
+        path = f"{dataset_name}_{binary_combination}_{prob}_{amputation_mechanism}_{run_n}.json"
         path = os.path.join(PROFILES_PATH, path)
         if os.path.exists(path):
             continue

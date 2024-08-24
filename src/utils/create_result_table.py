@@ -66,7 +66,7 @@ class CreateResultTable:
             if len(subresults_files) > 0:
                 # prevents string of omic_combinations to turning into numeric
                 def read_file(file):
-                    return pd.read_csv(file, dtype={'omic_combinations': str})
+                    return pd.read_csv(file, dtype={'view_combination': str})
                 # read files and concat them
                 subresults_files = pd.concat(subresults_files.apply(read_file).to_list())
                 # put same format as result df

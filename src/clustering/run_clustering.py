@@ -27,7 +27,7 @@ class RunClustering:
             row_index = row.index
             dataset_name, view_combinations, alg_name, p, amputation_mechanism, impute, run_n, cluster_num = (
                 row_index.get_level_values("dataset")[0],
-                row_index.get_level_values("omic_combinations")[0],
+                row_index.get_level_values("view_combination")[0],
                 row_index.get_level_values("algorithm")[0],
                 row_index.get_level_values("missing_percentage")[0],
                 row_index.get_level_values("amputation_mechanism")[0],
@@ -38,7 +38,7 @@ class RunClustering:
             if cluster_num in n_clusters:
                 number_of_clusters = int(cluster_num)
 
-            path = f"{dataset_name}_{p}_{amputation_mechanism}_{run_n}.json"
+            path = f"{dataset_name}_{view_combinations}_{p}_{amputation_mechanism}_{run_n}.json"
             path = os.path.join(PROFILES_PATH, path)
             with open(path) as f:
                 observed_view_indicator = json.load(f)
@@ -48,11 +48,11 @@ class RunClustering:
                     raise ValueError(observed_view_indicator["error"])
             observed_view_indicator = pd.DataFrame.from_dict(observed_view_indicator)
 
+            view_combinations = [bool(int(value)) for value in view_combinations]
+            Xs = [view for i, view in enumerate(Xs) if view_combinations[i] == True]
+
             train_Xs = DatasetUtils.convert_to_imvd(Xs=Xs, observed_view_indicator=observed_view_indicator)
             train_Xs = [X.loc[observed_view_indicator.index] for X in train_Xs]
-
-            view_combinations = [bool(int(value)) for value in view_combinations]
-            train_Xs = [view for i, view in enumerate(train_Xs) if view_combinations[i] == True]
 
             if impute:
                 train_Xs = MultiViewTransformer(SimpleImputer(strategy="mean").set_output(

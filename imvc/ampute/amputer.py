@@ -117,6 +117,7 @@ class Amputer(BaseEstimator, TransformerMixin):
             pseudo_observed_view_indicator = self._pm_mask(sample_names=sample_names)
         else:
             pseudo_observed_view_indicator = np.random.default_rng(self.random_state).normal(size=(len(Xs[0]), self.n_views))
+            pseudo_observed_view_indicator = pd.DataFrame(pseudo_observed_view_indicator, index=sample_names)
             pseudo_observed_view_indicator = self._produce_missing(X= pseudo_observed_view_indicator, sample_names=sample_names)
 
         pseudo_observed_view_indicator = pseudo_observed_view_indicator.astype(bool)
@@ -157,7 +158,7 @@ class Amputer(BaseEstimator, TransformerMixin):
         """
         missing_samples = pd.Series(sample_names, index=sample_names).sample(frac=self.p, replace=False,
                                                                              random_state=self.random_state).index
-        missing_X = X[missing_samples]
+        missing_X = X.loc[missing_samples]
 
         if self.mechanism == "MAR":
             missing_X = np.insert(missing_X, 0, np.random.default_rng(self.random_state).random(len(missing_X)), axis=1)
@@ -294,9 +295,9 @@ class Amputer(BaseEstimator, TransformerMixin):
         ### Pick coefficients so that W^Tx has unit variance (avoids shrinking)
         coeffs = self._pick_coeffs(X, idxs_obs=idxs_params, idxs_nas=idxs_nas)
         ### Pick the intercepts to have a desired amount of missing values
-        intercepts = self._fit_intercepts(X[:, idxs_params], coeffs, p)
+        intercepts = self._fit_intercepts(X.iloc[:, idxs_params], coeffs, p)
 
-        ps = np.dot(X[:, idxs_params], coeffs) + intercepts
+        ps = np.dot(X.iloc[:, idxs_params], coeffs) + intercepts
         ps = 1 / (1 + np.exp(-ps))
 
         ber = np.random.default_rng(self.random_state).random((n, d_na))
@@ -392,15 +393,15 @@ class Amputer(BaseEstimator, TransformerMixin):
 
         ### check if values are greater/smaller that corresponding quantiles
         if cut == 'upper':
-            quants = np.partition(a= X[:, idxs_na], kth= 1 - q, axis=0)[q]
+            quants = np.partition(a= X.iloc[:, idxs_na], kth= 1 - q, axis=0)[q]
             m = X[:, idxs_na] >= quants
         elif cut == 'lower':
-            quants = np.partition(a= X[:, idxs_na], kth= q, axis=0)[q]
+            quants = np.partition(a= X.iloc[:, idxs_na], kth= q, axis=0)[q]
             m = X[:, idxs_na] <= quants
         elif cut == 'both':
-            u_quants = np.partition(a= X[:, idxs_na], kth= 1 - q, axis=0)[q]
-            l_quants = np.partition(a= X[:, idxs_na], kth= q, axis=0)[q]
-            m = (X[:, idxs_na] <= l_quants) | (X[:, idxs_na] >= u_quants)
+            u_quants = np.partition(a= X.iloc[:, idxs_na], kth= 1 - q, axis=0)[q]
+            l_quants = np.partition(a= X.iloc[:, idxs_na], kth= q, axis=0)[q]
+            m = (X[:, idxs_na] <= l_quants) | (X.iloc[:, idxs_na] >= u_quants)
 
         ### Hide some values exceeding quantiles
         ber = np.random.default_rng(self.random_state).random((n, d_na))
@@ -423,7 +424,10 @@ class Amputer(BaseEstimator, TransformerMixin):
             d_obs = len(idxs_obs)
             d_na = len(idxs_nas)
             coeffs = np.random.default_rng(self.random_state).normal(size=(d_obs, d_na))
-            Wx = np.dot(X[:, idxs_obs], coeffs)
+            if isinstance(X, np.ndarray):
+                Wx = np.dot(X[:, idxs_obs], coeffs)
+            if isinstance(X, pd.DataFrame):
+                Wx = np.dot(X.iloc[:, idxs_obs], coeffs)
             coeffs /= np.std(Wx, 0, keepdims=True)
         return coeffs
 

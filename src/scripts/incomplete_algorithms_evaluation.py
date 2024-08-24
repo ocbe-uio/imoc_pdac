@@ -10,7 +10,7 @@ from imvc.cluster import NEMO, PIMVC
 from settings import INCOMPLETE_RESULTS_PATH, INCOMPLETE_SUBRESULTS_PATH, INCOMPLETE_LOGS_PATH, INCOMPLETE_ERRORS_PATH, \
     TIME_RESULTS_PATH, DATASET_TABLE_PATH, amputation_mechanisms, probs, \
     imputation, runs_per_alg, INCOMPLETE_RESULTS_FILE, INCOMPLETE_LOGS_FILE, INCOMPLETE_ERRORS_FILE, \
-    INCOMPLETE_SUBRESULTS_FOLDER, views, n_clusters
+    INCOMPLETE_SUBRESULTS_FOLDER, views, n_clusters, best_combination, run_amputation
 from src.commons import CommonOperations
 
 args = CommonOperations.get_args()
@@ -26,17 +26,17 @@ if args.n_jobs > 1:
     pandarallel.initialize(nb_workers= args.n_jobs)
 
 algorithms = {
-    "PIMVC": {"alg": make_pipeline(MultiViewTransformer(VarianceThreshold().set_output(transform="pandas")),
-                                   MultiViewTransformer(NormalizerNaN().set_output(transform="pandas")),
-                                   PIMVC()), "params": {}},
-    "NEMO": {"alg": make_pipeline(MultiViewTransformer(VarianceThreshold().set_output(transform="pandas")),
-                                  MultiViewTransformer(StandardScaler().set_output(transform="pandas")),
-                                    NEMO()), "params": {}},
-    "DFMF": {"alg": make_pipeline(MultiViewTransformer(VarianceThreshold().set_output(transform="pandas")),
-                                  MultiViewTransformer(StandardScaler().set_output(transform="pandas")),
-                                  DFMF().set_output(transform="pandas"),
-                                  StandardScaler().set_output(transform="pandas"), KMeans()),
-             "params": {}},
+    # "PIMVC": {"alg": make_pipeline(MultiViewTransformer(VarianceThreshold().set_output(transform="pandas")),
+    #                                MultiViewTransformer(NormalizerNaN().set_output(transform="pandas")),
+    #                                PIMVC()), "params": {}},
+    # "NEMO": {"alg": make_pipeline(MultiViewTransformer(VarianceThreshold().set_output(transform="pandas")),
+    #                               MultiViewTransformer(StandardScaler().set_output(transform="pandas")),
+    #                                 NEMO()), "params": {}},
+    # "DFMF": {"alg": make_pipeline(MultiViewTransformer(VarianceThreshold().set_output(transform="pandas")),
+    #                               MultiViewTransformer(StandardScaler().set_output(transform="pandas")),
+    #                               DFMF().set_output(transform="pandas"),
+    #                               StandardScaler().set_output(transform="pandas"), KMeans()),
+    #          "params": {}},
     "MOFA": {"alg": make_pipeline(MultiViewTransformer(VarianceThreshold().set_output(transform="pandas")),
                                   MultiViewTransformer(StandardScaler().set_output(transform="pandas")),
                                   MOFA().set_output(transform="pandas"),
@@ -44,9 +44,6 @@ algorithms = {
              "params": {}},
 }
 incomplete_algorithms = True
-run_amputation = True                               # Set to True if want to ampute data (probs and mechanisms from settings)
-best_combination = ["CNA", "RNAseq", "miRNA"]       # Set to False if there is no set combination of data types to use (will run all possible combinations of data types)
-
 CommonOperations.run_script(dataset_table_path=DATASET_TABLE_PATH, algorithms=algorithms, probs=probs, views=views,
                             amputation_mechanisms=amputation_mechanisms, imputation=imputation, n_clusters=n_clusters,
                             runs_per_alg=runs_per_alg, args=args, subresults_path=INCOMPLETE_SUBRESULTS_PATH,

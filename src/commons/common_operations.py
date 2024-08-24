@@ -32,10 +32,13 @@ class CommonOperations:
                 combinations_matrix = [''.join(view_combinations)]
             else:
                 raise ValueError("best_combination must be a list with at least two views")
-        else:
+        elif best_combination == False:
             view_combinations = [row for row in itertools.product([0, 1], repeat=len(views)) if sum(row) >= 2]
             combinations_matrix = pd.DataFrame(view_combinations, columns=views)
             combinations_matrix = combinations_matrix.apply(lambda row: ''.join(row.astype(str)), axis=1)
+        else:
+            raise TypeError
+
         if run_amputation == False:
             probs = [0]
             amputation_mechanisms = ["EDM"]
@@ -156,7 +159,7 @@ class CommonOperations:
 
         else:
             def read_file(file, index_col=None):
-                return pd.read_csv(file, dtype={'omic_combinations': str}, index_col=index_col)
+                return pd.read_csv(file, dtype={'view_combination': str}, index_col=index_col)
             finished_results = read_file(results_path, index_col=indexes_names)
             results.loc[finished_results.index, finished_results.columns] = finished_results
             finished_results = CreateResultTable.collect_subresults(results=results.copy(),

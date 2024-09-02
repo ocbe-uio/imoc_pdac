@@ -48,7 +48,7 @@ class NormalizerNaN(Normalizer):
             Not used, present here for API consistency by convention.
         Returns
         -------
-        self :  returns and instance of self.
+        self :  returns an instance of self.
         """
 
         self._validate_data(X, **{"force_all_finite":'allow-nan'})

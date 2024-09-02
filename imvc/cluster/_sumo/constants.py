@@ -18,8 +18,6 @@ PREPARE_DEFAULTS = {
     "fn": 0,
     "df": 0.1,
     "ds": 0.1,
-    "logfile": None,
-    "log": "INFO",
     "plot": None,
     "atol": 1e-2
 }
@@ -34,8 +32,6 @@ RUN_DEFAULTS = {
     "max_iter": 500,
     "tol": 1e-5,
     "calc_cost": 20,
-    "logfile": None,
-    "log": "INFO",
     "h_init": None,
     "t": 1,
     "subsample": 0.05,
@@ -48,15 +44,11 @@ RUN_ARGS = ["infile", "k", "outdir"] + list(RUN_DEFAULTS.keys())  # 3 positional
 # evaluate
 EVALUATE_DEFAULTS = {
     "metric": None,
-    "logfile": None,
-    "log": "INFO"
 }
 EVALUATE_ARGS = ["infile", "labels_file"] + list(EVALUATE_DEFAULTS.keys())  # 2 positional args
 
 # interpret
 INTERPRET_DEFAULTS = {
-    "logfile": None,
-    "log": "INFO",
     "max_iter": 50,
     "n_folds": 5,
     "sn": 0,
@@ -70,7 +62,6 @@ INTERPRET_DEFAULTS = {
 INTERPRET_ARGS = ['sumo_results', 'infiles', 'output_prefix'] + list(INTERPRET_DEFAULTS.keys())  # 3 positional args
 
 # utils
-LOG_LEVELS = ['DEBUG', 'INFO', 'WARNING']
 CLUSTER_METRICS = ['NMI', 'purity', 'ARI']
 COLOR_CODES = {
     "blue": {"light": "#3C548899", "dark": "#3C5488FF"},

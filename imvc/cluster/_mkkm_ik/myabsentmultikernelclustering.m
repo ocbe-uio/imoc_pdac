@@ -1,9 +1,4 @@
-function [H_normalized,gamma,obj,KA] = myabsentmultikernelclustering(K,S,cluster_count,qnorm,algorithm_choose,normalize)
-
-if normalize
-    K = kcenter(K);
-    K = knorm(K);
-end
+function [H_normalized,gamma,obj,KA] = myabsentmultikernelclustering(K,S,cluster_count,qnorm,algorithm_choose)
 
 num = size(K,1);
 nbkernel = size(K,3);

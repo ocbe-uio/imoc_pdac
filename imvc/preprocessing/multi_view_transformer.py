@@ -66,7 +66,7 @@ class MultiViewTransformer(BaseEstimator, TransformerMixin):
 
         Returns
         -------
-        self :  returns and instance of self.
+        self :  returns an instance of self.
         """
 
         Xs = check_Xs(Xs, force_all_finite='allow-nan')

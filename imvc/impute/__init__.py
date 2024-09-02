@@ -1,3 +1,4 @@
 from .missing_view_indicator import MissingViewIndicator, get_missing_view_indicator
 from .observed_view_indicator import ObservedViewIndicator, get_observed_view_indicator
 from .simple_view_imputer import SimpleViewImputer, simple_view_imputer
+from .mofa_imputer import MOFAImputer

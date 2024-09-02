@@ -8,6 +8,14 @@ from sklearn.cluster import KMeans
 from ..impute import get_observed_view_indicator, simple_view_imputer
 from ..utils import check_Xs
 
+try:
+    import oct2py
+    oct2py_installed = True
+except ImportError:
+    oct2py_installed = False
+    error_message = "Oct2Py needs to be installed to use matlab engine."
+
+
 class DAIMC(BaseEstimator, ClassifierMixin):
     r"""
     Doubly Aligned Incomplete Multi-view Clustering (DAIMC).
@@ -39,20 +47,22 @@ class DAIMC(BaseEstimator, ClassifierMixin):
     ----------
     labels_ : array-like of shape (n_samples,)
         Labels of each point in training data.
-    embedding_ :
+    embedding_ : array-like of shape (n_samples, n_clusters)
         Commont latent feature matrix to be used as input for the KMeans clustering step.
-    U_ : np.array
-        Basis matrix.
-    B_ : np.array
+    U_ : list of n_views array-like of shape (n_features_i, n_clusters)
+        Basis matrices.
+    B_ : list of n_views array-like of shape (n_features_i, n_clusters)
         Regression coefficient matrices.
 
     References
     ----------
-    [paper1] Menglei Hu and Songcan Chen. 2018. Doubly aligned incomplete multi-view clustering. In Proceedings of the
-            27th International Joint Conference on Artificial Intelligence (IJCAI'18). AAAI Press, 2262–2268.
-    [paper2] Jie Wen, Zheng Zhang, Lunke Fei, Bob Zhang, Yong Xu, Zhao Zhang, Jinxing Li, A Survey on Incomplete
-             Multi-view Clustering, IEEE TRANSACTIONS ON SYSTEMS, MAN, AND CYBERNETICS: SYSTEMS, 2022.
-    [code]  https://github.com/DarrenZZhang/Survey_IMC
+    .. [#daimcpaper1] Menglei Hu and Songcan Chen. 2018. Doubly aligned incomplete multi-view clustering. In
+                      Proceedings of the 27th International Joint Conference on Artificial Intelligence (IJCAI'18).
+                      AAAI Press, 2262–2268.
+    .. [#daimcpaper2] Jie Wen, Zheng Zhang, Lunke Fei, Bob Zhang, Yong Xu, Zhao Zhang, Jinxing Li, A Survey on
+                      Incomplete Multi-view Clustering, IEEE TRANSACTIONS ON SYSTEMS, MAN, AND CYBERNETICS:
+                      SYSTEMS, 2022.
+    .. [#daimccode] https://github.com/DarrenZZhang/Survey_IMC
 
     Example
     --------
@@ -73,6 +83,11 @@ class DAIMC(BaseEstimator, ClassifierMixin):
         self.alpha = alpha
         self.beta = beta
         self.random_state = random_state
+        self._engines_options = ["matlab"]
+        if engine not in self._engines_options:
+            raise ValueError(f"Invalid engine. Expected one of {self._engines_options}.")
+        if (engine == "matlab") and (not oct2py_installed):
+            raise ModuleNotFoundError(error_message)
         self.engine = engine
         self.verbose = verbose
 
@@ -97,7 +112,6 @@ class DAIMC(BaseEstimator, ClassifierMixin):
         Xs = check_Xs(Xs, force_all_finite='allow-nan')
 
         if self.engine=="matlab":
-            import oct2py
             matlab_folder = dirname(__file__)
             matlab_folder = os.path.join(matlab_folder, "_" + (os.path.basename(__file__).split(".")[0]))
             matlab_files = [x for x in os.listdir(matlab_folder) if x.endswith(".m")]
@@ -124,10 +138,12 @@ class DAIMC(BaseEstimator, ClassifierMixin):
             u_0, v_0, b_0 = oc.newinit(transformed_Xs, w, self.n_clusters, len(transformed_Xs), nout=3)
             u, v, b, f, p, n = oc.DAIMC(transformed_Xs, w, u_0, v_0, b_0, None, self.n_clusters,
                                         len(transformed_Xs), {"afa": self.alpha, "beta": self.beta}, nout=6)
+            b = [np.array(arr[0]) for arr in b]
+            u = [np.array(arr[0]) for arr in u]
         else:
-            raise ValueError("Only engine=='matlab' is currently supported.")
+            raise ValueError(f"Invalid engine. Expected one of {self._engines_options}.")
 
-        model = KMeans(n_clusters= self.n_clusters, random_state= self.random_state)
+        model = KMeans(n_clusters= self.n_clusters, n_init="auto", random_state= self.random_state)
         self.labels_ = model.fit_predict(X= v)
         self.U_ = u
         self.embedding_ = v

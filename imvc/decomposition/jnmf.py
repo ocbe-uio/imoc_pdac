@@ -10,7 +10,7 @@ class jNMF(TransformerMixin, BaseEstimator):
     Joint Non-negative Matrix Factorization Algorithms (jNMF).
 
     jNMF decompose the matrices to two low-dimensional factor matrices. It can deal with both view- and
-    single-wise missing.
+    feature-wise missing.
 
     Parameters
     ----------
@@ -56,7 +56,7 @@ class jNMF(TransformerMixin, BaseEstimator):
 
     Attributes
     ----------
-    H_ : list of array-like, shape=(n_features_i, n_components)
+    H_ : list of n_views array-likes of shape (n_features_i, n_components)
         List of specific factorization matrix.
     reconstruction_err_ : list of float
         Beta-divergence between the training data X and the reconstructed data WH from the fitted model.
@@ -80,7 +80,8 @@ class jNMF(TransformerMixin, BaseEstimator):
                      on Latent Variable Analysis and Signal Separation 346-353.
     .. [#jnmfpaper5] N. Fujita et al., (2018) Biomarker discovery by integrated joint non-negative matrix factorization
                      and pathway signature analyses, Scientific Report.
-    .. [#jnmfcode] https://rdrr.io/cran/nnTensor/man/jNMF.html
+    .. [#jnmfcode1] https://rdrr.io/cran/nnTensor/man/jNMF.html
+    .. [#jnmfcode2] https://github.com/rikenbit/nnTensor
 
     Example
     --------
@@ -101,8 +102,12 @@ class jNMF(TransformerMixin, BaseEstimator):
     def __init__(self, n_components : int = 10, init_W = None, init_V = None, init_H = None,
                  l1_W: float = 1e-10, l1_V: float = 1e-10, l1_H: float = 1e-10,
                  l2_W: float = 1e-10, l2_V: float = 1e-10, l2_H: float = 1e-10, weights = None,
-                 beta_loss = ["Frobenius", "KL", "IS", "PLTF"], p: float = 1., tol: float = 1e-10, max_iter: int = 100,
+                 beta_loss : list = None, p: float = 1., tol: float = 1e-10, max_iter: int = 100,
                  verbose=0, random_state: int = None, engine: str = "r"):
+
+        if beta_loss is None:
+            beta_loss = ["Frobenius", "KL", "IS", "PLTF"]
+
         self.n_components = n_components
         self.init_W = init_W
         self.init_V = init_V
@@ -119,7 +124,14 @@ class jNMF(TransformerMixin, BaseEstimator):
         self.tol = tol
         self.max_iter = max_iter
         self.verbose = bool(verbose)
+        if random_state is None:
+            random_state = int(np.random.default_rng().integers(10000))
         self.random_state = random_state
+        self._engines_options = ["r"]
+        if engine not in self._engines_options:
+            raise ValueError(f"Invalid engine. Expected one of {self._engines_options}")
+        if (engine == "r") and (not rpy2_installed):
+            raise ModuleNotFoundError(error_message)
         self.engine = engine
         self.transform_ = None
 
@@ -139,10 +151,11 @@ class jNMF(TransformerMixin, BaseEstimator):
 
         Returns
         -------
-        self :  returns and instance of self.
+        self :  returns an instance of self.
         """
         Xs = check_Xs(Xs, force_all_finite='allow-nan')
-        samples = Xs[0].index
+        if not isinstance(Xs[0], pd.DataFrame):
+            Xs = [pd.DataFrame(X) for X in Xs]
 
         if self.engine=="r":
             from rpy2.robjects.packages import importr
@@ -152,7 +165,7 @@ class jNMF(TransformerMixin, BaseEstimator):
                 weights=self.weights)
             if self.random_state is not None:
                 base = importr("base")
-                base.set_seed((self.random_state))
+                base.set_seed(self.random_state)
 
             W, V, H, recerror, train_recerror, test_recerror, relchange = nnTensor.jNMF(
                 X= transformed_Xs, M=transformed_mask, J=self.n_components,
@@ -162,12 +175,11 @@ class jNMF(TransformerMixin, BaseEstimator):
 
             H = [np.array(mat) for mat in H]
             if self.transform_ == "pandas":
-                H = [pd.DataFrame(mat) for mat in H]
+                H = [pd.DataFrame(mat, index=X.columns) for X,mat in zip(Xs, H)]
         else:
-            raise ValueError("Only engine=='r' is currently supported.")
+            raise ValueError(f"Invalid engine. Expected one of {self._engines_options}")
 
         self.H_ = H
-        self.V_ = V
         self.reconstruction_err_ = list(recerror)
         self.observed_reconstruction_err_ = list(train_recerror)
         self.missing_reconstruction_err_ = list(test_recerror)
@@ -192,19 +204,28 @@ class jNMF(TransformerMixin, BaseEstimator):
             The projected data.
         """
         Xs = check_Xs(Xs, force_all_finite='allow-nan')
+        if not isinstance(Xs[0], pd.DataFrame):
+            Xs = [pd.DataFrame(X) for X in Xs]
         samples = Xs[0].index
 
         if self.engine == "r":
             from rpy2.robjects.packages import importr
             nnTensor = importr("nnTensor")
             transformed_Xs, transformed_mask, beta_loss, init_W, init_V, init_H, weights = self._prepare_variables(
-                Xs=Xs, beta_loss=self.beta_loss, init_W=self.init_W, init_V=self.V_, init_H=self.H_, weights=self.weights)
+                Xs=Xs, beta_loss=self.beta_loss, init_W=self.init_W, init_V=self.init_V, init_H=self.H_,
+                weights=self.weights)
+
+            if not isinstance(self.H_[0], pd.DataFrame):
+                H = [pd.DataFrame(H) for H in self.H_]
+            else:
+                H = self.H_
+            H = _convert_df_to_r_object(H)
             if self.random_state is not None:
                 base = importr("base")
                 base.set_seed(self.random_state)
 
             transformed_X = nnTensor.jNMF(X= transformed_Xs, M=transformed_mask, J=self.n_components,
-                                          initW=init_W, initV=init_V, initH=_convert_df_to_r_object(self.H_),
+                                          initW=init_W, initV=init_V, initH=H,
                                           fixW=False, fixV=False, fixH=True,
                                           L1_W=self.l1_W, L1_V=self.l1_V, L1_H=self.l1_H,
                                           L2_W=self.l2_W, L2_V= self.l2_V, L2_H=self.l2_H,
@@ -229,7 +250,7 @@ class jNMF(TransformerMixin, BaseEstimator):
 
         Returns
         -------
-        self:  returns and instance of self.
+        self:  returns an instance of self.
         """
         self.transform_ = transform
         return self

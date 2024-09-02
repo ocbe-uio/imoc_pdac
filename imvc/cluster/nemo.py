@@ -1,3 +1,5 @@
+from typing import Union
+
 import numpy as np
 import pandas as pd
 import snf
@@ -23,7 +25,7 @@ class NEMO(BaseEstimator, ClassifierMixin):
     ----------
     n_clusters : int or list-of-int
         The number of clusters to generate. If it is a list, the number of clusters will be estimated by the algorithm
-         with this range of number of clusters to choose between.
+        with this range of number of clusters to choose between.
     num_neighbors : list or int, default=None
         The number of neighbors to use for each view. It can either be a number, a list of numbers or None. If it is a
         number, this is the number of neighbors used for all views. If this is a list, the number of neighbors are
@@ -38,27 +40,27 @@ class NEMO(BaseEstimator, ClassifierMixin):
         Determines the randomness. Use an int to make the randomness deterministic.
     engine : str, default='python'
         Engine to use for computing the model. Must be one of ["python", "r"].
-.    verbose : bool, default=False
+    verbose : bool, default=False
         Verbosity mode.
 
     Attributes
     ----------
     labels_ : array-like of shape (n_samples,)
         Labels of each point in training data.
+    embedding_ : array-like of shape (n_samples, n_clusters)
+        The final representation of the data to be used as input for the clustering step.
     n_clusters_ : int
         Final number of clusters.
     num_neighbors_ : int
         Final number of neighbors.
-    embedding_ : np.array
-        The final representation of the data to be used as input for the clustering step.
-    spectral_graph_ : np.array(n_samples, n_clusters)
-        Spectral embedding.
+    affinity_matrix_ : np.array(n_samples, n_samples)
+        Affinity matrix.
 
     References
     ----------
-    [paper] Rappoport Nimrod, Shamir Ron. NEMO: Cancer subtyping by integration of partial multi-omic data.
-            Bioinformatics. 2019;35(18):3348–3356. doi: 10.1093/bioinformatics/btz058.
-    [code]  https://github.com/Shamir-Lab/NEMO
+    .. [#nemopaper] Rappoport Nimrod, Shamir Ron. NEMO: Cancer subtyping by integration of partial multi-omic data.
+                    Bioinformatics. 2019;35(18):3348–3356. doi: 10.1093/bioinformatics/btz058.
+    .. [#nemocode] https://github.com/Shamir-Lab/NEMO
 
     Example
     --------
@@ -69,13 +71,16 @@ class NEMO(BaseEstimator, ClassifierMixin):
     >>> labels = estimator.fit_predict(Xs)
     """
 
-    def __init__(self, n_clusters: int = 8, num_neighbors = None, num_neighbors_ratio: int = 6, metric='sqeuclidean',
+    def __init__(self, n_clusters: Union[int,list] = 8, num_neighbors = None, num_neighbors_ratio: int = 6, metric='sqeuclidean',
                  random_state:int = None, engine: str = "python", verbose = False):
         self.n_clusters = n_clusters
         self.num_neighbors = num_neighbors
         self.num_neighbors_ratio = num_neighbors_ratio
         self.metric = metric
         self.random_state = random_state
+        self._engines_options = ["python", "r"]
+        if engine not in self._engines_options:
+            raise ValueError(f"Invalid engine. Expected one of {self._engines_options}.")
         self.engine = engine
         self.verbose = verbose
 
@@ -100,6 +105,8 @@ class NEMO(BaseEstimator, ClassifierMixin):
         Xs = check_Xs(Xs, force_all_finite='allow-nan')
 
         if self.engine == 'python':
+            if not isinstance(Xs[0], pd.DataFrame):
+                Xs = [pd.DataFrame(X) for X in Xs]
             observed_view_indicator = get_observed_view_indicator(Xs)
             samples = observed_view_indicator.index
 
@@ -129,9 +136,9 @@ class NEMO(BaseEstimator, ClassifierMixin):
 
             model = SpectralClustering(n_clusters= self.n_clusters_, random_state= self.random_state)
             labels = model.fit_predict(X= affinity_matrix)
-            transformed_Xs = spectral_embedding(model.affinity_matrix_, n_components=self.n_clusters,
-                                                eigen_solver=model.eigen_solver,
-                                                random_state=self.random_state, eigen_tol=model.eigen_tol, drop_first=False)
+            transformed_Xs = spectral_embedding(model.affinity_matrix_, n_components=self.n_clusters_,
+                                                eigen_solver=model.eigen_solver, random_state=self.random_state,
+                                                eigen_tol=model.eigen_tol, drop_first=False)
 
 
         elif self.engine == "R":
@@ -144,19 +151,15 @@ class NEMO(BaseEstimator, ClassifierMixin):
             if (self.n_clusters is None):
                 self.n_clusters = nemo.nemo.num.clusters(affinity_matrix)
 
-            model = SpectralClustering(n_clusters= self.n_clusters_, random_state= self.random_state)
-            labels = model.fit_predict(X= affinity_matrix)
-            transformed_Xs = spectral_embedding(model.affinity_matrix_, n_components=self.n_clusters,
-                                                eigen_solver=model.eigen_solver,
-                                                random_state=self.random_state, eigen_tol=model.eigen_tol, drop_first=False)
-
+            snftool = importr("SNFtool")
+            labels = snftool.spectralClustering(affinity_matrix, self.n_clusters_)
 
         else:
-            raise ValueError("Only supports 'r' and 'python' engines.")
+            raise ValueError(f"Invalid engine. Expected one of {self._engines_options}.")
 
         self.labels_ = labels
-        self.embedding_ = affinity_matrix
-        self.spectral_graph_ = transformed_Xs
+        self.embedding_ = transformed_Xs
+        self.affinity_matrix_ = affinity_matrix
 
         return self
 

@@ -1,5 +1,4 @@
 from typing import Union
-
 import pandas as pd
 from sklearn.base import TransformerMixin, BaseEstimator
 from sklearn.utils.validation import _generate_get_feature_names_out
@@ -87,6 +86,9 @@ class DFMF(TransformerMixin, BaseEstimator):
         if len(init_type) == 1:
             init_type *= 2
 
+        if n_components < 1:
+            raise ValueError("Invalid n_components. It must be greater than or equal to 1.")
+
         self.n_components = n_components
         self.callback = callback
         self.max_iter = max_iter
@@ -126,9 +128,11 @@ class DFMF(TransformerMixin, BaseEstimator):
 
         Returns
         -------
-        self :  returns and instance of self.
+        self :  returns an instance of self.
         """
         Xs = check_Xs(Xs, force_all_finite='allow-nan')
+        if not isinstance(Xs[0], pd.DataFrame):
+            Xs = [pd.DataFrame(X) for X in Xs]
         self.ts_ = [fusion.ObjectType(f'Type {i + 1}', self.n_components) for i in range(len(Xs))]
         relations = [fusion.Relation(X.values, self.t_, t) for X,t in zip(Xs, self.ts_)]
         fusion_graph = fusion.FusionGraph(relations)
@@ -154,6 +158,8 @@ class DFMF(TransformerMixin, BaseEstimator):
         """
 
         Xs = check_Xs(Xs, force_all_finite='allow-nan')
+        if not isinstance(Xs[0], pd.DataFrame):
+            Xs = [pd.DataFrame(X) for X in Xs]
         relations = [fusion.Relation(X.values, self.t_, t) for X,t in zip(Xs, self.ts_)]
         fusion_graph = fusion.FusionGraph(relations)
         transformed_X = self.transformer_.transform(self.t_, fusion_graph, self.fuser_).factor(self.t_)
@@ -173,28 +179,8 @@ class DFMF(TransformerMixin, BaseEstimator):
 
         Returns
         -------
-        self:  returns and instance of self.
+        self:  returns an instance of self.
         """
         self.transform_ = transform
         return self
-
-
-    def get_feature_names_out(self, input_features=None):
-        r"""
-        Get output feature names for transformation. The feature names out will prefixed by the lowercased class name.
-        For example, if the transformer outputs 3 features, then the feature names out are: ["class_name0",
-        "class_name1", "class_name2"].
-
-        Parameters
-        ----------
-        input_features: array-like of str or None, default=None.
-            Only used to validate feature names with the names seen in fit.
-
-        Returns
-        -------
-        Returns:
-        feature_names_out: list of str objects
-            Transformed feature names.
-        """
-        return _generate_get_feature_names_out(self, self.n_components, input_features=input_features)
 

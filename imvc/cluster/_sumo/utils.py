@@ -1,10 +1,8 @@
 from sklearn.cluster import KMeans, SpectralClustering
 from sklearn.metrics import adjusted_rand_score, mutual_info_score
 from sklearn.metrics.cluster import entropy
-from .constants import LOG_LEVELS, CLUSTER_METRICS, COLOR_CODES
-from sys import stdout
+from .constants import CLUSTER_METRICS
 from typing import Union
-import logging
 import numpy as np
 import os
 import pandas as pd
@@ -19,36 +17,6 @@ def docstring_formatter(*args, **kwargs):
         return obj
 
     return dec
-
-
-def setup_logger(logger_name, level="INFO", log_file: str = None):
-    """ Create and configure logging object """
-    assert level in LOG_LEVELS
-
-    formatter = logging.Formatter('%(message)s')
-    if log_file:
-        handler = logging.FileHandler(log_file, mode="w")
-    else:
-        handler = logging.StreamHandler(stdout)
-    handler.setFormatter(formatter)
-
-    logger = logging.getLogger(logger_name)
-    logger.setLevel(getattr(logging, level))
-    logger.addHandler(handler)
-    return logger
-
-
-def close_logger(logger):
-    """ Remove all handlers of logger """
-    for x in list(logger.handlers):
-        logger.removeHandler(x)
-        x.flush()
-        x.close()
-
-
-def get_logger(logger_name: str = None):
-    return logging.getLogger(logger_name if logger_name else 'main')
-
 
 def check_matrix_symmetry(m: np.ndarray, tol=1e-8, equal_nan=True):
     """ Check symmetry of numpy array, after removal of missing samples"""
@@ -117,7 +85,7 @@ def save_arrays_to_npz(data: Union[dict, list], file_path: str):
         np.savez(file=file_path, **args)
 
 
-def extract_ncut(a: np.ndarray, k: int):
+def extract_ncut(a: np.ndarray, k: int, random_state):
     """ Select clusters using normalized cut based on graph similarity matrix
 
     Args:
@@ -135,7 +103,7 @@ def extract_ncut(a: np.ndarray, k: int):
     k = min(u.shape[1], k)
     v = u[:, u.shape[1] - k:]
 
-    kmeans = KMeans(n_clusters=k).fit(v)
+    kmeans = KMeans(n_clusters=k, n_init="auto", random_state=random_state).fit(v)
     return kmeans.labels_, v
 
 
@@ -268,7 +236,8 @@ def is_standardized(a: np.ndarray, axis: int = 1, atol: float = 1e-3):
            (np.nanmin(std), np.nanmax(std))
 
 
-def filter_features_and_samples(data: pd.DataFrame, drop_features: float = 0.1, drop_samples: float = 0.1):
+def filter_features_and_samples(data: pd.DataFrame, drop_features: float = 0.1, drop_samples: float = 0.1,
+                                verbose = False):
     """ Filter data frame features and samples
 
     Args:
@@ -280,7 +249,6 @@ def filter_features_and_samples(data: pd.DataFrame, drop_features: float = 0.1, 
     Returns:
         filtered data frame
     """
-    logger = get_logger()
     # check arguments
     if drop_features < 0 or drop_features >= 1:
         raise ValueError("Incorrect value od 'drop_feature', expected value in range [0,1)")
@@ -296,9 +264,10 @@ def filter_features_and_samples(data: pd.DataFrame, drop_features: float = 0.1, 
     nans = pd.isna(data).values
     data.drop(data.columns[np.sum(nans, axis=0) / nans.shape[0] > drop_samples], axis=1, inplace=True)
 
-    logger.info("Number of dropped rows/features: {}".format(before[0] - data.shape[0]))
-    logger.info("Number of dropped columns/samples: {}".format(before[1] - data.shape[1]))
-    logger.info("Data shape: {}".format(data.values.shape))
+    if verbose:
+        print("Number of dropped rows/features: {}".format(before[0] - data.shape[0]))
+        print("Number of dropped columns/samples: {}".format(before[1] - data.shape[1]))
+        print("Data shape: {}".format(data.values.shape))
 
     return data
 

@@ -8,6 +8,13 @@ from sklearn.cluster import KMeans
 from ..impute import get_observed_view_indicator
 from ..utils import check_Xs
 
+try:
+    import oct2py
+    oct2py_installed = True
+except ImportError:
+    oct2py_installed = False
+    error_message = "Oct2Py needs to be installed to use matlab engine."
+
 
 class IMSR(BaseEstimator, ClassifierMixin):
     r"""
@@ -31,25 +38,28 @@ class IMSR(BaseEstimator, ClassifierMixin):
         Determines the randomness. Use an int to make the randomness deterministic.
     engine : str, default=matlab
         Engine to use for computing the model. Current options are 'matlab'.
-.   verbose : bool, default=False
+    verbose : bool, default=False
         Verbosity mode.
 
     Attributes
     ----------
     labels_ : array-like of shape (n_samples,)
         Labels of each point in training data.
-    embedding_ :
+    embedding_ : array-like of shape (n_samples, n_clusters)
         Consensus clustering matrix to be used as input for the KMeans clustering step.
-    loss_ : array-like of shape (n_views,)
-        Value of the loss function.
+    loss_ : array-like of shape (n_iter_,)
+        Values of the loss function.
+    n_iter_ : int
+        Number of iterations.
 
     References
     ----------
-    [paper] Jiyuan Liu, Xinwang Liu, Yi Zhang, Pei Zhang, Wenxuan Tu, Siwei Wang, Sihang Zhou, Weixuan Liang, Siqi
-            Wang, and Yuexiang Yang. 2021. Self-Representation Subspace Clustering for Incomplete Multi-view Data. In
-            Proceedings of the 29th ACM International Conference on Multimedia (MM '21). Association for Computing
-            Machinery, New York, NY, USA, 2726–2734. https://doi.org/10.1145/3474085.3475379.
-    [code]  https://github.com/liujiyuan13/IMSR-code_release
+    .. [#imsrpaper1] Jiyuan Liu, Xinwang Liu, Yi Zhang, Pei Zhang, Wenxuan Tu, Siwei Wang, Sihang Zhou, Weixuan Liang,
+                     Siqi Wang, and Yuexiang Yang. 2021. Self-Representation Subspace Clustering for Incomplete
+                     Multi-view Data. In Proceedings of the 29th ACM International Conference on Multimedia (MM '21).
+                     Association for Computing Machinery, New York, NY, USA, 2726–2734.
+                     https://doi.org/10.1145/3474085.3475379.
+    .. [#imscaglcode] https://github.com/liujiyuan13/IMSR-code_release
 
     Example
     --------
@@ -70,14 +80,19 @@ class IMSR(BaseEstimator, ClassifierMixin):
         try:
             assert lbd > 0
         except AssertionError:
-            raise ValueError("lbd should be a positive value.")
+            raise ValueError("Invalid lbd. It should be a positive value. ")
         try:
             assert gamma > 0
         except AssertionError:
-            raise ValueError("gamma should be a positive value.")
+            raise ValueError("Invalid gamma. It should be a positive value. ")
         self.lbd = lbd
         self.gamma = gamma
         self.random_state = random_state
+        self._engines_options = ["matlab"]
+        if engine not in self._engines_options:
+            raise ValueError(f"Invalid engine. Expected one of {self._engines_options}.")
+        if (engine == "matlab") and (not oct2py_installed):
+            raise ModuleNotFoundError(error_message)
         self.engine = engine
         self.verbose = verbose
 
@@ -102,7 +117,6 @@ class IMSR(BaseEstimator, ClassifierMixin):
         Xs = check_Xs(Xs, force_all_finite='allow-nan')
 
         if self.engine=="matlab":
-            import oct2py
             matlab_folder = dirname(__file__)
             matlab_folder = os.path.join(matlab_folder, "_" + (os.path.basename(__file__).split(".")[0]))
             matlab_files = [x for x in os.listdir(matlab_folder) if x.endswith(".m")]
@@ -111,11 +125,11 @@ class IMSR(BaseEstimator, ClassifierMixin):
                 with open(os.path.join(matlab_folder, matlab_file)) as f:
                     oc.eval(f.read())
 
+            if not isinstance(Xs[0], pd.DataFrame):
+                Xs = [pd.DataFrame(X) for X in Xs]
             observed_view_indicator = get_observed_view_indicator(Xs)
             if isinstance(observed_view_indicator, pd.DataFrame):
                 observed_view_indicator = observed_view_indicator.reset_index(drop=True)
-            elif isinstance(observed_view_indicator[0], np.ndarray):
-                observed_view_indicator = pd.DataFrame(observed_view_indicator)
             observed_view_indicator = [(1 + missing_view[missing_view == 0].index).to_list() for _, missing_view in observed_view_indicator.items()]
             transformed_Xs = [X.T.values for X in Xs]
 
@@ -123,11 +137,12 @@ class IMSR(BaseEstimator, ClassifierMixin):
                 oc.rand('seed', self.random_state)
             Z, obj = oc.IMSC(transformed_Xs, tuple(observed_view_indicator), self.n_clusters, self.lbd, self.gamma, nout=2)
         else:
-            raise ValueError("Only engine=='matlab' is currently supported.")
+            raise ValueError(f"Invalid engine. Expected one of {self._engines_options}.")
 
-        model = KMeans(n_clusters= self.n_clusters, random_state= self.random_state)
+        model = KMeans(n_clusters= self.n_clusters, n_init="auto", random_state= self.random_state)
         self.labels_ = model.fit_predict(X= Z)
         self.embedding_, self.loss_ = Z, obj
+        self.n_iter_ = len(self.loss_)
 
         return self
 

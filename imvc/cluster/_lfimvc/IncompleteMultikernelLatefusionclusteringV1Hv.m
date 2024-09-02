@@ -1,9 +1,4 @@
-function [H_normalized,WP,HP,obj] = IncompleteMultikernelLatefusionclusteringV1Hv(KH,k,lambda,normalize)
-
-if normalize
-    KH = kcenter(KH);
-    KH = knorm(KH);
-end
+function [H_normalized,WP,HP,obj] = IncompleteMultikernelLatefusionclusteringV1Hv(KH,k,lambda,maxIter)
 
 num = size(KH, 1); %the number of samples
 numker = size(KH, 3); %m represents the number of kernels
@@ -13,7 +8,6 @@ for ker = 1:numker
     HP(:,:,ker) = mykernelkmeans(KH(:,:,ker), k);
 end
 
-maxIter = 200; %the number of iterations
 WP = zeros(k,k,numker);
 for p =1:numker
     WP(:,:,p) = eye(k);

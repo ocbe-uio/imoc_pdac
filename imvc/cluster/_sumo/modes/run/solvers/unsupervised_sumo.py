@@ -3,27 +3,28 @@ import numpy as np
 from ....._sumo.modes.run.solver import SumoSolver, SumoNMFResults
 from ....._sumo.modes.run.utils import svd_h_init, svd_si_init
 from ....._sumo.network import MultiplexNet
-from ....._sumo.utils import get_logger
 
 
 class UnsupervisedSumoNMF(SumoSolver):
     """ Unsupervised SUMO solver (A(i)=HS(i)H^T formulation) """
 
-    def __init__(self, graph: MultiplexNet, nbins: int, bin_size: int = None, rseed: int = None):
+    def __init__(self, graph: MultiplexNet, nbins: int, bin_size: int = None, random_state: int = None,
+                 verbose: bool = False):
 
-        super(UnsupervisedSumoNMF, self).__init__(graph=graph, nbins=nbins, bin_size=bin_size, rseed=rseed)
+        super(UnsupervisedSumoNMF, self).__init__(graph=graph, nbins=nbins, bin_size=bin_size, verbose=verbose)
 
         # create average adjacency matrix
         self.avg_adj = self.calculate_avg_adjacency()
 
         # create sample bins
-        self.bins = self.create_sample_bins()
+        self.bins = self.create_sample_bins(random_state=random_state)
 
         # layer impact balancing parameters
         self.lambdas = [(1. / samples.shape[0]) ** 2 for samples in self.graph.samples]
+        self.random_state = random_state
 
     def factorize(self, sparsity_penalty: float, k: int, max_iter: int = 500, tol: float = 1e-5, calc_cost: int = 1,
-                  h_init: int = None, logger_name: str = None, bin_id: int = None) -> SumoNMFResults:
+                  h_init: int = None, bin_id: int = None) -> SumoNMFResults:
         """ Run tri-factorization
 
         Args:
@@ -35,7 +36,6 @@ class UnsupervisedSumoNMF(SumoSolver):
             calc_cost (int): number of steps between every calculation of objective cost function
             h_init (int): index of adjacency matrix to use for H matrix initialization or None for initialization \
                 using average adjacency
-            logger_name (str): name of existing logger object, if not supplied new main logger is used
             bin_id (int): id of sample bin created in SumoNMF constructor (default of None, means clustering \
                 all samples instead of samples in given bin)
 
@@ -43,8 +43,6 @@ class UnsupervisedSumoNMF(SumoSolver):
             SumoNMFResults object (with result feature matrix / soft cluster indicator matrix (H array),
             and the list of result S matrices for each graph layer)
         """
-        self.logger = get_logger(logger_name)
-
         eps = np.spacing(1)  # epsilon
 
         if k > self.graph.nodes:
@@ -64,7 +62,7 @@ class UnsupervisedSumoNMF(SumoSolver):
         wa = np.array([w[i] * a[i] for i in range(self.graph.layers)])
 
         # randomize S matrices for each layer
-        s = np.array([svd_si_init(self.graph.adj_matrices[i], k) for i in range(self.graph.layers)])
+        s = np.array([svd_si_init(self.graph.adj_matrices[i], k, self.random_state) for i in range(self.graph.layers)])
 
         # randomize feature matrix / soft cluster indicator matrix
         h = svd_h_init(self.graph.adj_matrices[h_init] if h_init is not None else self.avg_adj, k)[sample_ids, :]
@@ -109,12 +107,14 @@ class UnsupervisedSumoNMF(SumoSolver):
                     best_result = (step, h.copy(), s.copy())
 
                 if step == 0:
-                    self.logger.info("Initial ℒ/Δℒ: {}\t[{} + {}]".format(round(objval[step_recorded, -1], 6),
+                    if self.verbose:
+                        print("Initial ℒ/Δℒ: {}\t[{} + {}]".format(round(objval[step_recorded, -1], 6),
                                                                           round(np.sum(objval[step_recorded, :-2]), 6),
                                                                           round(objval[step_recorded, -2], 6)))
                 else:
                     # objective function value decreases
-                    self.logger.info("Step({}),\t ℒ: {}\t[{} + {}]".format(step, round(objval[step_recorded, -1], 6),
+                    if self.verbose:
+                        print("Step({}),\t ℒ: {}\t[{} + {}]".format(step, round(objval[step_recorded, -1], 6),
                                                                            round(np.sum(objval[step_recorded, :-2]), 6),
                                                                            round(objval[step_recorded, -2], 6)))
                 before_val = after_val
@@ -124,21 +124,25 @@ class UnsupervisedSumoNMF(SumoSolver):
 
         if stop < tol:
             # stop condition was achieved
-            self.logger.info("Stop condition for iterations achieved (|Δℒ| < |{}|).".format(tol))
+            if self.verbose:
+                print("Stop condition for iterations achieved (|Δℒ| < |{}|).".format(tol))
         else:
             # maximum iterations was reached
-            self.logger.info("Maximum iterations ({}) reached".format(max_iter))
+            if self.verbose:
+                print("Maximum iterations ({}) reached".format(max_iter))
 
         objval = objval[:step_recorded, :]
-        np.set_printoptions(threshold=np.inf)
-        self.logger.info("#Best achieved results:")
+        if self.verbose:
+            print("#Best achieved results:")
 
         for i in range(len(best_result[2])):
-            self.logger.debug("- Final S({}):\n{}".format(i, best_result[2][i]))
-        self.logger.debug("- Final H:\n{}".format(best_result[1]))
-        self.logger.info("- Final ℒ: {} ({}) [step: {}]".format(round(objval[-1, -1], 6),
+            if self.verbose:
+                print("- Final S({}):\n{}".format(i, best_result[2][i]))
+        if self.verbose:
+            print("- Final H:\n{}".format(best_result[1]))
+            print("- Final ℒ: {} ({}) [step: {}]".format(round(objval[-1, -1], 6),
                                                                 round(np.sum(objval[-1, :-2]), 6),
                                                                 best_result[0]))
 
-        return SumoNMFResults(graph=self.graph, h=h, s=s, objval=objval, steps=step - 1, logger=self.logger,
+        return SumoNMFResults(graph=self.graph, h=h, s=s, objval=objval, steps=step - 1,
                               sample_ids=sample_ids)

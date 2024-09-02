@@ -1,14 +1,9 @@
 import operator
-import random
 import networkx as nx
 import numpy as np
 import pandas as pd
 from joblib import Parallel, delayed
-from scipy.stats import norm
 from sklearn.base import BaseEstimator, ClassifierMixin
-from sklearn.cluster import SpectralClustering
-from sklearn.metrics import silhouette_score
-from sklearn.mixture import GaussianMixture
 
 from ._monet._aux_monet import _best_samples_to_add, _which_sample_to_remove, _which_view_to_add_to_module, \
     _which_view_to_remove_from_module, _score_of_split_module, _weight_of_split_and_add_view, \
@@ -68,31 +63,28 @@ class MONET(BaseEstimator, ClassifierMixin):
     n_jobs : int (default=None)
         The number of jobs to run in parallel. None means 1 unless in a joblib.parallel_backend context. -1 means
         using all processors.
-.
+
     Attributes
     ----------
-    labels_ : array-like of shape (n_views,)
-        Predicted modules in training data.
+    labels_ : array-like of shape (n_samples,)
+        Labels of each point in training data.
     glob_var_ : dict
         Module names to Module objects mapping. Every module instance includes its set of
         samples (under the "samples" attribute) and its set of views (the "views" attribute).
     total_weight_ : float
         Sum of the weights (similarity between samples within the module) of all modules.
-    view_graphs_ : list of dataframes
+    view_graphs_ : list of dataframes of shape (n_samples, n_samples)
         Graph of each view.
-    views_dist_ : list of arrays
-        Weighting scheme to calculate the edge weights in the view graphs
-    mod_views_ : list
+    mod_views_ : list of length n_views.
         Views used for each module.
-    all_ems_ : Gaussian Mixture Scikit-learn model
-        Gaussian mixture model used to estimate the parameters for the weighting schemes.
     n_clusters_ : int
         Number of clusters.
 
     References
     ----------
-    [paper] Rappoport N, Safra R, Shamir R (2020) MONET: Multi-omic module discovery by omic selection. PLoS Comput
-        Biol 16(9): e1008182. https://doi.org/10.1371/journal.pcbi.1008182.
+    .. [#monetpaper] Rappoport N, Safra R, Shamir R (2020) MONET: Multi-omic module discovery by omic selection. PLoS
+                     Comput Biol 16(9): e1008182. https://doi.org/10.1371/journal.pcbi.1008182.
+    .. [#monetcode] https://github.com/Shamir-Lab/MONET
 
     Example
     --------
@@ -103,15 +95,20 @@ class MONET(BaseEstimator, ClassifierMixin):
     >>> labels = estimator.fit_predict(Xs)
     """
 
-    def __init__(self, n_clusters: int = None, num_repeats: int = 15, similarity_mode: str = 'corr', init_modules: dict = None,
-                 iters: int = 500, num_of_seeds: int = 10, num_of_samples_in_seed: int = 10, min_mod_size: int = 10,
-                 max_sams_per_action: int = 10, percentile_remove_edge: int = None, random_state: int = None,
+    def __init__(self, n_clusters: int = None, num_repeats: int = 15, similarity_mode: str = 'corr',
+                 init_modules: dict = None, iters: int = 500, num_of_seeds: int = 10,
+                 num_of_samples_in_seed: int = 10, min_mod_size: int = 10, max_sams_per_action: int = 10,
+                 percentile_remove_edge: int = None, random_state: int = None,
                  verbose: bool = False, n_jobs: int = None):
         sim_types = ['prob', 'corr']
-        if similarity_mode not in similarity_mode:
-            raise ValueError(f"Invalid sim type. Expected one of: {sim_types}")
+        if similarity_mode not in sim_types:
+            raise ValueError(f"Invalid similarity_mode. Expected one of: {sim_types}")
 
+        self.n_clusters = n_clusters
         self.num_repeats = num_repeats
+        self._similarity_mode_opts = ["corr"]
+        if similarity_mode not in self._similarity_mode_opts:
+            raise ValueError(f"Invalid similarity_mode. Expected one of {self._similarity_mode_opts}.")
         self.similarity_mode = similarity_mode
         self.init_modules = init_modules
         self.iters = iters
@@ -146,17 +143,18 @@ class MONET(BaseEstimator, ClassifierMixin):
 
         Returns
         -------
-        self :  returns and instance of self.
+        self :  returns an instance of self.
         """
         Xs = check_Xs(Xs, force_all_finite='allow-nan')
+        if not isinstance(Xs[0], pd.DataFrame):
+            Xs = [pd.DataFrame(X) for X in Xs]
+        Xs = DatasetUtils.remove_missing_sample_from_view(Xs=Xs)
         for X in Xs:
             X.index = X.index.astype(str)
         samples = Xs[0].index
-        # samples = samples.astype('str')
-        Xs = DatasetUtils.remove_missing_sample_from_view(Xs=Xs)
         data = {}
         if self.similarity_mode == "prob":
-            raise NotImplemented
+            raise ValueError(f"Invalid similarity_mode. Expected one of {self._similarity_mode_opts}.")
             # em_graph_ret = self._get_em_graph_per_view(Xs=Xs)
             # views_dist, all_ems, n_clusters = [], [], []
             # for idx,i in enumerate(em_graph_ret):
@@ -176,13 +174,13 @@ class MONET(BaseEstimator, ClassifierMixin):
         elif self.similarity_mode == "corr":
             data = self._process_data(Xs=Xs)
         solutions = Parallel(n_jobs=self.n_jobs)(
-            delayed(self._single_run)(data=data, init_modules=self.init_modules, iters=self.iters,
-                                      num_of_seeds=self.num_of_seeds,
-                                      num_of_samples_in_seed=self.num_of_samples_in_seed,
-                                      min_mod_size=self.min_mod_size, max_sams_per_action=self.max_sams_per_action,
-                                      percentile_remove_edge=self.percentile_remove_edge, samples = samples,
-                                      random_state=self.random_state + n_time if self.random_state is not None else self.random_state,
-                                      verbose=self.verbose) for n_time in range(self.num_repeats)
+            delayed(self._single_run)(
+                data=data, init_modules=self.init_modules, iters=self.iters, num_of_seeds=self.num_of_seeds,
+                num_of_samples_in_seed=self.num_of_samples_in_seed, min_mod_size=self.min_mod_size,
+                max_sams_per_action=self.max_sams_per_action, percentile_remove_edge=self.percentile_remove_edge,
+                samples = samples, verbose=self.verbose,
+                random_state=self.random_state + n_time if self.random_state is not None else self.random_state)
+            for n_time in range(self.num_repeats)
         )
         solutions = {idx: i for idx, i in enumerate(solutions)}
         best_sol = {key: value['total_weight'] for key, value in solutions.items()}
@@ -198,6 +196,7 @@ class MONET(BaseEstimator, ClassifierMixin):
         self.total_weight_ = total_weight
         self.view_graphs_ = view_graphs
         self.mod_views_ = mod_views
+        self.n_clusters_ = len(np.unique(labels_wo_nan[~np.isnan(labels_wo_nan)]))
         return self
 
 
@@ -217,16 +216,7 @@ class MONET(BaseEstimator, ClassifierMixin):
         labels : list of array-likes, shape (n_samples,)
             The predicted data.
         """
-        if self.similarity_mode == "corr":
-            labels = self.labels_
-        elif self.similarity_mode == "prob":
-            labels = self.labels_
-            # Xs = check_Xs(Xs, allow_incomplete=True)
-            # samples = DatasetUtils.get_sample_names(Xs=Xs)
-            # Xs = [pd.concat([self.data_to_fit_[X_idx], X]) for X_idx,X in enumerate(Xs)]
-            # all_graphs = self._get_em_graph_per_view(Xs=Xs, predictions=True)
-            # all_graphs = [graph["prob"] for graph in all_graphs]
-            # labels = self._monet_ret_to_module_membership(view_graphs=all_graphs)
+        labels = self.labels_
         return labels
 
 
@@ -257,10 +247,8 @@ class MONET(BaseEstimator, ClassifierMixin):
         r"""
 
         """
-        #todo fix random seed
-        if random_state is not None:
-            np.random.seed(random_state)
-            random.seed(random_state)
+        if random_state is None:
+            random_state = np.random.default_rng().integers(100000)
         glob_var = _Globals(len(self.functions))
         glob_var = self._create_env(samples = samples, glob_var=glob_var, data=data,
                                     percentile_remove_edge=percentile_remove_edge)
@@ -269,7 +257,7 @@ class MONET(BaseEstimator, ClassifierMixin):
 
         if init_modules is None:
             glob_var = self._get_seeds(glob_var, num_of_seeds=num_of_seeds,
-                                       num_of_samples_in_seed=num_of_samples_in_seed)
+                                       num_of_samples_in_seed=num_of_samples_in_seed, random_state=random_state)
         else:
             glob_var = self._create_seeds_from_solution(glob_var, init_modules)
 
@@ -297,7 +285,7 @@ class MONET(BaseEstimator, ClassifierMixin):
                     converged_modules = {}
                     did_action = False
                     active_module_names = list(sorted(glob_var.modules.keys()))
-            mod_name = random.choice(active_module_names)
+            mod_name = np.random.default_rng(random_state + iterations).choice(active_module_names).tolist()
             mod = glob_var.modules[mod_name]
 
             max_res = self._get_next_step(mod, glob_var)
@@ -335,7 +323,8 @@ class MONET(BaseEstimator, ClassifierMixin):
                 assert abs(total_weight - prev_weight - max_res[1][0]) < 0.01
                 did_action = True
         for mod_name, mod in glob_var.modules.copy().items():
-            if mod.get_size() <= glob_var.min_mod_size and not self._is_mod_significant(mod, glob_var):
+            if mod.get_size() <= glob_var.min_mod_size and not self._is_mod_significant(mod, glob_var,
+                                                                                        random_state=random_state):
                 if verbose:
                     print("module {} with samples {} on views {} is not significant.".format((mod_name, mod),
                                                                                              mod.get_samples(),
@@ -402,7 +391,7 @@ class MONET(BaseEstimator, ClassifierMixin):
         return glob_var
 
 
-    def _get_seeds(self, glob_var, num_of_seeds=3, num_of_samples_in_seed=10):
+    def _get_seeds(self, glob_var, num_of_seeds=3, num_of_samples_in_seed=10, random_state: int = None):
         """
         Create seed modules.
         """
@@ -426,7 +415,7 @@ class MONET(BaseEstimator, ClassifierMixin):
             if len(cur_nodes) == 0:
                 break
 
-            rand_sam_index = random.randint(0, len(cur_nodes) - 1)
+            rand_sam_index = np.random.default_rng(random_state + i).integers(0, max([len(cur_nodes) - 1, 1]))
             rand_sam_name = cur_nodes[rand_sam_index]
             rand_sam_in_adj = [sam[0] for sam in adj].index(rand_sam_name)
             neighbors = [(key, adj[rand_sam_in_adj][1][key]['weight']) for key in adj[rand_sam_in_adj][1]]
@@ -514,8 +503,7 @@ class MONET(BaseEstimator, ClassifierMixin):
         return glob_var
 
 
-    @staticmethod
-    def _is_mod_significant(mod, glob_var, percentile=95, iterations=500):
+    def _is_mod_significant(self, mod, glob_var, percentile=95, iterations=500, random_state: int = None):
         """
         Assess the statisitcal significance of a module by sampling modules or similar size.
         """
@@ -524,7 +512,8 @@ class MONET(BaseEstimator, ClassifierMixin):
         if mod_size <= 1:
             return False
         for i in range(iterations):
-            samps = random.sample(glob_var.samples.keys(), mod_size)
+            samps = np.random.default_rng(random_state + i).choice(list(glob_var.samples.keys()),
+                                                                        mod_size).tolist()
             lst = list(mod.get_views().items())
             lst.sort(key=lambda x: x[0])
             for name, view in lst:
@@ -545,57 +534,57 @@ class MONET(BaseEstimator, ClassifierMixin):
         return labels, view_graphs, mod_views
 
 
-    def _get_em_graph_per_view(self, Xs: list, predictions=False):
-        """gets raw data and return a list of similarity matrices"""
+    # def _get_em_graph_per_view(self, Xs: list, predictions=False):
+    #     """gets raw data and return a list of similarity matrices"""
+    #
+    #     sim_data = [1 - X.T.corr() for X in Xs]
+    #     all_views_ret = []
+    #     for i, cur_sim in enumerate(sim_data):
+    #         if predictions:
+    #             num_clusters = self.n_clusters_[i]
+    #         else:
+    #             n_clusters = list(range(2, 11))
+    #             scores = [silhouette_score(cur_sim,
+    #                                        SpectralClustering(n_clusters=k, affinity='precomputed', n_jobs = -1,
+    #                                                           random_state= self.random_state).fit_predict(cur_sim)) \
+    #                       for k in n_clusters]
+    #             num_clusters = n_clusters[np.argmax(scores)]
+    #
+    #         if predictions:
+    #             em_ret = self.all_ems_[i]
+    #         else:
+    #             chosen_sims_mat = cur_sim.sample(frac=1., random_state=42)
+    #             chosen_sims_mat = chosen_sims_mat[chosen_sims_mat.index]
+    #             chosen_sims = chosen_sims_mat.values[np.triu_indices_from(chosen_sims_mat, k=1)]
+    #             em_ret = GaussianMixture(n_components=2, n_init=20, max_iter=int(1e5),
+    #                                      random_state= self.random_state).fit(pd.DataFrame(chosen_sims))
+    #
+    #         # calculate probabilities
+    #         sigma = [np.sqrt(np.trace(em_ret.covariances_[i]) / 2) for i in range(2)]
+    #         prob1 = np.log(em_ret.weights_[0]) + norm.logpdf(cur_sim, loc=em_ret.means_[0], scale=sigma[0])
+    #         prob2 = np.log(em_ret.weights_[1]) + norm.logpdf(cur_sim, loc=em_ret.means_[1], scale=sigma[1])
+    #         prob = prob1 - prob2 if em_ret.means_[0] < em_ret.means_[1] else prob2 - prob1
+    #         shift_by = np.quantile(prob[np.triu_indices_from(prob, k=1)], 1 - 1 / num_clusters)
+    #         prob = prob - shift_by
+    #         np.fill_diagonal(prob, 0)
+    #         prob = pd.DataFrame(prob, index = Xs[i].index.astype(str), columns=Xs[i].index.astype(str))
+    #         all_views_ret.append({"prob": prob, "all_views_ems": em_ret, "num_clusters": num_clusters})
+    #     return all_views_ret
 
-        sim_data = [1 - X.T.corr() for X in Xs]
-        all_views_ret = []
-        for i, cur_sim in enumerate(sim_data):
-            if predictions:
-                num_clusters = self.n_clusters_[i]
-            else:
-                n_clusters = list(range(2, 11))
-                scores = [silhouette_score(cur_sim,
-                                           SpectralClustering(n_clusters=k, affinity='precomputed', n_jobs = -1,
-                                                              random_state= self.random_state).fit_predict(cur_sim)) \
-                          for k in n_clusters]
-                num_clusters = n_clusters[np.argmax(scores)]
 
-            if predictions:
-                em_ret = self.all_ems_[i]
-            else:
-                chosen_sims_mat = cur_sim.sample(frac=1., random_state=42)
-                chosen_sims_mat = chosen_sims_mat[chosen_sims_mat.index]
-                chosen_sims = chosen_sims_mat.values[np.triu_indices_from(chosen_sims_mat, k=1)]
-                em_ret = GaussianMixture(n_components=2, n_init=20, max_iter=int(1e5),
-                                         random_state= self.random_state).fit(pd.DataFrame(chosen_sims))
-
-            # calculate probabilities
-            sigma = [np.sqrt(np.trace(em_ret.covariances_[i]) / 2) for i in range(2)]
-            prob1 = np.log(em_ret.weights_[0]) + norm.logpdf(cur_sim, loc=em_ret.means_[0], scale=sigma[0])
-            prob2 = np.log(em_ret.weights_[1]) + norm.logpdf(cur_sim, loc=em_ret.means_[1], scale=sigma[1])
-            prob = prob1 - prob2 if em_ret.means_[0] < em_ret.means_[1] else prob2 - prob1
-            shift_by = np.quantile(prob[np.triu_indices_from(prob, k=1)], 1 - 1 / num_clusters)
-            prob = prob - shift_by
-            np.fill_diagonal(prob, 0)
-            prob = pd.DataFrame(prob, index = Xs[i].index.astype(str), columns=Xs[i].index.astype(str))
-            all_views_ret.append({"prob": prob, "all_views_ems": em_ret, "num_clusters": num_clusters})
-        return all_views_ret
-
-
-    def _monet_ret_to_module_membership(self, view_graphs=None):
-        if view_graphs is None:
-            view_graphs = self.view_graphs_
-        mod_views = self.mod_views_
-        mod_names = list(self.glob_var_.modules.keys())
-        samples = self.labels_.index
-        all_module_membership = []
-        for mod_name in mod_names:
-            cur_mod_views = mod_views[mod_name]
-            cur_mod_samples = samples[self.labels_ == mod_name] + 'fit'
-            cur_module_membership = sum([view_graphs[int(i)][cur_mod_samples].sum(axis=0) for i in cur_mod_views])
-            all_module_membership.append(cur_module_membership.tolist())
-        all_module_membership = pd.DataFrame(all_module_membership, index=mod_names)
-        all_module_membership = all_module_membership.T.idxmax(1)
-        all_module_membership = all_module_membership[all_module_membership.index.difference(samples.astype(int))]
-        return all_module_membership
+    # def _monet_ret_to_module_membership(self, view_graphs=None):
+    #     if view_graphs is None:
+    #         view_graphs = self.view_graphs_
+    #     mod_views = self.mod_views_
+    #     mod_names = list(self.glob_var_.modules.keys())
+    #     samples = self.labels_.index
+    #     all_module_membership = []
+    #     for mod_name in mod_names:
+    #         cur_mod_views = mod_views[mod_name]
+    #         cur_mod_samples = samples[self.labels_ == mod_name] + 'fit'
+    #         cur_module_membership = sum([view_graphs[int(i)][cur_mod_samples].sum(axis=0) for i in cur_mod_views])
+    #         all_module_membership.append(cur_module_membership.tolist())
+    #     all_module_membership = pd.DataFrame(all_module_membership, index=mod_names)
+    #     all_module_membership = all_module_membership.T.idxmax(1)
+    #     all_module_membership = all_module_membership[all_module_membership.index.difference(samples.astype(int))]
+    #     return all_module_membership

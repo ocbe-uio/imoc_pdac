@@ -7,6 +7,13 @@ from sklearn.base import BaseEstimator, ClassifierMixin
 from ..impute import get_observed_view_indicator, simple_view_imputer
 from ..utils import check_Xs
 
+try:
+    import oct2py
+    oct2py_installed = True
+except ImportError:
+    oct2py_installed = False
+    error_message = "Oct2Py needs to be installed to use matlab engine."
+
 
 class OPIMC(BaseEstimator, ClassifierMixin):
     r"""
@@ -34,24 +41,25 @@ class OPIMC(BaseEstimator, ClassifierMixin):
         Determines the randomness. Use an int to make the randomness deterministic.
     engine : str, default=matlab
         Engine to use for computing the model. Current options are 'matlab'.
-.   verbose : bool, default=False
+    verbose : bool, default=False
         Verbosity mode.
 
     Attributes
     ----------
     labels_ : array-like of shape (n_samples,)
         Labels of each point in training data.
-    embedding_ :
+    embedding_ : array-like of shape (n_samples, n_clusters)
         Consensus clustering matrix to be used as input for the KMeans clustering step.
 
     References
     ----------
-    [paper1] Hu, M., & Chen, S. (2019). One-Pass Incomplete Multi-View Clustering. Proceedings of the AAAI Conference
-             on Artificial Intelligence, 33(01), 3838-3845. https://doi.org/10.1609/aaai.v33i01.33013838.
-.
-    [paper2] Jie Wen, Zheng Zhang, Lunke Fei, Bob Zhang, Yong Xu, Zhao Zhang, Jinxing Li, A Survey on Incomplete
-             Multi-view Clustering, IEEE TRANSACTIONS ON SYSTEMS, MAN, AND CYBERNETICS: SYSTEMS, 2022.
-    [code]  https://github.com/DarrenZZhang/Survey_IMC
+    .. [#opimcpaper1] Hu, M., & Chen, S. (2019). One-Pass Incomplete Multi-View Clustering. Proceedings of the AAAI
+                     Conference on Artificial Intelligence, 33(01), 3838-3845.
+                     https://doi.org/10.1609/aaai.v33i01.33013838.
+    .. [#opimcpaper2] Jie Wen, Zheng Zhang, Lunke Fei, Bob Zhang, Yong Xu, Zhao Zhang, Jinxing Li, A Survey on
+                      Incomplete Multi-view Clustering, IEEE TRANSACTIONS ON SYSTEMS, MAN, AND CYBERNETICS:
+                      SYSTEMS, 2022.
+    .. [#opimccode] https://github.com/software-shao/online-multiview-clustering-with-incomplete-view
 
     Example
     --------
@@ -75,6 +83,11 @@ class OPIMC(BaseEstimator, ClassifierMixin):
         self.tol = tol
         self.block_size = block_size
         self.random_state = random_state
+        self._engines_options = ["matlab"]
+        if engine not in self._engines_options:
+            raise ValueError(f"Invalid engine. Expected one of {self._engines_options}.")
+        if (engine == "matlab") and (not oct2py_installed):
+            raise ModuleNotFoundError(error_message)
         self.engine = engine
         self.verbose = verbose
 
@@ -99,7 +112,6 @@ class OPIMC(BaseEstimator, ClassifierMixin):
         Xs = check_Xs(Xs, force_all_finite='allow-nan')
 
         if self.engine=="matlab":
-            import oct2py
             matlab_folder = dirname(__file__)
             matlab_folder = os.path.join(matlab_folder, "_" + (os.path.basename(__file__).split(".")[0]))
             matlab_files = [x for x in os.listdir(matlab_folder) if x.endswith(".m")]
@@ -124,7 +136,7 @@ class OPIMC(BaseEstimator, ClassifierMixin):
                 oc.rand('seed', self.random_state)
             labels, V = oc.OPIMC(transformed_Xs, w, options, observed_view_indicator, nout= 2)
         else:
-            raise ValueError("Only engine=='matlab' is currently supported.")
+            raise ValueError(f"Invalid engine. Expected one of {self._engines_options}.")
 
         self.labels_ = pd.factorize(labels[:,0])[0]
         self.embedding_ = V

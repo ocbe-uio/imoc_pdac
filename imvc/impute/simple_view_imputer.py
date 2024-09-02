@@ -23,7 +23,6 @@ class SimpleViewImputer(BaseEstimator, TransformerMixin):
         The mean value of each feature in the corresponding view, if value='mean'
     Example
     --------
-    >>> from imvc.utils import DatasetUtils
     >>> from imvc.datasets import LoadDataset
     >>> from imvc.impute import SimpleViewImputer
     >>> from imvc.ampute import Amputer
@@ -58,7 +57,7 @@ class SimpleViewImputer(BaseEstimator, TransformerMixin):
 
         Returns
         -------
-        self :  returns and instance of self.
+        self :  returns an instance of self.
         """
 
         Xs = check_Xs(Xs, force_all_finite='allow-nan')

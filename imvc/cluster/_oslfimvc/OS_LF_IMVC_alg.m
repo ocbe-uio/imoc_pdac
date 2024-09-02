@@ -1,9 +1,4 @@
-function [Y,C,WP,beta,obj] = OS_LF_IMVC_alg(KH,S,k,lambda,normalize)
-
-if normalize
-    KH = kcenter(KH);
-    KH = knorm(KH);
-end
+function [Y,C,WP,beta,obj] = OS_LF_IMVC_alg(KH,S,k,lambda)
 
 num = size(KH, 2); %the number of samples
 numker = size(KH, 3); %m represents the number of kernels

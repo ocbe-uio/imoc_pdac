@@ -1,40 +1,115 @@
-import numpy as np
-import torch
-from torch import nn
-import lightning.pytorch as pl
-from torch.nn import functional as F
+from sklearn.cluster import KMeans
 
 
-class MRGCNDataset(torch.utils.data.Dataset):
-
-    def __init__(self, Xs, transform = None):
-        self.Xs = Xs
-        self.transform = transform
-
-
-    def __len__(self):
-        return len(self.Xs[0])
-
-
-    def __getitem__(self, idx):
-        if self.transform is not None:
-            Xs = [self.transform[X_idx](X[idx]) for X_idx,X in enumerate(self.Xs)]
-        else:
-            Xs = [X[idx] for X in self.Xs]
-        Xs = tuple(Xs)
-        return Xs
+try:
+    import torch
+    from torch import nn
+    import lightning.pytorch as pl
+    from torch.nn import functional as F
+    torch_installed = True
+except ImportError:
+    torch_installed = False
+    error_message = "torch and lightning needs to be installed."
 
 
 class MRGCN(pl.LightningModule):
-    def __init__(self, kmeans, Xs = None, k_num:int = 10, learning_rate:float = 0.001, reg2:int = 1, reg3:int = 1, **args):
+    r"""
+    Multi-Reconstruction Graph Convolutional Network (MRGCN).
+
+    MRGCN encodes and reconstructs data and similarity relationships from multiple sources simultaneously,
+    consolidating them into a shared latent embedding space. Additionally, MRGCN utilizes an indicator matrix to
+    represent the presence of missing views, effectively merging the processing of complete and incomplete multi-view
+    data within a single unified framework.
+
+    Incomplete samples should be filled with 0.
+
+    It should be used with PyTorch Lightning. The class MRGCN provides a Dataset class for this algorithm.
+
+    Parameters
+    ----------
+    n_clusters : int, default=8
+        The number of clusters to generate.
+    Xs : list of array-likes, default=None
+        Multi-view dataset. It will be used to create the neural network architecture.
+    k_num : int, default=10
+        Number of neighbors to use.
+    learning_rate : float, default=1e-3
+        Learning rate.
+    reg2 : float, default=1.
+        Trade-off parameter to control the graph structure reconstruction.
+    reg3 : float, default=1.
+        Trade-off parameter to control the self-supervised learning mechanism.
+
+    Attributes
+    ----------
+    kmeans_ : KMeans object
+        Scikit-learn KMeans object.
+
+    References
+    ----------
+    .. [#mrgcnpaper] Bo Yang, Yan Yang, Meng Wang, Xueping Su, MRGCN: cancer subtyping with multi-reconstruction
+                    graph convolutional network using full and partial multi-omics dataset, Bioinformatics, Volume 39,
+                    Issue 6, June 2023, btad353, https://doi.org/10.1093/bioinformatics/btad353
+    .. [#mrgcncode] https://github.com/Polytech-bioinf/MRGCN
+
+    Example
+    --------
+    >>> from imvc.datasets import LoadDataset
+    >>> from sklearn.preprocessing import FunctionTransformer, StandardScaler
+    >>> from sklearn.pipeline import make_pipeline
+    >>> from sklearn.impute import SimpleImputer
+    >>> from imvc.preprocessing import MultiViewTransformer
+    >>> import numpy as np
+    >>> from imvc.data_loaders import MRGCNDataset
+    >>> from lightning import Trainer
+    >>> from torch.utils.data import DataLoader
+
+    >>> Xs = LoadDataset.load_dataset(dataset_name="nutrimouse")
+    >>> scaler = StandardScaler().set_output(transform="pandas")
+    >>> imputer = SimpleImputer(strategy= "constant", fill_value=0.0).set_output(transform="pandas")
+    >>> transformer = lambda x: torch.from_numpy(x.values.astype(np.float32)))
+    >>> pipeline = make_pipeline(MultiViewTransformer(scaler), MultiViewTransformer(imputer), MultiViewTransformer(transformer))
+    >>> transformed_Xs = pipeline.fit_transform(Xs)
+
+    >>> train_data = MRGCNDataset(Xs=transformed_Xs)
+    >>> train_dataloader = DataLoader(dataset=train_data, batch_size=max(128, len(transformed_Xs[0])), shuffle=True)
+    >>> trainer = Trainer(max_epochs=100, logger=False, enable_checkpointing=False)
+    >>> estimator = MRGCN(Xs=transformed_Xs, n_clusters=2)
+    >>> trainer.fit(estimator, train_dataloader)
+    >>> train_dataloader = DataLoader(dataset=train_data, batch_size=max(128, len(transformed_Xs[0])), shuffle=False)
+    >>> trainer.predict(estimator, train_dataloader)
+    """
+
+    def __init__(self, n_clusters: int = 8, Xs = None, k_num:int = 10, learning_rate:float = 0.001, reg2:float = 1.,
+                 reg3:float = 1.):
         super(MRGCN, self).__init__()
+
+        if not isinstance(n_clusters, int):
+            raise ValueError(f"Invalid n_clusters. It must be an int. A {type(n_clusters)} was passed.")
+        if n_clusters < 2:
+            raise ValueError(f"Invalid n_clusters. It must be an greather than 1. {n_clusters} was passed.")
+        if not isinstance(Xs, list):
+            raise ValueError(f"Invalid Xs. It must be a list of array-likes. A {type(Xs)} was passed.")
+        if not isinstance(k_num, int):
+            raise ValueError(f"Invalid k_num. It must be an int. A {type(k_num)} was passed.")
+        if k_num < 1:
+            raise ValueError(f"Invalid k_num. It must be a positive number. {k_num} was passed.")
+        if not isinstance(learning_rate, float):
+            raise ValueError(f"Invalid learning_rate. It must be a float. A {type(learning_rate)} was passed.")
+        if learning_rate <= 0:
+            raise ValueError(f"Invalid learning_rate. It must be a positive number. {learning_rate} was passed.")
+        if not isinstance(reg2, float):
+            raise ValueError(f"Invalid reg2. It must be a float. A {type(reg2)} was passed.")
+        if not isinstance(reg3, float):
+            raise ValueError(f"Invalid reg3. It must be a float. A {type(reg3)} was passed.")
+
         self.data = Xs
         self.n_features_ = [X.shape[1] for X in Xs]
         self.n_views_ = len(Xs)
         self.learning_rate = learning_rate
         self.criterion = torch.nn.MSELoss(reduction='sum')
         we = []
-        self.kmeans = kmeans
+        self.kmeans_ = KMeans(n_clusters=n_clusters, n_init="auto")
         self.reg2 = reg2
         self.reg3 = reg3
         self.gs = []
@@ -42,11 +117,11 @@ class MRGCN(pl.LightningModule):
 
         for idx, X in enumerate(Xs):
             n_features_i = X.shape[1]
-            g = self.get_kNNgraph2(X, k_num)
+            g = self._get_kNNgraph2(X, k_num)
             self.gs.append(g)
-            s = self.comp(g)
+            s = self._comp(g)
             self.ss.append(s)
-            ind = torch.any(X, axis=1).int()
+            ind = torch.any(X, 1).int()
             we.append(ind)
 
             dims = []
@@ -75,27 +150,33 @@ class MRGCN(pl.LightningModule):
 
 
     def configure_optimizers(self):
+        r"""
+        Method required for training using Pytorch Lightning trainer.
+        """
         return torch.optim.Adam(filter(lambda p: p.requires_grad, self.parameters()), lr=self.learning_rate)
 
 
     def training_step(self, batch, batch_idx):
-        z = self.embedding(batch=batch)
+        r"""
+        Method required for training using Pytorch Lightning trainer.
+        """
+        z = self._embedding(batch=batch)
         loss_x = 0
         loss_a = 0
-        for view_idx in range(self.n_views_):
-            weight = getattr(self, f"weight{view_idx}")
+        for X_idx in range(self.n_views_):
+            weight = getattr(self, f"weight{X_idx}")
             a = torch.sigmoid(torch.matmul(torch.matmul(z, weight), z.T))
-            loss_x += self.criterion(a, self.gs[view_idx])
-            weight_ = getattr(self, f"weight_{view_idx}")
+            loss_a += self.criterion(a, self.gs[X_idx].to(a.device))
+            weight_ = getattr(self, f"weight_{X_idx}")
             h = torch.tanh(torch.matmul(z, weight_))
-            dec_1 = getattr(self, f"dec{view_idx}_1")
-            h_1 = torch.tanh(dec_1(torch.matmul(self.ss[view_idx], h)))
-            dec_2 = getattr(self, f"dec{view_idx}_2")
-            h_2 = torch.tanh(dec_2(torch.matmul(self.ss[view_idx], h_1)))
-            loss_x += self.criterion(h_2, batch[view_idx])
+            dec_1 = getattr(self, f"dec{X_idx}_1")
+            h_1 = torch.tanh(dec_1(torch.matmul(self.ss[X_idx].to(h), h)))
+            dec_2 = getattr(self, f"dec{X_idx}_2")
+            h_2 = torch.tanh(dec_2(torch.matmul(self.ss[X_idx].to(h_1), h_1)))
+            loss_x += self.criterion(h_2, batch[X_idx])
 
-        self.kmeans.fit(z.detach().numpy())
-        cluster_layer = torch.tensor(self.kmeans.cluster_centers_).to(z.device)
+        self.kmeans_.fit(z.detach().cpu().numpy())
+        cluster_layer = torch.tensor(self.kmeans_.cluster_centers_).to(z.device)
         q = 1.0 / (1.0 + torch.sum(torch.pow(z.unsqueeze(1) - cluster_layer, 2), 2))
         q = q.pow(1)
         q = torch.t(torch.t(q) / torch.sum(q, 1))
@@ -108,66 +189,79 @@ class MRGCN(pl.LightningModule):
 
 
     def validation_step(self, batch, batch_idx):
+        r"""
+        Method required for training using Pytorch Lightning trainer.
+        """
         return self.training_step(batch, batch_idx)
 
 
     def test_step(self, batch, batch_idx):
+        r"""
+        Method required for training using Pytorch Lightning trainer.
+        """
         return self.training_step(batch, batch_idx)
 
 
     def predict_step(self, batch, batch_idx, dataloader_idx: int = 0):
-        z = self.embedding(batch=batch)
-        z = z.detach().numpy()
-        pred = self.kmeans.predict(z)
+        r"""
+        Method required for training using Pytorch Lightning trainer.
+        """
+        z = self._embedding(batch=batch)
+        z = z.detach().cpu().numpy()
+        pred = self.kmeans_.predict(z)
         return pred
 
 
     def on_fit_end(self):
-        z = self.embedding(batch=self.data)
-        z = z.detach().numpy()
-        self.kmeans.fit(z)
+        r"""
+        Method required for training using Pytorch Lightning trainer.
+        """
+        z = self._embedding(batch=self.data)
+        z = z.detach().cpu().numpy()
+        self.kmeans_.fit(z)
+        del self.data
 
 
     @staticmethod
-    def get_kNNgraph2(data, K_num):
+    def _get_kNNgraph2(data, K_num):
         # each row of data is a sample
 
-        x_norm = np.reshape(torch.sum(np.square(data), 1), [-1, 1])  # column vector
-        x_norm2 = np.reshape(torch.sum(np.square(data), 1), [1, -1])  # column vector
-        dists = x_norm - 2 * np.matmul(data, np.transpose(data)) + x_norm2
+        x_norm = torch.reshape(torch.sum(torch.square(data), 1), [-1, 1])  # column vector
+        x_norm2 = torch.reshape(torch.sum(torch.square(data), 1), [1, -1])  # column vector
+        dists = x_norm - 2 * torch.matmul(data, torch.transpose(data, 0, 1)) + x_norm2
         num_sample = data.shape[0]
         graph = torch.zeros((num_sample, num_sample))
         for i in range(num_sample):
             distance = dists[i, :]
-            small_index = np.argsort(distance)
-            graph[i, small_index[0:K_num]] = 1
-        graph = graph - np.diag(np.diag(graph))
-        resultgraph = np.maximum(graph, np.transpose(graph))
+            small_index = torch.argsort(distance)
+            graph[i, small_index[:K_num]] = 1
+        graph = graph - torch.diag(torch.diag(graph))
+        resultgraph = torch.maximum(graph, torch.transpose(graph, 0, 1))
         return resultgraph
 
 
     @staticmethod
-    def comp(g):
-        g = g + np.identity(g.shape[0])
+    def _comp(g):
+        g = g + torch.eye(g.shape[0])
         g = torch.tensor(g)
-        d = np.diag(g.sum(axis=1))
+        d = torch.diag(g.sum(dim=1))
         d = torch.tensor(d)
         s = pow(d, -0.5)
-        where_are_inf = np.isinf(s)
+        where_are_inf = torch.isinf(s)
         s[where_are_inf] = 0
         s = torch.matmul(torch.matmul(s, g), s).to(torch.float32)
         return s
 
 
-    def embedding(self, batch):
+    def _embedding(self, batch):
         summ = 0
-        for view_idx, view_data in enumerate(batch):
-            enc_1 = getattr(self, f"enc{view_idx}_1")
-            enc_2 = getattr(self, f"enc{view_idx}_2")
-            output_1 = torch.tanh(enc_1(torch.matmul(self.ss[view_idx], view_data)))
-            output_2 = torch.tanh(enc_2(torch.matmul(self.ss[view_idx], output_1)))
-            summ += torch.diag(self.we[view_idx, :]).mm(output_2)
+        for X_idx, X in enumerate(batch):
+            enc_1 = getattr(self, f"enc{X_idx}_1")
+            enc_2 = getattr(self, f"enc{X_idx}_2")
+            output_1 = torch.tanh(enc_1(torch.matmul(self.ss[X_idx].to(X.device), X)))
+            output_2 = torch.tanh(enc_2(torch.matmul(self.ss[X_idx].to(output_1.device), output_1)))
+            summ += torch.diag(self.we[X_idx, :].to(output_2.device)).mm(output_2)
 
         wei = 1 / torch.sum(self.we, 0)
-        z = torch.diag(wei).mm(summ).detach().numpy()
+        z = torch.diag(wei.to(summ.device)).mm(summ)
         return z

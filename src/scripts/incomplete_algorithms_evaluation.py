@@ -31,7 +31,7 @@ algorithms = {
     #                                PIMVC()), "params": {}},
     # "NEMO": {"alg": make_pipeline(MultiViewTransformer(VarianceThreshold().set_output(transform="pandas")),
     #                               MultiViewTransformer(StandardScaler().set_output(transform="pandas")),
-    #                                 NEMO()), "params": {}},
+    #                               NEMO()), "params": {}},
     # "DFMF": {"alg": make_pipeline(MultiViewTransformer(VarianceThreshold().set_output(transform="pandas")),
     #                               MultiViewTransformer(StandardScaler().set_output(transform="pandas")),
     #                               DFMF().set_output(transform="pandas"),
@@ -40,7 +40,7 @@ algorithms = {
     "MOFA": {"alg": make_pipeline(MultiViewTransformer(VarianceThreshold().set_output(transform="pandas")),
                                   MultiViewTransformer(StandardScaler().set_output(transform="pandas")),
                                   MOFA().set_output(transform="pandas"),
-                                  ConcatenateViews(), StandardScaler().set_output(transform="pandas"), KMeans()),
+                                  StandardScaler().set_output(transform="pandas"), KMeans()),
              "params": {}},
 }
 incomplete_algorithms = True

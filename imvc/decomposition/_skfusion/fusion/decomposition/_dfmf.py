@@ -71,7 +71,7 @@ def _par_bdot(A, B, obj_types, verbose, n_jobs):
     task_iter = (delayed(__bdot)(A, B, i, j, obj_types)
                  for i in obj_types for j in obj_types)
     entries = parallelizer(task_iter)
-    C = {(i, j): entry for i, j, entry in entries if entry != []}
+    C = {(i, j): entry for i, j, entry in entries if len(entry) != 0}
     return C
 
 
@@ -293,7 +293,7 @@ def dfmf(R, Theta, obj_types, obj_type2rank,
 
         for r in G:
             G[r] = np.multiply(G[r], np.sqrt(
-                np.divide(G_enum[r], np.maximum(G_denom[r], np.finfo(np.float).eps))))
+                np.divide(G_enum[r], np.maximum(G_denom[r], np.finfo(float).eps))))
 
         #######################################################################
         ######################## Reconstruction Error #########################
@@ -421,7 +421,7 @@ def transform(R_ij, Theta_i, target_obj_type, obj_type2rank, G, S,
             G_enum += np.dot(theta_n, G_i)
 
         G_i = np.multiply(G_i, np.sqrt(
-            np.divide(G_enum, np.maximum(G_denom, np.finfo(np.float).eps))))
+            np.divide(G_enum, np.maximum(G_denom, np.finfo(float).eps))))
 
         #######################################################################
         ######################## Reconstruction Error #########################

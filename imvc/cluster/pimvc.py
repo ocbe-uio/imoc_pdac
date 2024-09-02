@@ -7,6 +7,13 @@ from sklearn.cluster import KMeans
 from ..impute import get_observed_view_indicator
 from ..utils import check_Xs
 
+try:
+    import oct2py
+    oct2py_installed = True
+except ImportError:
+    oct2py_installed = False
+    error_message = "Oct2Py needs to be installed to use matlab engine."
+
 
 class PIMVC(BaseEstimator, ClassifierMixin):
     r"""
@@ -45,23 +52,25 @@ class PIMVC(BaseEstimator, ClassifierMixin):
         Determines the randomness. Use an int to make the randomness deterministic.
     engine : str, default=matlab
         Engine to use for computing the model. Currently only 'matlab' is supported.
-.   verbose : bool, default=False
+    verbose : bool, default=False
         Verbosity mode.
 
     Attributes
     ----------
     labels_ : array-like of shape (n_samples,)
         Labels of each point in training data.
-    embedding_ :
-        Commont latent feature matrix to be used as input for the KMeans clustering step.
-    loss_ : float
-        Value of the loss function.
+    embedding_ : array-like of shape (n_samples, n_clusters)
+        Consensus clustering matrix to be used as input for the KMeans clustering step.
+    loss_ : array-like of shape (n_iter_,)
+        Values of the loss function.
+    n_iter_ : int
+        Number of iterations.
 
     References
     ----------
-    [paper] S. Deng, J. Wen, C. Liu, K. Yan, G. Xu and Y. Xu, "Projective Incomplete Multi-View Clustering," in IEEE
-            Transactions on Neural Networks and Learning Systems, doi: 10.1109/TNNLS.2023.3242473.
-    [code]  https://github.com/Dshijie/PIMVC
+    .. [#pimvcpaper] S. Deng, J. Wen, C. Liu, K. Yan, G. Xu and Y. Xu, "Projective Incomplete Multi-View Clustering,"
+                     in IEEE Transactions on Neural Networks and Learning Systems, doi: 10.1109/TNNLS.2023.3242473.
+    .. [#pimvccode] https://github.com/Dshijie/PIMVC
 
     Example
     --------
@@ -81,6 +90,14 @@ class PIMVC(BaseEstimator, ClassifierMixin):
                  random_state: int = None, engine: str = "matlab", verbose = False):
         self.n_clusters = n_clusters
         self.dele = dele
+        try:
+            assert lamb > 0
+        except AssertionError:
+            raise ValueError("lamb should be a positive value.")
+        try:
+            assert k > 0
+        except AssertionError:
+            raise ValueError("k should be a positive value.")
         self.lamb = lamb
         self.beta = beta
         self.k = k
@@ -88,6 +105,11 @@ class PIMVC(BaseEstimator, ClassifierMixin):
         self.weight_mode = weight_mode
         self.max_iter = max_iter
         self.random_state = random_state
+        self._engines_options = ["matlab"]
+        if engine not in self._engines_options:
+            raise ValueError(f"Invalid engine. Expected one of {self._engines_options}.")
+        if (engine == "matlab") and (not oct2py_installed):
+            raise ModuleNotFoundError(error_message)
         self.engine = engine
         self.verbose = verbose
 
@@ -111,8 +133,13 @@ class PIMVC(BaseEstimator, ClassifierMixin):
         """
         Xs = check_Xs(Xs, force_all_finite='allow-nan')
 
+        try:
+            assert self.n_clusters <= min([X.shape[1] for X in Xs])
+        except AssertionError:
+            raise ValueError("n_clusters should be smaller or equal to the smallest n_features_i.")
+
+
         if self.engine=="matlab":
-            import oct2py
             matlab_folder = dirname(__file__)
             matlab_folder = os.path.join(matlab_folder, "_" + (os.path.basename(__file__).split(".")[0]))
             matlab_files = [x for x in os.listdir(matlab_folder) if x.endswith(".m")]
@@ -129,16 +156,18 @@ class PIMVC(BaseEstimator, ClassifierMixin):
             if self.random_state is not None:
                 oc.rand('seed', self.random_state)
             v, loss = oc.PIMVC(transformed_Xs, self.n_clusters, observed_view_indicator, self.lamb, self.beta,
-                               self.max_iter,
-                               {"NeighborMode": self.neighbor_mode, "WeightMode": self.weight_mode, "k": self.k}, nout=2)
+                               self.max_iter, {"NeighborMode": self.neighbor_mode,
+                                               "WeightMode": self.weight_mode,
+                                               "k": self.k}, nout=2)
         else:
-            raise ValueError("Only engine=='matlab' is currently supported.")
+            raise ValueError(f"Invalid engine. Expected one of {self._engines_options}.")
 
-        model = KMeans(n_clusters= self.n_clusters, random_state= self.random_state)
+        model = KMeans(n_clusters= self.n_clusters, n_init= "auto", random_state= self.random_state)
         v = v.T
         self.labels_ = model.fit_predict(X= v)
         self.embedding_ = v
-        self.loss_ = loss
+        self.loss_ = loss[:, 0]
+        self.n_iter_ = len(self.loss_)
 
         return self
 

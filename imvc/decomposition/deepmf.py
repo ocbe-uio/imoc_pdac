@@ -1,38 +1,17 @@
 import pandas as pd
-import torch
-import torch.nn
 from sklearn.decomposition import FastICA
 import numpy as np
-import lightning as pl
 
 from ._deepmf.sparselinear import _SparseLinear
 
-
-class DeepMFDataset(torch.utils.data.Dataset):
-
-    def __init__(self, X, transform = None, target_transform = None):
-        self.X = X
-        self.transform = transform
-        self.target_transform = target_transform
-
-
-    def __len__(self):
-        return len(self.X)
-
-
-    def __getitem__(self, idx):
-        X = self.X
-        label = X[idx, :]
-        Xi = torch.tensor([idx], dtype=torch.long).unsqueeze(0)
-        Xv = torch.ones(1, dtype=torch.float)
-        X = torch.sparse_coo_tensor(Xi, Xv, (len(X),))
-        label = label.to(X.dtype)
-
-        if self.transform:
-            X = self.transform(X)
-        if self.target_transform:
-            label = self.target_transform(label)
-        return X, label
+try:
+    import torch
+    import torch.nn
+    import lightning.pytorch as pl
+    torch_installed = True
+except ImportError:
+    torch_installed = False
+    error_message = "torch and lightning needs to be installed."
 
 
 class DeepMF(pl.LightningModule):
@@ -41,8 +20,7 @@ class DeepMF(pl.LightningModule):
     feature-associated and sample-associated latent matrices, and is robust to noisy and missing values. It only accepts
     a single view as input, so multi-view datasets should be concatenated before.
 
-    It should be used with PyTorch Lightning. The class DeepMFDataset provides a Dataset class for this algorithm. X has
-    dimensions MxN, where M is the number of features and N is the number of samples.
+    It should be used with PyTorch Lightning. The class DeepMFDataset provides a Dataset class for this algorithm.
 
     Parameters
     ----------
@@ -66,9 +44,9 @@ class DeepMF(pl.LightningModule):
     ----------
     model_ : torch.nn.Sequential
         Torch model.
-    U_ : torch.tensor
+    U_ : array-like of shape (n_features, n_components)
         Feature latent factor matrix.
-    V_: torch.tensor
+    V_: array-like of shape (n_components, n_samples)
         Sample latent factor matrix.
 
     References
@@ -79,15 +57,14 @@ class DeepMF(pl.LightningModule):
 
     Example
     --------
-    #todo
+    >>> from imvc.data_loaders import DeepMFDataset
     >>> from imvc.datasets import LoadDataset
-    >>> from imvc.decomposition import DeepMF, DeepMFDataset
+    >>> from imvc.decomposition import DeepMF
     >>> from imvc.preprocessing import MultiViewTransformer, ConcatenateViews
     >>> from sklearn.pipeline import make_pipeline
     >>> from sklearn.preprocessing import StandardScaler, FunctionTransformer
-    >>> from sklearn.cluster import KMeans
     >>> from torch.utils.data import DataLoader
-    >>> from pytorch_lightning import Trainer
+    >>> from lightning import Trainer
 
     >>> Xs = LoadDataset.load_dataset(dataset_name="nutrimouse")
     >>> pipeline = make_pipeline(ConcatenateViews(), StandardScaler(), FunctionTransformer(lambda x: torch.from_numpy(x).float().cuda().t()))
@@ -99,8 +76,6 @@ class DeepMF(pl.LightningModule):
     >>> trainer.fit(model, train_dataloader)
     >>> train_dataloader = DataLoader(dataset= train_data, batch_size= 50, shuffle=False)
     >>> transformed_X = model.transform(transformed_X)
-    >>> pipeline = make_pipeline(FunctionTransformer(lambda x: x.cpu().detach().numpy()), StandardScaler(), KMeans(n_clusters=3))
-    >>> labels = pipeline.fit_predict(transformed_X)
     """
 
     def __init__(self, X = None, latent_dim: int =10, n_layers: int = 3, learning_rate: float = 1e-2, alpha: float = 0.01,

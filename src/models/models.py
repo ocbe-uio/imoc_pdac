@@ -110,7 +110,7 @@ class Model:
 
 
     def mofa(self, model, n_clusters, random_state, run_n):
-        model[2].set_params(factors=n_clusters, random_state=random_state + run_n)
+        model[2].set_params(n_components=n_clusters, random_state=random_state + run_n)
         model[-1].set_params(n_clusters=n_clusters, random_state=random_state + run_n)
         return model
 

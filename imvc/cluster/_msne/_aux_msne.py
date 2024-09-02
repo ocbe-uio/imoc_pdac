@@ -1,5 +1,4 @@
 import itertools
-import random
 from functools import reduce
 import numpy as np
 import pandas as pd
@@ -7,7 +6,7 @@ from gensim.models import Word2Vec
 
 
 class RandomWalker:
-    def __init__(self, graphs, nodes, verbose):
+    def __init__(self, graphs, nodes, verbose, random_state):
         """
         :param graphs: list of graph
         :param nodes: all nodes in the graphs
@@ -17,6 +16,9 @@ class RandomWalker:
         self.alias_nodes=[]
         self.nodes=nodes
         self.verbose=verbose
+        if random_state is None:
+            random_state = int(np.random.default_rng().integers(10000))
+        self.random_state=random_state
 
     def walk(self, walk_length, start_node):
         Graphs = self.Graphs
@@ -27,9 +29,10 @@ class RandomWalker:
             cur_nbrs = [list(G.neighbors(cur)) if(G.has_node(cur)) else [] for G in Graphs ]
             cand=[i for i, e in enumerate(cur_nbrs) if len(e) != 0]
             if(len(cand)>0):
-                select=random.choice(cand)
+                self.random_state = self.random_state + np.random.default_rng(self.random_state).integers(10000)
+                select=np.random.default_rng(self.random_state).choice(cand)
                 walk.append(
-                    cur_nbrs[select][RandomWalker._alias_sample(*alias_nodes[select][cur])])
+                    cur_nbrs[select][self._alias_sample(*alias_nodes[select][cur])])
             else:
                 break
         return walk
@@ -49,7 +52,8 @@ class RandomWalker:
     def _simulate_walks(self, nodes, num_walks, walk_length):
         walks = []
         for _ in range(num_walks):
-            random.shuffle(nodes)
+            self.random_state = self.random_state + np.random.default_rng(self.random_state).integers(10000)
+            nodes = np.random.default_rng(self.random_state).permutation(nodes)
             for v in nodes:
                 walks.append(self.walk(
                     walk_length=walk_length, start_node=v))
@@ -111,16 +115,17 @@ class RandomWalker:
         return accept, alias
 
 
-    @staticmethod
-    def _alias_sample(accept, alias):
+    def _alias_sample(self, accept, alias):
         """
         :param accept:
         :param alias:
         :return: sample index
         """
         N = len(accept)
-        i = int(np.random.random()*N)
-        r = np.random.random()
+        self.random_state = self.random_state + np.random.default_rng(self.random_state).integers(10000)
+        i = int(np.random.default_rng(self.random_state).random()*N)
+        self.random_state = self.random_state + np.random.default_rng(self.random_state).integers(10000)
+        r = np.random.default_rng(self.random_state).random()
         if r < accept[i]:
             return i
         else:
@@ -143,10 +148,9 @@ class Embedding:
         self.graphs = graphs
         self._embeddings = {}
         self.nodes = list(reduce(lambda x, y: x | y, [set(g.nodes()) for g in self.graphs]))
-        self.walker = RandomWalker(graphs,nodes=self.nodes,verbose=verbose)
+        self.walker = RandomWalker(graphs,nodes=self.nodes,verbose=verbose, random_state=random_state)
         self.workers=workers
         self.verbose=verbose
-        #print("Preprocess transition probs...")
         for g in graphs:
             self.walker.preprocess_transition_probs(g)
 

@@ -44,7 +44,7 @@ best_combination = ["CNA", "RNAseq", "miRNA"]       # Set to False if there is n
 run_amputation = True       # Set to False if there will be no amputation happening
 
 n_clusters = [2]
-amputation_mechanisms = ["EDM", 'MCAR', 'MAR', 'MNAR', "PM"]
+amputation_mechanisms = ["EDM", 'MCAR', 'MNAR', "PM"]
 probs = [20, 40, 60, 80]
 imputation = [False]
-runs_per_alg = np.arange(1)
+runs_per_alg = np.arange(10)

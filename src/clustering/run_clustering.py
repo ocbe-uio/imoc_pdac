@@ -66,17 +66,17 @@ class RunClustering:
             elapsed_time = time.perf_counter() - start_time
             if not isinstance(train_X, pd.DataFrame):
                 train_X = pd.DataFrame(train_X, index=observed_view_indicator.index)
-            clusters = pd.Series(clusters, index=train_X.index)
+            clusters = pd.Series(clusters, index=observed_view_indicator.index)
 
             if isinstance(train_X, list):
                 train_X = ConcatenateViews().fit_transform(train_X)
             if np.isnan(train_X).any().any():
                 train_X = SimpleImputer(strategy="mean").fit_transform(train_X)
             if not isinstance(train_X, pd.DataFrame):
-                train_X = pd.DataFrame(train_X, index = train_X)
+                train_X = pd.DataFrame(train_X, index = observed_view_indicator.index)
 
-            assert train_Xs[0].index.equals(train_X.index)
-            assert clusters.index.equals(train_X.index)
+            assert train_Xs[0].index.equals(observed_view_indicator.index)
+            assert clusters.index.equals(observed_view_indicator.index)
 
             dict_results = RunClustering.save_record(train_Xs=train_Xs, train_X=train_X, y_pred=clusters,
                                                      elapsed_time=elapsed_time, random_state=random_state,

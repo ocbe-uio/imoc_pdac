@@ -5,7 +5,7 @@ from sklearn.feature_selection import VarianceThreshold
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
 from imvc.decomposition import DFMF, MOFA
-from imvc.preprocessing import MultiViewTransformer, ConcatenateViews, NormalizerNaN
+from imvc.preprocessing import MultiViewTransformer, NormalizerNaN
 from imvc.cluster import NEMO, PIMVC
 from settings import INCOMPLETE_RESULTS_PATH, INCOMPLETE_SUBRESULTS_PATH, INCOMPLETE_LOGS_PATH, INCOMPLETE_ERRORS_PATH, \
     TIME_RESULTS_PATH, DATASET_TABLE_PATH, amputation_mechanisms, probs, \

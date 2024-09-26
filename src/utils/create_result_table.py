@@ -23,9 +23,13 @@ class CreateResultTable:
 
         # remove experiments when there is no missing and imputation is True
         if (results.index.get_level_values("missing_percentage") == 0).any():
-            idx_to_drop = results.xs(0, level="missing_percentage",
-                                     drop_level=False).xs(True, level="imputation", drop_level=False).index
-            results = results.drop(idx_to_drop)
+            try:
+                idx_to_drop = results.xs(0, level="missing_percentage", drop_level=False)
+                if (idx_to_drop.index.get_level_values("imputation") == True).any():
+                    idx_to_drop = idx_to_drop.xs(True, level="imputation", drop_level=False).index
+                    results = results.drop(idx_to_drop)
+            except KeyError:
+                pass
 
         # remove experiments when missing percentage is 0 and there is amputation
         for amputation_mechanism in amputation_mechanisms[1:]:

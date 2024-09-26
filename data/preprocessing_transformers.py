@@ -41,7 +41,7 @@ class RemoveFeaturesWithZeros(BaseEstimator, TransformerMixin):
         self.verbose = verbose
 
     def fit(self, X, y = None):
-        self.columns_ = X.columns[((X != 0).sum(axis = 0) / len(X)) >= self.threshold]
+        self.columns_ = X.columns[(X == 0).sum(axis=0) / len(X) < self.threshold]
         if self.verbose:
             print(f"{self.__class__.__name__} keeping {len(self.columns_)} features")
         return self
@@ -58,7 +58,7 @@ class RemoveFeaturesWithNaN(BaseEstimator, TransformerMixin):
         self.verbose = verbose
 
     def fit(self, X, y = None):
-        self.columns_ = X.columns[((X.notna()).sum(axis = 0) / len(X)) >= self.threshold]
+        self.columns_ = X.columns[(X.isna()).sum(axis=0) / len(X) < self.threshold]
         if self.verbose:
             print(f"{self.__class__.__name__} keeping {len(self.columns_)} features")
         return self

@@ -26,6 +26,7 @@ class CommonOperations:
     @staticmethod
     def get_results_table(datasets, views, n_clusters, algorithms, probs, amputation_mechanisms, imputation,
                           runs_per_alg, two_view_datasets, best_combination, run_amputation):
+        # options if there is a best combination or there is not
         if best_combination:
             if isinstance(best_combination, list) and len(best_combination) > 1:
                 view_combinations = ['1' if view in best_combination else '0' for view in views]

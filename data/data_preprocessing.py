@@ -44,10 +44,9 @@ methylation_new = methylation_pipeline.fit_transform(methylation_data)
 mutations_data = InitialProcessing("data/PDAC/raw_data/cancer_data_PAAD_Mutation-20160128.csv").process_data()
 mutations_pipeline = make_pipeline(
     GeneMutations(verbose=True),
-    RemoveFeaturesWithZeros(threshold=0.05, verbose=True)
+    RemoveFeaturesWithZeros(threshold=0.95, verbose=True)
 )
 mutations_new = mutations_pipeline.fit_transform(mutations_data)
-
 
 # Copy number
 cnv_data = InitialProcessing("data/PDAC/raw_data/cancer_data_PAAD_CNA_GISTIC-20160128.csv").process_data()
@@ -59,3 +58,5 @@ cnv_new = cnv_pipeline.fit_transform(cnv_data)
 
 samples_complete = RPPA_new.index.intersection(miRNA_new.index).intersection(RNAseq_new.index).intersection(methylation_new.index).intersection(mutations_new.index).intersection(cnv_new.index)
 RPPA_new, miRNA_new, RNAseq_new, methylation_new, mutations_new, cnv_new = RPPA_new.loc[samples_complete], miRNA_new.loc[samples_complete], RNAseq_new.loc[samples_complete], methylation_new.loc[samples_complete], mutations_new.loc[samples_complete], cnv_new.loc[samples_complete]
+
+print("Completed successfully!")

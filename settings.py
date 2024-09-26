@@ -40,7 +40,7 @@ INCOMPLETE_ERRORS_PATH = os.path.join(RESULTS_FOLDER, INCOMPLETE_ERRORS_FILE)
 TIME_ERRORS_PATH = os.path.join(RESULTS_FOLDER, TIME_ERRORS_FILE)
 
 views = ["CNA", "Methylation", "Mutations", "RNAseq", "RPPA", "miRNA"]  # All possible views in the dataset
-best_combination = ["Methylation", "RNAseq"]       # Set to False if there is no set combination of data types to use (will run all possible combinations of data types)
+best_combination = ["CNA", "Mutations"]       # Set to False if there is no set combination of data types to use (will run all possible combinations of data types)
 run_amputation = True       # Set to False if there will be no amputation happening
 
 n_clusters = [2]

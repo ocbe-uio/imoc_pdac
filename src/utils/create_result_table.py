@@ -49,7 +49,7 @@ class CreateResultTable:
                     results_amputation_mechanism_none_tochange)
 
         # when there are only two views, remove amputation for multiple views
-        for amputation_mechanism, dataset in itertools.product(["MAR", "MNAR"], two_view_datasets):
+        for amputation_mechanism, dataset in itertools.product(["MNAR"], two_view_datasets):
             idx_to_drop = results.xs(dataset, level="dataset",
                                      drop_level=False).xs(amputation_mechanism, level="amputation_mechanism",
                                                           drop_level=False).index

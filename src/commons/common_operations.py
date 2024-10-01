@@ -16,17 +16,20 @@ class CommonOperations:
 
 
     @staticmethod
-    def get_list_of_datasets(path):
+    def get_list_of_datasets(path, select_datasets):
         dataset_table = pd.read_csv(path)
         datasets = dataset_table["dataset"].to_list()
         two_view_datasets = dataset_table[dataset_table["n_features"].apply(lambda x: len(eval(x)) == 2)]["dataset"].to_list()
+        if select_datasets:
+            datasets = [ds for ds in datasets if ds in select_datasets]
+            two_view_datasets = [ds for ds in two_view_datasets if ds in select_datasets]
         return datasets, two_view_datasets
 
 
     @staticmethod
     def get_results_table(datasets, views, n_clusters, algorithms, probs, amputation_mechanisms, imputation,
                           runs_per_alg, two_view_datasets, best_combination, run_amputation):
-        # options if there is a best combination or there is not
+        # options to either run through all combinations or only use a specific one
         if best_combination:
             if isinstance(best_combination, list) and len(best_combination) > 1:
                 view_combinations = ['1' if view in best_combination else '0' for view in views]
@@ -186,8 +189,8 @@ class CommonOperations:
     @staticmethod
     def get_unfinished_results(dataset_table_path, algorithms, probs, amputation_mechanisms, imputation, runs_per_alg,
                                args, subresults_path, logs_file, error_file, results_path, time_results_path,
-                               incomplete_algorithms, views, n_clusters, best_combination, run_amputation):
-        datasets, two_view_datasets = CommonOperations.get_list_of_datasets(dataset_table_path)
+                               incomplete_algorithms, views, n_clusters, best_combination, run_amputation, select_datasets):
+        datasets, two_view_datasets = CommonOperations.get_list_of_datasets(dataset_table_path, select_datasets)
         indexes_names, results = CommonOperations.get_results_table(datasets=datasets, algorithms=algorithms,
                                                                     probs=probs, views=views, n_clusters=n_clusters,
                                                                     amputation_mechanisms=amputation_mechanisms,
@@ -211,7 +214,7 @@ class CommonOperations:
     @staticmethod
     def run_script(dataset_table_path, views, n_clusters, algorithms, probs, amputation_mechanisms, imputation, runs_per_alg,
                    args, subresults_path, logs_file, error_file, results_path, time_results_path, incomplete_algorithms,
-                   best_combination, run_amputation):
+                   best_combination, run_amputation, select_datasets):
         indexes_names, results, unfinished_results = CommonOperations.get_unfinished_results(
             dataset_table_path=dataset_table_path,
             views=views, n_clusters=n_clusters,
@@ -227,7 +230,8 @@ class CommonOperations:
             time_results_path=time_results_path,
             incomplete_algorithms=incomplete_algorithms,
             best_combination=best_combination,
-            run_amputation=run_amputation)
+            run_amputation=run_amputation,
+            select_datasets=select_datasets)
 
         for dataset_name in unfinished_results.index.get_level_values("dataset").unique():
             results = CommonOperations.run_processing(unfinished_results=unfinished_results, dataset_name=dataset_name,

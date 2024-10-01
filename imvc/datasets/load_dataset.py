@@ -6,13 +6,13 @@ from settings import DATA_FOLDER
 
 class LoadDataset:
 
-    def load_pdac(return_y: bool = False, return_metadata: bool = False):
+    def load_pdac_partial_samples(return_y: bool = False, return_metadata: bool = False):
         r"""
-        The dataset comprises multi-omic data from pancreatic ductal adenocarcinoma (PDAC) patients, extracted from The
-        Cancer Genome Atlas (TCGA) website. There are six types of omics data available: copy number variation (CNA),
-        DNA methylation, gene mutations, RNAseq, proteomics and miRNA.
+        The dataset comprises multi-omic data from a subset of pancreatic ductal adenocarcinoma (PDAC_partial_samples)
+        patients, extracted from The Cancer Genome Atlas (TCGA) website. There are six types of omics data available:
+        copy number variation (CNA), DNA methylation, gene mutations, RNAseq, proteomics and miRNA.
 
-        Samples: 90; Views: 6; Features: [770, 2187, 71, 1565, 192, 553]
+        Samples: 89; Views: 6; Features: [745, 2185, 71, 1419, 192, 385]
 
         Parameters
         ----------
@@ -35,10 +35,46 @@ class LoadDataset:
         Examples
         --------
         >>> from imvc.datasets import LoadDataset
-        >>> Xs = LoadDataset.load_pdac()
+        >>> Xs = LoadDataset.load_pdac_partial_samples()
         """
-        output = LoadDataset.load_dataset(dataset_name = "PDAC", return_y = return_y, return_metadata = return_metadata)
+        output = LoadDataset.load_dataset(dataset_name = "PDAC_partial_samples", return_y = return_y, return_metadata = return_metadata)
         return output
+
+
+    def load_pdac_complete_samples(return_y: bool = False, return_metadata: bool = False):
+        r"""
+        The dataset comprises multi-omic data from a complete set of pancreatic ductal adenocarcinoma (PDAC_complete_samples)
+        patients, extracted from The Cancer Genome Atlas (TCGA) website. There are six types of omics data available:
+        copy number variation (CNA), DNA methylation, gene mutations, RNAseq, proteomics and miRNA.
+
+        Samples: 89; Views: 6; Features: [745, 2185, 71, 1419, 192, 385]
+
+        Parameters
+        ----------
+        return_y: bool, default=False
+            If True, return the label too.
+        return_metadata: bool, default=False
+            If True, return the metadata.
+
+        Returns
+        -------
+        Xs : list of array-likes
+            - Xs length: n_views
+            - Xs[i] shape: (n_samples, n_features_i)
+            A list of different views.
+        y : optional
+            Array with labels
+        metadata : optional
+            Dict with info about the dataset (data modality names, labels, etc.).
+
+        Examples
+        --------
+        >>> from imvc.datasets import LoadDataset
+        >>> Xs = LoadDataset.load_pdac_complete_samples()
+        """
+        output = LoadDataset.load_dataset(dataset_name = "PDAC_complete_samples", return_y = return_y, return_metadata = return_metadata)
+        return output
+
 
     @staticmethod
     def load_dataset(dataset_name: str, return_y: bool = False, return_metadata: bool = False):
@@ -48,8 +84,7 @@ class LoadDataset:
         Parameters
         ----------
         dataset_name: str
-            Name of the dataset. It must be one of: "bbcsport", "bdgp", "buaa", "caltech101", "digits", "metabric",
-            "nuswide", "nutrimouse", "simulated_gm", "simulated_InterSIM", "simulated_netMUG", "tcga", "PDAC".
+            Name of the dataset. It must be one of: "PDAC_partial_samples", "PDAC_complete_samples".
         return_y: bool, default=False
             If True, return the label too.
         return_metadata: bool, default=False
@@ -69,7 +104,7 @@ class LoadDataset:
          Examples
         --------
         >>> from imvc.datasets import LoadDataset
-        >>> Xs = LoadDataset.load_dataset(dataset_name = "PDAC")
+        >>> Xs = LoadDataset.load_dataset(dataset_name = "PDAC_partial_samples")
         """
         data_path = os.path.join(DATA_FOLDER, dataset_name)
         data_files = [filename for filename in os.listdir(data_path)]

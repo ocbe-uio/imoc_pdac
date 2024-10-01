@@ -41,7 +41,8 @@ TIME_ERRORS_PATH = os.path.join(RESULTS_FOLDER, TIME_ERRORS_FILE)
 
 views = ["CNA", "Methylation", "Mutations", "RNAseq", "RPPA", "miRNA"]  # All possible views in the dataset
 best_combination = ["CNA", "Mutations"]       # Set to False if there is no set combination of data types to use (will run all possible combinations of data types)
-run_amputation = True       # Set to False if there will be no amputation happening
+run_amputation = False       # Set to False if there will be no amputation happening
+select_datasets = ['PDAC_complete_samples']       # set to False if using all datasets
 
 n_clusters = [2]
 amputation_mechanisms = ["EDM", 'MCAR', 'MNAR', "PM"]

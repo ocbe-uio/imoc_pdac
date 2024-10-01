@@ -8,20 +8,19 @@ from imvc.utils import DatasetUtils
 class LoadDataset:
 
     @staticmethod
-    def load_incomplete_digits(p, return_y: bool = False, shuffle: bool = True, assess_percentage: bool = True,
-                               random_state: int = None):
+    def load_incomplete_PDAC_partial_samples(p, return_y: bool = False, shuffle: bool = True,
+                                             assess_percentage: bool = True, random_state: int = None):
         r"""
-        Load the UCI multiple features dataset, taken from the UCI Machine Learning Repository
-        at https://archive.ics.uci.edu/ml/datasets/Multiple+Features. This data set consists of 6 views of
-        handwritten digit images, with classes 0-9..
+        Load an incomplete multi-view version of the PDAC_partial_samples dataset, a six-view dataset from a multi-omic
+        study on a subset of PDAC patients.
 
         Parameters
         ----------
         p: list or float
-            The percentaje that each view will have for missing samples. If p is float, all the views will have the
-            same percentaje.
+            The percentage that each view will have for missing samples. If p is float, all the views will have the
+            same percentage
         return_y: bool, default False
-            If True, return the label too.
+            If True, return the label too
         shuffle: bool, default False
             If True, shuffle the dataset.
         assess_percentage: bool
@@ -35,52 +34,46 @@ class LoadDataset:
             - Xs length: n_views
             - Xs[i] shape: (n_samples_i, n_features_i)
             A list of different views.
-        y : optional
+        ys : optional list of array-likes
             Array with labels
 
         Notes
         -----
-        This data consists of six views:
-        - 6 Fourier coefficients of the character shapes
-        - 216 profile correlations
-        - 64 Karhunen-Love coefficients
-        - 240 pixel averages of the images from 2x3 windows
-        - 47 Zernike moments
-        - 6 morphological features
-
-        References
-        ----------
-        [#1Data] M. van Breukelen, et al. "Handwritten digit recognition by combined classifiers", Kybernetika, 34(4):381-386, 1998
-        [#2UCI] Dheeru Dua and Casey Graff. UCI machine learning repository, 2017. URL http://archive.ics.uci.edu/ml.
-        [url] Adapted function from mvlearn Package: Perry, Ronan, et al. "mvlearn: Multiview Machine Learning in
-            Python." Journal of Machine Learning Research 22.109 (2021): 1-7.
-
-         Examples
-        --------
+        This data consists of six views from a TCGA multi-omics study of 89 PDAC patients:
+        - RPPA : protein expression of 192 proteins
+        - miRNA: miRNA expression of 385 miRNA
+        - RNAseq: gene expression of 1419 genes
+        - methylation: methylation of 2185 CpG sites
+        - mutations: mutations (1 = yes / 0 = no) of 71 genes
+        - CNA: copy number alterations (GISTIC2.0 format) of 745 genes
         >>> from imvc.datasets import LoadDataset
-        >>> Xs = LoadDataset.load_incomplete_digits(p = 0.2)
+        >>> Xs = LoadDataset.load_incomplete_PDAC_partial_samples(p=0)
         """
-        filenames = ["mfeat-fou.csv", "mfeat-fac.csv", "mfeat-kar.csv",
-                     "mfeat-pix.csv", "mfeat-zer.csv", "mfeat-mor.csv"]
+        filenames = ["PDAC_partial_samples_RPPA.csv",
+                     "PDAC_partial_samples_miRNA.csv",
+                     "PDAC_partial_samples_RNAseq.csv",
+                     "PDAC_partial_samples_Methylation.csv",
+                     "PDAC_partial_samples_Mutation.csv",
+                     "PDAC_partial_samples_CNA.csv"]
         module_path = dirname(__file__)
-        Xs = [pd.read_csv(os.path.join(module_path, "data", "digits", filename)) for filename in filenames]
+        Xs = [pd.read_csv(os.path.join(module_path, "data", "PDAC_partial_samples", filename)) for filename in filenames]
         Xs = DatasetUtils.ampute(Xs=Xs, p=p, assess_percentage=assess_percentage, random_state=random_state)
         if shuffle:
             Xs = DatasetUtils.shuffle_imvd(Xs=Xs, random_state=random_state)
         if return_y:
-            y = [X.iloc[:, -1] for X in Xs]
-            Xs = [X.iloc[:, :-1] for X in Xs]
-            out = (Xs, y)
+            ys = None
+            out = (Xs, ys)
         else:
-            Xs = [X.iloc[:, :-1] for X in Xs]
             out = Xs
         return out
 
 
-    def load_incomplete_PDAC(p, return_y: bool = False, shuffle: bool = True, assess_percentage: bool = True,
-                             random_state: int = None):
+    @staticmethod
+    def load_incomplete_PDAC_complete_samples(p, return_y: bool = False, shuffle: bool = True,
+                                             assess_percentage: bool = True, random_state: int = None):
         r"""
-        Load an incomplete multi-view version of the PDAC dataset, a five-view dataset from a multi-omic study on PDAC
+        Load an incomplete multi-view version of the PDAC_complete_samples dataset, a two-view dataset from a multi-omic
+         study on a complete_set of PDAC patients
         patients.
 
         Parameters
@@ -108,95 +101,20 @@ class LoadDataset:
 
         Notes
         -----
-        This data consists of five views from a TCGA multi-omics study of 90 PDAC patients:
-        - RPPA : protein expression of 192 proteins
-        - miRNA: miRNA expression of 553 miRNA
-        - RNAseq: gene expression of 1565 genes
-        - methylation: methylation of 2187 CpG sites
-        - mutations: mutations (yes/no) of 71 genes
+        This data consists of two views from a TCGA multi-omics study of 154 PDAC patients:
+        - mutations: mutations (1 = yes / 0 = no) of 71 genes
+        - CNA: copy number alterations (GISTIC2.0 format) of 745 genes
         >>> from imvc.datasets import LoadDataset
-        >>> Xs = LoadDataset.load_incomplete_PDAC(p=0)
+        >>> Xs = LoadDataset.load_incomplete_PDAC_complete_samples(p=0)
         """
-        filenames = ["complete_cancer_data_PDAC_RPPAArray-20160128.csv",
-                     "complete_cancer_data_PDAC_miRNASeqGene-20160128.csv",
-                     "complete_cancer_data_PDAC_RNASeq2GeneNorm-20160128.csv",
-                     "complete_cancer_data_PDAC_Methylation-20160128.csv",
-                     "complete_cancer_data_PDAC_Mutation-20160128.csv",
-                     "complete_cancer_data_PDAC_CNA_GISTIC-20160128.csv"]
         module_path = dirname(__file__)
-        Xs = [pd.read_csv(os.path.join(module_path, "data", "PDAC", filename)) for filename in filenames]
+        Xs = [pd.read_csv(os.path.join(module_path, "data", "PDAC_complete_samples", filename)) for filename in
+              ["PDAC_complete_samples_Mutation.csv", "PDAC_complete_samples_CNA.csv"]]
         Xs = DatasetUtils.ampute(Xs=Xs, p=p, assess_percentage=assess_percentage, random_state=random_state)
         if shuffle:
             Xs = DatasetUtils.shuffle_imvd(Xs=Xs, random_state=random_state)
         if return_y:
             ys = None
-            out = (Xs, ys)
-        else:
-            out = Xs
-        return out
-
-
-    @staticmethod
-    def load_incomplete_nutrimouse(p, return_y: bool = False, shuffle: bool = True, assess_percentage: bool = True,
-                                   random_state: int = None):
-        r"""
-        Load an incomplete multi-view version of the Nutrimouse dataset, a two-view dataset from a nutrition
-        study on mice.
-
-        Parameters
-        ----------
-        p: list or float
-            The percentaje that each view will have for missing samples. If p is float, all the views will have the
-            same percentaje.
-        return_y: bool, default False
-            If True, return the label too.
-        shuffle: bool, default False
-            If True, shuffle the dataset.
-        assess_percentage: bool
-            If False, each view is dropped independently.
-        random_state: int, default None
-            If int, random_state is the seed used by the random number generator.
-
-        Returns
-        -------
-        Xs : list of array-likes
-            - Xs length: n_views
-            - Xs[i] shape: (n_samples_i, n_features_i)
-            A list of different views.
-        ys : optional list of array-likes
-            Array with labels
-
-        Notes
-        -----
-        This data consists of two views from a nutrition study of 40 mice:
-        - gene : expressions of 120 potentially relevant genes
-        - lipid : concentrations of 21 hepatic fatty acids
-
-        References
-        ----------
-        [paper] P. Martin, H. Guillou, F. Lasserre, S. Déjean, A. Lan, J-M.
-                Pascussi, M. San Cristobal, P. Legrand, P. Besse, T. Pineau.
-                "Novel aspects of PPARalpha-mediated regulation of lipid and
-                xenobiotic metabolism revealed through a nutrigenomic study."
-                Hepatology, 2007.
-        [paper] González I., Déjean S., Martin P.G.P and Baccini, A. (2008) CCA:
-                "An R Package to Extend Canonical Correlation Analysis." Journal
-                of Statistical Software, 23(12).
-        [url] Adapted function from mvlearn Package: Perry, Ronan, et al. "mvlearn: Multiview Machine Learning in
-            Python." Journal of Machine Learning Research 22.109 (2021): 1-7.
-
-         Examples
-        --------
-        >>> from imvc.datasets import LoadDataset
-        >>> Xs = LoadDataset.load_incomplete_nutrimouse(p = 0.2)
-        """
-        module_path = dirname(__file__)
-        Xs = [pd.read_csv(os.path.join(module_path, "data", "nutrimouse", filename)) for filename in ["gene.csv", "lipid.csv"]]
-        ys = [pd.read_csv(os.path.join(module_path, "data", "nutrimouse", filename)) for filename in ["genotype.csv", "diet.csv"]]
-        Xs = DatasetUtils.ampute(Xs=Xs, p=p, assess_percentage=assess_percentage, random_state=random_state)
-        if shuffle:
-            Xs = DatasetUtils.shuffle_imvd(Xs=Xs, random_state=random_state)
-        if return_y:
             out = (Xs, ys)
         else:
             out = Xs

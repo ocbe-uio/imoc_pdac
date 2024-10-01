@@ -10,7 +10,7 @@ from imvc.cluster import NEMO, PIMVC
 from settings import INCOMPLETE_RESULTS_PATH, INCOMPLETE_SUBRESULTS_PATH, INCOMPLETE_LOGS_PATH, INCOMPLETE_ERRORS_PATH, \
     TIME_RESULTS_PATH, DATASET_TABLE_PATH, amputation_mechanisms, probs, \
     imputation, runs_per_alg, INCOMPLETE_RESULTS_FILE, INCOMPLETE_LOGS_FILE, INCOMPLETE_ERRORS_FILE, \
-    INCOMPLETE_SUBRESULTS_FOLDER, views, n_clusters, best_combination, run_amputation
+    INCOMPLETE_SUBRESULTS_FOLDER, views, n_clusters, best_combination, run_amputation, select_datasets
 from src.commons import CommonOperations
 
 args = CommonOperations.get_args()
@@ -50,4 +50,4 @@ CommonOperations.run_script(dataset_table_path=DATASET_TABLE_PATH, algorithms=al
                             logs_file=INCOMPLETE_LOGS_PATH, error_file=INCOMPLETE_ERRORS_PATH,
                             results_path=INCOMPLETE_RESULTS_PATH, time_results_path=TIME_RESULTS_PATH,
                             incomplete_algorithms=incomplete_algorithms, best_combination=best_combination,
-                            run_amputation=run_amputation)
+                            run_amputation=run_amputation, select_datasets=select_datasets)

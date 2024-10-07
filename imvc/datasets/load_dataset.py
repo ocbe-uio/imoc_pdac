@@ -40,6 +40,41 @@ class LoadDataset:
         output = LoadDataset.load_dataset(dataset_name = "PDAC_partial_samples", return_y = return_y, return_metadata = return_metadata)
         return output
 
+    def load_pdac_partial_noise(return_y: bool = False, return_metadata: bool = False):
+        r"""
+        The dataset comprises multi-omic data from a subset of pancreatic ductal adenocarcinoma (PDAC_partial_samples)
+        patients, extracted from The Cancer Genome Atlas (TCGA) website. There are six types of omics data available:
+        copy number variation (CNA), DNA methylation, gene mutations, RNAseq, proteomics and miRNA. This dataset has
+        CNA and gene mutation datasets with noise signal (originally they are integer values).
+
+        Samples: 89; Views: 6; Features: [745, 2185, 71, 1419, 192, 385]
+
+        Parameters
+        ----------
+        return_y: bool, default=False
+            If True, return the label too.
+        return_metadata: bool, default=False
+            If True, return the metadata.
+
+        Returns
+        -------
+        Xs : list of array-likes
+            - Xs length: n_views
+            - Xs[i] shape: (n_samples, n_features_i)
+            A list of different views.
+        y : optional
+            Array with labels
+        metadata : optional
+            Dict with info about the dataset (data modality names, labels, etc.).
+
+        Examples
+        --------
+        >>> from imvc.datasets import LoadDataset
+        >>> Xs = LoadDataset.load_pdac_partial_noise()
+        """
+        output = LoadDataset.load_dataset(dataset_name = "PDAC_partial_noise", return_y = return_y, return_metadata = return_metadata)
+        return output
+
 
     def load_pdac_complete_samples(return_y: bool = False, return_metadata: bool = False):
         r"""
@@ -84,7 +119,7 @@ class LoadDataset:
         Parameters
         ----------
         dataset_name: str
-            Name of the dataset. It must be one of: "PDAC_partial_samples", "PDAC_complete_samples".
+            Name of the dataset. It must be one of: "PDAC_partial_samples", "PDAC_partial_noise", "PDAC_complete_samples".
         return_y: bool, default=False
             If True, return the label too.
         return_metadata: bool, default=False

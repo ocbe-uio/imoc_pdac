@@ -1,8 +1,11 @@
 import pandas as pd
+import numpy as np
 from sklearn.pipeline import make_pipeline
 from preprocessing_transformers import (InitialProcessing, RemoveFeaturesWithZeros, RemoveFeaturesWithNaN, RemoveFeaturesLowMAD,
                                         RemoveCorrelatedFeatures, Log2Transformation, GeneMutations, ValueImputation, CopyNumberGistic)
 
+complete_sample_set = False   # True if all samples are being used, False if subset with complete information across all views
+add_noise = True
 
 # OMIC DATA TYPES
 
@@ -48,6 +51,9 @@ mutations_pipeline = make_pipeline(
     RemoveFeaturesWithZeros(threshold=0.95, verbose=True)
 )
 mutations_new = mutations_pipeline.fit_transform(mutations_data)
+# Line to add noise (can comment out)
+if add_noise == True:
+    mutations_new = mutations_new + np.random.default_rng(42).normal(scale=0.1, size=mutations_new.shape)
 
 # Copy number
 cnv_data = InitialProcessing("data/raw_data/cancer_data_PAAD_CNA_GISTIC-20160128.csv").process_data()
@@ -56,16 +62,17 @@ cnv_pipeline = make_pipeline(
     RemoveFeaturesWithZeros(threshold=0.5, verbose=True)
 )
 cnv_new = cnv_pipeline.fit_transform(cnv_data)
+if add_noise == True:
+    cnv_new = cnv_new + np.random.default_rng(42).normal(scale=0.1, size=cnv_new.shape)
 
 
-# Two options for common indexes, comment out the one you are not using
 dataframes = [RNAseq_new, RPPA_new, miRNA_new, methylation_new, mutations_new, cnv_new]
-    # For samples that contain information across all comics (reduced sample set, all views present)
-partial_samples = RPPA_new.index.intersection(miRNA_new.index).intersection(RNAseq_new.index).intersection(methylation_new.index).intersection(mutations_new.index).intersection(cnv_new.index)
-RNAseq_partial, RPPA_partial, miRNA_partial, methylation_partial, mutations_partial, cnv_partial = [df.loc[partial_samples] for df in dataframes]
-    # For all samples (complete sample set, some views missing)
-complete_samples = pd.concat(dataframes, axis=0, join='outer').index.unique()
-RNAseq_complete, RPPA_complete, miRNA_complete, methylation_complete, mutations_complete, cnv_complete = [df.reindex(complete_samples) for df in dataframes]
+if complete_sample_set == False:
+    partial_samples = RPPA_new.index.intersection(miRNA_new.index).intersection(RNAseq_new.index).intersection(methylation_new.index).intersection(mutations_new.index).intersection(cnv_new.index)
+    RNAseq_partial, RPPA_partial, miRNA_partial, methylation_partial, mutations_partial, cnv_partial = [df.loc[partial_samples] for df in dataframes]
+elif complete_sample_set == True:
+    complete_samples = pd.concat(dataframes, axis=0, join='outer').index.unique()
+    RNAseq_complete, RPPA_complete, miRNA_complete, methylation_complete, mutations_complete, cnv_complete = [df.reindex(complete_samples) for df in dataframes]
 
 
 print("Completed successfully!")

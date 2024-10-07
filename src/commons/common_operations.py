@@ -65,11 +65,7 @@ class CommonOperations:
 
     @staticmethod
     def load_Xs(dataset_name):
-        names = dataset_name.split("_")
-        if "simulated" in names:
-            names = ["_".join(names)]
-        x_name = names if len(names) > 1 else names[0]
-        Xs = LoadDataset.load_dataset(dataset_name=x_name, return_y=False)
+        Xs = LoadDataset.load_dataset(dataset_name=dataset_name, return_y=False)
         return Xs
 
 

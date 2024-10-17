@@ -7,12 +7,13 @@ from sklearn.cluster import KMeans
 
 from ..utils import check_Xs, DatasetUtils
 
+oct2py_installed = False
+oct2py_module_error = "Oct2Py needs to be installed to use matlab engine."
 try:
     import oct2py
     oct2py_installed = True
 except ImportError:
-    oct2py_installed = False
-    error_message = "Oct2Py needs to be installed to use matlab engine."
+    pass
 
 
 class OMVC(BaseEstimator, ClassifierMixin):
@@ -75,13 +76,23 @@ class OMVC(BaseEstimator, ClassifierMixin):
     >>> normalizer = StandardScaler().set_output(transform="pandas")
     >>> estimator = OMVC(n_clusters = 2)
     >>> pipeline = make_pipeline(MultiViewTransformer(normalizer), estimator)
-    >>> labels = estimator.fit_predict(Xs)
+    >>> labels = pipeline.fit_predict(Xs)
 
     """
 
     def __init__(self, n_clusters: int = 8, max_iter: int = 200, tol: float = 1e-4, decay: float = 1,
                  block_size: int = 50, n_pass: int = 1, random_state:int = None,
                  engine: str ="matlab", verbose = False):
+        if not isinstance(n_clusters, int):
+            raise ValueError(f"Invalid n_clusters. It must be an int. A {type(n_clusters)} was passed.")
+        if n_clusters < 2:
+            raise ValueError(f"Invalid n_clusters. It must be an greater than 1. {n_clusters} was passed.")
+        engines_options = ["matlab"]
+        if engine not in engines_options:
+            raise ValueError(f"Invalid engine. Expected one of {engines_options}. {engine} was passed.")
+        if (engine == "matlab") and (not oct2py_installed):
+            raise ImportError(oct2py_module_error)
+
         self.n_clusters = n_clusters
         self.max_iter = max_iter
         self.tol = tol
@@ -89,13 +100,17 @@ class OMVC(BaseEstimator, ClassifierMixin):
         self.block_size = block_size
         self.n_pass = n_pass
         self.random_state = random_state
-        self._engines_options = ["matlab"]
-        if engine not in self._engines_options:
-            raise ValueError(f"Invalid engine. Expected one of {self._engines_options}.")
-        if (engine == "matlab") and (not oct2py_installed):
-            raise ModuleNotFoundError(error_message)
         self.engine = engine
         self.verbose = verbose
+
+        if self.engine == "matlab":
+            matlab_folder = dirname(__file__)
+            matlab_folder = os.path.join(matlab_folder, "_" + (os.path.basename(__file__).split(".")[0]))
+            matlab_files = [x for x in os.listdir(matlab_folder) if x.endswith(".m")]
+            self._oc = oct2py.Oct2Py(temp_dir= matlab_folder)
+            for matlab_file in matlab_files:
+                with open(os.path.join(matlab_folder, matlab_file)) as f:
+                    self._oc.eval(f.read())
 
 
     def fit(self, Xs, y=None):
@@ -142,14 +157,12 @@ class OMVC(BaseEstimator, ClassifierMixin):
             transformed_Xs = [X/(X.sum().sum()) for X in transformed_Xs]
 
             if self.random_state is not None:
-                oc.rand('seed', self.random_state)
-            u, v, u_star_loss, loss = oc.ONMF_Multi_PGD_search(transformed_Xs, option, len(Xs[0]),
+                self._oc.rand('seed', self.random_state)
+            u, v, u_star_loss, loss = self._oc.ONMF_Multi_PGD_search(transformed_Xs, option, len(Xs[0]),
                                                                missing_samples_by_view, self.block_size, nout=4)
             u_star_loss = u_star_loss[self.n_pass-1]
             v = [np.array(arr) for arr in v[0]]
             u = [np.array(arr[0]) for arr in u]
-        else:
-            raise ValueError(f"Invalid engine. Expected one of {self._engines_options}.")
 
         model = KMeans(n_clusters= self.n_clusters, n_init= "auto", random_state= self.random_state)
         self.labels_ = model.fit_predict(X= u_star_loss)

@@ -4,6 +4,24 @@ from sklearn.base import BaseEstimator, TransformerMixin
 
 from ..utils import check_Xs, _convert_df_to_r_object
 
+try:
+    from rpy2.robjects.packages import importr, PackageNotInstalledError
+    nnTensor = importr("nnTensor")
+    rbase = importr("base")
+    rpy2_installed = True
+except ImportError:
+    rpy2_installed = False
+    rpy2_module_error = "rpy2 needs to be installed to use r engine."
+
+if rpy2_installed:
+    rbase = importr("base")
+    try:
+        nnTensor = importr("nnTensor")
+        nnTensor_installed = True
+    except PackageNotInstalledError:
+        nnTensor_installed = False
+        nnTensor_module_error = "nnTensor needs to be installed in R to use r engine."
+
 
 class jNMF(TransformerMixin, BaseEstimator):
     r"""
@@ -58,6 +76,8 @@ class jNMF(TransformerMixin, BaseEstimator):
     ----------
     H_ : list of n_views array-likes of shape (n_features_i, n_components)
         List of specific factorization matrix.
+    V_ : list of n_views array-likes of shape (n_samples, n_components)
+        List of specific factorization matrix.
     reconstruction_err_ : list of float
         Beta-divergence between the training data X and the reconstructed data WH from the fitted model.
     observed_reconstruction_err_ : list of float
@@ -90,20 +110,25 @@ class jNMF(TransformerMixin, BaseEstimator):
     >>> from imvc.preprocessing import MultiViewTransformer
     >>> from sklearn.pipeline import make_pipeline
     >>> from sklearn.preprocessing import MinMaxScaler
-    >>> from sklearn.cluster import KMeans
     >>> Xs = LoadDataset.load_dataset(dataset_name="nutrimouse")
     >>> transformer = jNMF(n_components = 5).set_output(transform="pandas")
-    >>> estimator = KMeans(n_clusters = 3)
-    >>> pipeline = make_pipeline(MultiViewTransformer(MinMaxScaler().set_output(transform="pandas")), transformer, estimator)
-    >>> labels = pipeline.fit_predict(Xs)
+    >>> pipeline = make_pipeline(MultiViewTransformer(MinMaxScaler().set_output(transform="pandas")), transformer)
+    >>> transformed_X = pipeline.fit_transform(Xs)
     """
-
 
     def __init__(self, n_components : int = 10, init_W = None, init_V = None, init_H = None,
                  l1_W: float = 1e-10, l1_V: float = 1e-10, l1_H: float = 1e-10,
                  l2_W: float = 1e-10, l2_V: float = 1e-10, l2_H: float = 1e-10, weights = None,
                  beta_loss : list = None, p: float = 1., tol: float = 1e-10, max_iter: int = 100,
                  verbose=0, random_state: int = None, engine: str = "r"):
+        engines_options = ["r"]
+        if engine not in engines_options:
+            raise ValueError(f"Invalid engine. Expected one of {engines_options}. {engine} was passed.")
+        if engine == "r":
+            if not rpy2_installed:
+                raise ImportError(rpy2_module_error)
+            elif not nnTensor_installed:
+                raise ImportError(nnTensor_module_error)
 
         if beta_loss is None:
             beta_loss = ["Frobenius", "KL", "IS", "PLTF"]
@@ -127,11 +152,6 @@ class jNMF(TransformerMixin, BaseEstimator):
         if random_state is None:
             random_state = int(np.random.default_rng().integers(10000))
         self.random_state = random_state
-        self._engines_options = ["r"]
-        if engine not in self._engines_options:
-            raise ValueError(f"Invalid engine. Expected one of {self._engines_options}")
-        if (engine == "r") and (not rpy2_installed):
-            raise ModuleNotFoundError(error_message)
         self.engine = engine
         self.transform_ = None
 
@@ -155,17 +175,17 @@ class jNMF(TransformerMixin, BaseEstimator):
         """
         Xs = check_Xs(Xs, force_all_finite='allow-nan')
         if not isinstance(Xs[0], pd.DataFrame):
+            self.transform_ = "numpy"
             Xs = [pd.DataFrame(X) for X in Xs]
+        else:
+            self.transform_ = "pandas"
 
         if self.engine=="r":
-            from rpy2.robjects.packages import importr
-            nnTensor = importr("nnTensor")
             transformed_Xs, transformed_mask, beta_loss, init_W, init_V, init_H, weights = self._prepare_variables(
                 Xs=Xs, beta_loss=self.beta_loss, init_W=self.init_W, init_V=self.init_V, init_H=self.init_H,
                 weights=self.weights)
             if self.random_state is not None:
-                base = importr("base")
-                base.set_seed(self.random_state)
+                rbase.set_seed(self.random_state)
 
             W, V, H, recerror, train_recerror, test_recerror, relchange = nnTensor.jNMF(
                 X= transformed_Xs, M=transformed_mask, J=self.n_components,
@@ -174,12 +194,13 @@ class jNMF(TransformerMixin, BaseEstimator):
                 w=weights, algorithm=beta_loss, p=self.p, thr = self.tol, num_iter=self.max_iter, verbose=self.verbose)
 
             H = [np.array(mat) for mat in H]
+            V = [np.array(mat) for mat in V]
             if self.transform_ == "pandas":
                 H = [pd.DataFrame(mat, index=X.columns) for X,mat in zip(Xs, H)]
-        else:
-            raise ValueError(f"Invalid engine. Expected one of {self._engines_options}")
+                V = [pd.DataFrame(mat, index=X.index) for X,mat in zip(Xs, V)]
 
         self.H_ = H
+        self.V_ = V
         self.reconstruction_err_ = list(recerror)
         self.observed_reconstruction_err_ = list(train_recerror)
         self.missing_reconstruction_err_ = list(test_recerror)
@@ -206,7 +227,6 @@ class jNMF(TransformerMixin, BaseEstimator):
         Xs = check_Xs(Xs, force_all_finite='allow-nan')
         if not isinstance(Xs[0], pd.DataFrame):
             Xs = [pd.DataFrame(X) for X in Xs]
-        samples = Xs[0].index
 
         if self.engine == "r":
             from rpy2.robjects.packages import importr
@@ -221,8 +241,7 @@ class jNMF(TransformerMixin, BaseEstimator):
                 H = self.H_
             H = _convert_df_to_r_object(H)
             if self.random_state is not None:
-                base = importr("base")
-                base.set_seed(self.random_state)
+                rbase.set_seed(self.random_state)
 
             transformed_X = nnTensor.jNMF(X= transformed_Xs, M=transformed_mask, J=self.n_components,
                                           initW=init_W, initV=init_V, initH=H,
@@ -234,26 +253,63 @@ class jNMF(TransformerMixin, BaseEstimator):
 
         transformed_X = np.array(transformed_X)
         if self.transform_ == "pandas":
-            transformed_X = pd.DataFrame(transformed_X, index= samples)
+            transformed_X = pd.DataFrame(transformed_X, index= Xs[0].index)
 
         return transformed_X
 
 
-    def set_output(self, *, transform=None):
+    def fit_transform(self, Xs, y = None, **fit_params):
         r"""
-        Set output container.
+        Fit to data, then transform it.
 
         Parameters
         ----------
-        transform : str
-            Only 'pandas' is currently supported.
+        Xs : list of array-likes
+            - Xs length: n_views
+            - Xs[i] shape: (n_samples_i, n_features_i)
+            A list of different views.
+        y : Ignored
+            Not used, present here for API consistency by convention.
+        fit_params : Ignored
+            Not used, present here for API consistency by convention.
 
         Returns
         -------
-        self:  returns an instance of self.
+        transformed_X : array-likes of shape (n_samples, n_components)
+            The projected data.
         """
-        self.transform_ = transform
-        return self
+        Xs = check_Xs(Xs, force_all_finite='allow-nan')
+        if not isinstance(Xs[0], pd.DataFrame):
+            Xs = [pd.DataFrame(X) for X in Xs]
+
+        if self.engine=="r":
+            transformed_Xs, transformed_mask, beta_loss, init_W, init_V, init_H, weights = self._prepare_variables(
+                Xs=Xs, beta_loss=self.beta_loss, init_W=self.init_W, init_V=self.init_V, init_H=self.init_H,
+                weights=self.weights)
+            if self.random_state is not None:
+                rbase.set_seed(self.random_state)
+
+            W, V, H, recerror, train_recerror, test_recerror, relchange = nnTensor.jNMF(
+                X= transformed_Xs, M=transformed_mask, J=self.n_components,
+                initW=init_W, initV=init_V, initH=init_H, fixW=False, fixV=False, fixH=False,
+                L1_W=self.l1_W, L1_V=self.l1_V, L1_H=self.l1_H, L2_W=self.l2_W, L2_V= self.l2_V, L2_H=self.l2_H,
+                w=weights, algorithm=beta_loss, p=self.p, thr = self.tol, num_iter=self.max_iter, verbose=self.verbose)
+
+            H = [np.array(mat) for mat in H]
+            V = [np.array(mat) for mat in V]
+            transformed_X = np.array(W)
+            if self.transform_ == "pandas":
+                H = [pd.DataFrame(mat, index=X.columns) for X,mat in zip(Xs, H)]
+                V = [pd.DataFrame(mat, index=X.index) for X,mat in zip(Xs, V)]
+                transformed_X = pd.DataFrame(transformed_X, index=Xs[0].index)
+
+        self.H_ = H
+        self.V_ = V
+        self.reconstruction_err_ = list(recerror)
+        self.observed_reconstruction_err_ = list(train_recerror)
+        self.missing_reconstruction_err_ = list(test_recerror)
+        self.relchange_ = list(relchange)
+        return transformed_X
 
 
     @staticmethod

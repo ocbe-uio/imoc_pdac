@@ -69,9 +69,9 @@ NUM.NEIGHBORS.RATIO = 6
 #' number of neighbors to be the number of samples divided by NUM.NEIGHBORS.RATIO.
 #' @return A single matrix measuring similarity between the samples across all omics.
 #' @export
-nemo.affinity.graph <- function(raw.data, k=NA) {
+nemo.affinity.graph <- function(raw.data, k=NA, num_neighbors_ratio) {
   if (is.na(k)) {
-    k = as.numeric(lapply(1:length(raw.data), function(i) round(ncol(raw.data[[i]]) / NUM.NEIGHBORS.RATIO)))
+    k = as.numeric(lapply(1:length(raw.data), function(i) round(ncol(raw.data[[i]]) / num_neighbors_ratio)))
   } else if (length(k) == 1) {
     k = rep(k, length(raw.data))
   }
@@ -110,7 +110,7 @@ nemo.affinity.graph <- function(raw.data, k=NA) {
   lower.tri.ret = final.ret[lower.tri(final.ret)]
   final.ret[shared.omic.count == 0] = mean(lower.tri.ret[!is.na(lower.tri.ret)])
 
-  return(final.ret)
+  return(list(final.ret, k))
 }
 
 #' @title NEMO clustering

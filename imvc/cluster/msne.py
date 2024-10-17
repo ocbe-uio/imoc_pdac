@@ -53,20 +53,25 @@ class MSNE(BaseEstimator, ClassifierMixin):
 
     Example
     --------
+    >>> from sklearn.pipeline import make_pipeline
     >>> from imvc.datasets import LoadDataset
+    >>> from sklearn.preprocessing import StandardScaler
+    >>> from imvc.preprocessing import MultiViewTransformer
     >>> from imvc.cluster import MSNE
     >>> Xs = LoadDataset.load_dataset(dataset_name="nutrimouse")
+    >>> normalizer = StandardScaler().set_output(transform="pandas")
     >>> estimator = MSNE(n_clusters = 3)
-    >>> labels = estimator.fit_predict(Xs)
+    >>> pipeline = make_pipeline(MultiViewTransformer(normalizer), estimator)
+    >>> labels = pipeline.fit_predict(Xs)
     """
 
     def __init__(self, n_clusters: int = 8, k: int = 20, walk_length: int = 20, num_walks: int = 100,
                  embed_size: int = 100, window_size: int = 10, random_state: int = None, verbose: bool = False,
                  n_jobs: int = 1):
-        try:
-            assert n_clusters > 0
-        except AssertionError:
-            raise ValueError("n_clusters should be a positive value.")
+        if not isinstance(n_clusters, int):
+            raise ValueError(f"Invalid n_clusters. It must be an int. A {type(n_clusters)} was passed.")
+        if n_clusters < 2:
+            raise ValueError(f"Invalid n_clusters. It must be an greater than 1. {n_clusters} was passed.")
 
         self.window_size = window_size
         self.embed_size = embed_size
@@ -100,7 +105,8 @@ class MSNE(BaseEstimator, ClassifierMixin):
         try:
             assert self.k < len(Xs[0])
         except AssertionError:
-            raise ValueError("k should be smaller than the number of samples.")
+            raise ValueError(f"Invalid k. It must be smaller than the number of samples {len(Xs[0])}."
+                             f" {self.k} was passed.")
         S = []
 
         if not isinstance(Xs[0], pd.DataFrame):

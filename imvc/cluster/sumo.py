@@ -110,9 +110,12 @@ class SUMO(BaseEstimator, ClassifierMixin):
                  calc_cost: int = 20, h_init: int = None, rep: int = 5, random_state: int = None,
                  verbose: bool = False, n_jobs: int = 1):
 
+        if not isinstance(n_clusters, int):
+            raise ValueError(f"Invalid n_clusters. It must be an int. A {type(n_clusters)} was passed.")
+        if n_clusters < 2:
+            raise ValueError(f"Invalid n_clusters. It must be an greater than 1. {n_clusters} was passed.")
         if random_state is None:
             random_state = int(np.random.default_rng().integers(10000))
-
         if method is None:
             method = ['euclidean']
         method_option = ['euclidean', 'cosine', 'pearson', 'spearman']

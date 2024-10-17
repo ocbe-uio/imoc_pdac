@@ -2,6 +2,16 @@ import numpy as np
 import pandas as pd
 from sklearn.utils import check_array
 
+try:
+    import rpy2.robjects as ro
+    from rpy2.robjects.packages import importr
+    from rpy2.robjects import pandas2ri
+    base = importr('base')
+    rpy2_installed = True
+except ImportError:
+    rpy2_installed = False
+    rpy2_module_error = "rpy2 needs to be installed to use r engine."
+
 
 def check_Xs(Xs, enforce_views=None, copy=False, force_all_finite="allow-nan",return_dimensions=False):
     r"""
@@ -85,11 +95,9 @@ def check_Xs(Xs, enforce_views=None, copy=False, force_all_finite="allow-nan",re
         return Xs
 
 
-def _convert_df_to_r_object(dataframe):  # pragma: no cover
-    import rpy2.robjects as ro
-    from rpy2.robjects.packages import importr
-    from rpy2.robjects import pandas2ri
-    base = importr('base')
+def _convert_df_to_r_object(dataframe):
+    if not rpy2_installed:
+        raise ImportError(rpy2_module_error)
     with (ro.default_converter + pandas2ri.converter).context():
         r_from_pd_df = ro.conversion.get_conversion().py2rpy(dataframe)
     return base.lapply(r_from_pd_df, base.as_matrix)

@@ -11,7 +11,7 @@ try:
     torch_installed = True
 except ImportError:
     torch_installed = False
-    error_message = "torch and lightning needs to be installed."
+    torch_module_error = "torch and lightning needs to be installed."
 
 
 class DeepMF(pl.LightningModule):
@@ -24,8 +24,10 @@ class DeepMF(pl.LightningModule):
 
     Parameters
     ----------
-    latent_dim : int, default=10
+    n_components : int, default=10
         Number of dimensions to keep.
+    X : array-like object, default=None
+        Concatenated multi-view dataset. It will be used to create the neural network architecture.
     n_layers : int, default=3
         Number of layers in the deep encoder.
     learning_rate : float, default=1e-2
@@ -57,7 +59,7 @@ class DeepMF(pl.LightningModule):
 
     Example
     --------
-    >>> from imvc.data_loaders import DeepMFDataset
+    >>> from imvc.data_loader import DeepMFDataset
     >>> from imvc.datasets import LoadDataset
     >>> from imvc.decomposition import DeepMF
     >>> from imvc.preprocessing import MultiViewTransformer, ConcatenateViews
@@ -78,19 +80,28 @@ class DeepMF(pl.LightningModule):
     >>> transformed_X = model.transform(transformed_X)
     """
 
-    def __init__(self, X = None, latent_dim: int =10, n_layers: int = 3, learning_rate: float = 1e-2, alpha: float = 0.01,
+    def __init__(self, X = None, n_components: int =10, n_layers: int = 3, learning_rate: float = 1e-2, alpha: float = 0.01,
                  neighbor_proximity='Lap', loss_fun = torch.nn.MSELoss(), sigmoid: bool = False):
+        if not torch_installed:
+            raise ImportError(torch_module_error)
         super().__init__()
+
+        if (X is None) or (not hasattr(X, 'shape')):
+            raise ValueError(f"Invalid X. It must be an array-like object. A {type(X)} was passed.")
+        if not isinstance(n_components, int):
+            raise ValueError(f"Invalid n_components. It must be an int. A {type(n_components)} was passed.")
+        if n_components < 1:
+            raise ValueError(f"Invalid n_components. It must be greater or equal to 1. {n_components} was passed.")
+
         self.n_layers = n_layers
-        self.latent_dim = latent_dim
+        self.n_components = n_components
         self.learning_rate = learning_rate
         self.alpha = alpha
         self.neighbor_proximity = neighbor_proximity
         self.loss_fun = loss_fun
         self.sigmoid = sigmoid
         self.transform_ = None
-        if X is not None:
-            self._init_model(X)
+        self._init_model(X)
 
     def configure_optimizers(self):
         return torch.optim.Adam(self.model_.parameters(), lr=self.learning_rate, weight_decay=0.0001)
@@ -255,15 +266,16 @@ class DeepMF(pl.LightningModule):
         transformed_X : array-like of shape (n_samples, latent_dim)
             The projected data.
         """
-        transformed_X = torch.mm(X.T, self.U_)
+        transformed_X = torch.mm(X.T.to(self.U_), self.U_.detach())
         if self.transform_ == "pandas":
-            transformed_X = pd.DataFrame(transformed_X.numpy(), index= X.index)
+            transformed_X = pd.DataFrame(transformed_X.numpy())
         return transformed_X
 
 
     def set_output(self, *, transform=None):
         self.transform_ = "pandas"
         return self
+
 
     def set_params(self, **parameters):
         for parameter, value in parameters.items():
@@ -275,12 +287,12 @@ class DeepMF(pl.LightningModule):
 
     def _init_model(self, X):
         self.M, self.N = X.shape
-        layers = [_SparseLinear(self.M, self.latent_dim)]
+        layers = [_SparseLinear(self.M, self.n_components)]
         for i in range(self.n_layers):
-            layers.append(torch.nn.Linear(self.latent_dim, self.latent_dim))
+            layers.append(torch.nn.Linear(self.n_components, self.n_components))
             if self.n_layers > 1:
                 layers.append(torch.nn.ReLU())
-        layers.append(torch.nn.Linear(self.latent_dim, self.N))
+        layers.append(torch.nn.Linear(self.n_components, self.N))
         if self.sigmoid:
             layers.append(torch.nn.Sigmoid())
 

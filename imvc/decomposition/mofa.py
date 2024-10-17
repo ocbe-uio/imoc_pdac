@@ -98,8 +98,10 @@ class MOFA(TransformerMixin, BaseEstimator):
         if smooth_options is None:
             smooth_options = {}
 
+        if not isinstance(n_components, int):
+            raise ValueError(f"Invalid n_components. It must be an int. A {type(n_components)} was passed.")
         if n_components < 1:
-            raise ValueError(f"Invalid n_components. It must be greater or equal to 1")
+            raise ValueError(f"Invalid n_components. It must be greater or equal to 1. {n_components} was passed.")
         self.n_components = n_components
         self.impute = impute
         self.random_state = random_state
@@ -176,9 +178,9 @@ class MOFA(TransformerMixin, BaseEstimator):
         ws = self.weights_
         winv = [np.linalg.pinv(w) for w in ws]
         transformed_Xs = [np.dot(X, w.T) for X,w in zip(Xs, winv)]
-        if self.impute:
-            imputed_Xs = self._impute(Xs=Xs, weights=ws)
-            transformed_Xs = [np.dot(X, w.T) for X, w in zip(imputed_Xs, winv)]
+ #       if self.impute:
+ #           imputed_Xs = self._impute(Xs=Xs, transformed_X=transformed_Xs, weights=ws)
+ #           transformed_Xs = [np.dot(X, w.T) for X, w in zip(imputed_Xs, winv)]
 
         if self.transform_ == "pandas":
             transformed_Xs = [pd.DataFrame(transformed_X, index=X.index) for X,transformed_X in zip(Xs,transformed_Xs)]
@@ -211,10 +213,10 @@ class MOFA(TransformerMixin, BaseEstimator):
         return transformed_X
 
 
-    def _impute(self, Xs, weights):
+    def _impute(self, Xs, transformed_X, weights):
         imputed_Xs = []
         for idx, w in enumerate(weights):
-            imputed_X = np.dot(np.nan_to_num(self.factors_, nan=0.0), w.T)
+            imputed_X = np.dot(np.nan_to_num(transformed_X, nan=0.0), w.T)
             imputed_X = pd.DataFrame(imputed_X, columns=Xs[idx].columns)
             imputed_Xs.append(Xs[idx].fillna(imputed_X))
         return imputed_Xs

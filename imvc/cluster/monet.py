@@ -100,15 +100,12 @@ class MONET(BaseEstimator, ClassifierMixin):
                  num_of_samples_in_seed: int = 10, min_mod_size: int = 10, max_sams_per_action: int = 10,
                  percentile_remove_edge: int = None, random_state: int = None,
                  verbose: bool = False, n_jobs: int = None):
-        sim_types = ['prob', 'corr']
-        if similarity_mode not in sim_types:
-            raise ValueError(f"Invalid similarity_mode. Expected one of: {sim_types}")
+        similarity_mode_opts = ["corr"]
+        if similarity_mode not in similarity_mode_opts:
+            raise ValueError(f"Invalid similarity_mode. Expected one of {similarity_mode_opts}. {similarity_mode} was passed.")
 
         self.n_clusters = n_clusters
         self.num_repeats = num_repeats
-        self._similarity_mode_opts = ["corr"]
-        if similarity_mode not in self._similarity_mode_opts:
-            raise ValueError(f"Invalid similarity_mode. Expected one of {self._similarity_mode_opts}.")
         self.similarity_mode = similarity_mode
         self.init_modules = init_modules
         self.iters = iters
@@ -148,30 +145,13 @@ class MONET(BaseEstimator, ClassifierMixin):
         Xs = check_Xs(Xs, force_all_finite='allow-nan')
         if not isinstance(Xs[0], pd.DataFrame):
             Xs = [pd.DataFrame(X) for X in Xs]
-        Xs = DatasetUtils.remove_missing_sample_from_view(Xs=Xs)
         for X in Xs:
             X.index = X.index.astype(str)
         samples = Xs[0].index
+        Xs = DatasetUtils.remove_missing_sample_from_view(Xs=Xs)
         data = {}
-        if self.similarity_mode == "prob":
-            raise ValueError(f"Invalid similarity_mode. Expected one of {self._similarity_mode_opts}.")
-            # em_graph_ret = self._get_em_graph_per_view(Xs=Xs)
-            # views_dist, all_ems, n_clusters = [], [], []
-            # for idx,i in enumerate(em_graph_ret):
-            #     data[str(idx)] = i['prob']
-            #     views_dist.append(i['prob'])
-            #     all_ems.append(i['all_views_ems'])
-            #     n_clusters.append(i['num_clusters'])
-            # self.views_dist_ = views_dist
-            # self.all_ems_ = all_ems
-            # self.n_clusters_ = n_clusters
-            # data_to_fit = []
-            # for X in Xs:
-            #     X.index = X.index.astype(str) + 'fit'
-            #     data_to_fit.append(X)
-            # self.data_to_fit_ = data_to_fit
 
-        elif self.similarity_mode == "corr":
+        if self.similarity_mode == "corr":
             data = self._process_data(Xs=Xs)
         solutions = Parallel(n_jobs=self.n_jobs)(
             delayed(self._single_run)(

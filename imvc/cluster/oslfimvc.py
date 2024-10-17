@@ -9,12 +9,13 @@ from sklearn.gaussian_process import kernels
 from ..impute import get_observed_view_indicator
 from ..utils import check_Xs
 
+oct2py_installed = False
+oct2py_module_error = "Oct2Py needs to be installed to use matlab engine."
 try:
     import oct2py
     oct2py_installed = True
 except ImportError:
-    oct2py_installed = False
-    error_message = "Oct2Py needs to be installed to use matlab engine."
+    pass
 
 
 class OSLFIMVC(BaseEstimator, ClassifierMixin):
@@ -77,23 +78,38 @@ class OSLFIMVC(BaseEstimator, ClassifierMixin):
     >>> normalizer = StandardScaler().set_output(transform="pandas")
     >>> estimator = OSLFIMVC(n_clusters = 2)
     >>> pipeline = make_pipeline(MultiViewTransformer(normalizer), estimator)
-    >>> labels = estimator.fit_predict(Xs)
+    >>> labels = pipeline.fit_predict(Xs)
 
     """
 
     def __init__(self, n_clusters: int = 8, kernel: callable = kernels.Sum(kernels.DotProduct(), kernels.WhiteKernel()),
                  lambda_reg: float = 1., random_state:int = None, engine: str ="matlab", verbose = False):
+        if not isinstance(n_clusters, int):
+            raise ValueError(f"Invalid n_clusters. It must be an int. A {type(n_clusters)} was passed.")
+        if n_clusters < 2:
+            raise ValueError(f"Invalid n_clusters. It must be an greater than 1. {n_clusters} was passed.")
+        engines_options = ["matlab"]
+        if engine not in engines_options:
+            raise ValueError(f"Invalid engine. Expected one of {engines_options}. {engine} was passed.")
+        if (engine == "matlab") and (not oct2py_installed):
+            raise ImportError(oct2py_module_error)
+
         self.n_clusters = n_clusters
         self.kernel = kernel
         self.lambda_reg = lambda_reg
         self.random_state = random_state
-        self._engines_options = ["matlab"]
-        if engine not in self._engines_options:
-            raise ValueError(f"Invalid engine. Expected one of {self._engines_options}.")
-        if (engine == "matlab") and (not oct2py_installed):
-            raise ModuleNotFoundError(error_message)
         self.engine = engine
         self.verbose = verbose
+
+        if self.engine == "matlab":
+            matlab_folder = dirname(__file__)
+            matlab_folder = os.path.join(matlab_folder, "_" + (os.path.basename(__file__).split(".")[0]))
+            matlab_files = [x for x in os.listdir(matlab_folder) if x.endswith(".m")]
+            self._oc = oct2py.Oct2Py(temp_dir= matlab_folder)
+            for matlab_file in matlab_files:
+                with open(os.path.join(matlab_folder, matlab_file)) as f:
+                    self._oc.eval(f.read())
+            self._oc.eval("pkg load statistics")
 
 
     def fit(self, Xs, y=None):
@@ -116,15 +132,6 @@ class OSLFIMVC(BaseEstimator, ClassifierMixin):
         Xs = check_Xs(Xs, force_all_finite='allow-nan')
 
         if self.engine=="matlab":
-            matlab_folder = dirname(__file__)
-            matlab_folder = os.path.join(matlab_folder, "_" + (os.path.basename(__file__).split(".")[0]))
-            matlab_files = [x for x in os.listdir(matlab_folder) if x.endswith(".m")]
-            oc = oct2py.Oct2Py(temp_dir= matlab_folder)
-            for matlab_file in matlab_files:
-                with open(os.path.join(matlab_folder, matlab_file)) as f:
-                    oc.eval(f.read())
-            oc.eval("pkg load statistics")
-
             observed_view_indicator = get_observed_view_indicator(Xs)
             if isinstance(observed_view_indicator, pd.DataFrame):
                 observed_view_indicator = observed_view_indicator.reset_index(drop=True)
@@ -136,12 +143,10 @@ class OSLFIMVC(BaseEstimator, ClassifierMixin):
             s = tuple([{"indx": i +1} for i in s])
 
             if self.random_state is not None:
-                oc.rand('seed', self.random_state)
-            U, C, WP, beta, obj = oc.OS_LF_IMVC_alg(transformed_Xs, s, self.n_clusters, self.lambda_reg, nout=5)
+                self._oc.rand('seed', self.random_state)
+            U, C, WP, beta, obj = self._oc.OS_LF_IMVC_alg(transformed_Xs, s, self.n_clusters, self.lambda_reg, nout=5)
             beta = beta[:,0]
             obj = obj[0]
-        else:
-            raise ValueError(f"Invalid engine. Expected one of {self._engines_options}.")
 
         model = KMeans(n_clusters= self.n_clusters, n_init= "auto", random_state= self.random_state)
         self.labels_ = model.fit_predict(X= U)

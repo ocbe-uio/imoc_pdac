@@ -4,16 +4,18 @@ import numpy as np
 from sklearn.gaussian_process import kernels
 from sklearn.base import BaseEstimator, ClassifierMixin
 from sklearn.cluster import KMeans
+from scipy.sparse.linalg import eigs
 
 from ..impute import simple_view_imputer
 from ..utils import check_Xs
 
+oct2py_installed = False
+oct2py_module_error = "Oct2Py needs to be installed to use matlab engine."
 try:
     import oct2py
     oct2py_installed = True
 except ImportError:
-    oct2py_installed = False
-    error_message = "Oct2Py needs to be installed to use matlab engine."
+    pass
 
 
 class LFIMVC(BaseEstimator, ClassifierMixin):
@@ -36,8 +38,8 @@ class LFIMVC(BaseEstimator, ClassifierMixin):
         Maximum number of iterations.
     random_state : int, default=None
         Determines the randomness. Use an int to make the randomness deterministic.
-    engine : str, default=matlab
-        Engine to use for computing the model.
+    engine : str, default=python
+        Engine to use for computing the model. Current options are 'matlab' or 'python'.
     verbose : bool, default=False
         Verbosity mode.
 
@@ -74,23 +76,38 @@ class LFIMVC(BaseEstimator, ClassifierMixin):
     >>> normalizer = StandardScaler().set_output(transform="pandas")
     >>> estimator = LFIMVC(n_clusters = 2)
     >>> pipeline = make_pipeline(MultiViewTransformer(normalizer), estimator)
-    >>> labels = estimator.fit_predict(Xs)
+    >>> labels = pipeline.fit_predict(Xs)
     """
 
     def __init__(self, n_clusters: int = 8, kernel: callable = kernels.Sum(kernels.DotProduct(), kernels.WhiteKernel()),
-                 lambda_reg: float = 1., max_iter=200, random_state:int = None, engine: str ="matlab", verbose = False):
+                 lambda_reg: float = 1., max_iter: int = 200, random_state:int = None, engine: str ="python",
+                 verbose = False):
+        if not isinstance(n_clusters, int):
+            raise ValueError(f"Invalid n_clusters. It must be an int. A {type(n_clusters)} was passed.")
+        if n_clusters < 2:
+            raise ValueError(f"Invalid n_clusters. It must be an greater than 1. {n_clusters} was passed.")
+        engines_options = ["matlab", "python"]
+        if engine not in engines_options:
+            raise ValueError(f"Invalid engine. Expected one of {engines_options}. {engine} was passed.")
+        if (engine == "matlab") and (not oct2py_installed):
+            raise ImportError(oct2py_module_error)
+
         self.n_clusters = n_clusters
         self.kernel = kernel
         self.lambda_reg = lambda_reg
         self.random_state = random_state
         self.max_iter = max_iter
-        self._engines_options = ["matlab"]
-        if engine not in self._engines_options:
-            raise ValueError(f"Invalid engine. Expected one of {self._engines_options}.")
-        if (engine == "matlab") and (not oct2py_installed):
-            raise ModuleNotFoundError(error_message)
         self.engine = engine
         self.verbose = verbose
+
+        if self.engine == "matlab":
+            matlab_folder = dirname(__file__)
+            matlab_folder = os.path.join(matlab_folder, "_" + (os.path.basename(__file__).split(".")[0]))
+            matlab_files = [x for x in os.listdir(matlab_folder) if x.endswith(".m")]
+            self._oc = oct2py.Oct2Py(temp_dir= matlab_folder)
+            for matlab_file in matlab_files:
+                with open(os.path.join(matlab_folder, matlab_file)) as f:
+                    self._oc.eval(f.read())
 
 
     def fit(self, Xs, y=None):
@@ -113,25 +130,20 @@ class LFIMVC(BaseEstimator, ClassifierMixin):
         Xs = check_Xs(Xs, force_all_finite='allow-nan')
 
         if self.engine=="matlab":
-            matlab_folder = dirname(__file__)
-            matlab_folder = os.path.join(matlab_folder, "_" + (os.path.basename(__file__).split(".")[0]))
-            matlab_files = [x for x in os.listdir(matlab_folder) if x.endswith(".m")]
-            oc = oct2py.Oct2Py(temp_dir= matlab_folder)
-            for matlab_file in matlab_files:
-                with open(os.path.join(matlab_folder, matlab_file)) as f:
-                    oc.eval(f.read())
-
             transformed_Xs = simple_view_imputer(Xs)
             transformed_Xs = [self.kernel(X) for X in transformed_Xs]
             transformed_Xs = np.array(transformed_Xs).swapaxes(0, -1)
-            # transformed_Xs = np.nan_to_num(transformed_Xs, nan=0)
 
             if self.random_state is not None:
-                oc.rand('seed', self.random_state)
-            U, WP,HP, obj = oc.IncompleteMultikernelLatefusionclusteringV1Hv(transformed_Xs, self.n_clusters,
+                self._oc.rand('seed', self.random_state)
+            U, WP,HP, obj = self._oc.IncompleteMultikernelLatefusionclusteringV1Hv(transformed_Xs, self.n_clusters,
                                                                              self.lambda_reg, self.max_iter, nout=4)
-        else:
-            raise ValueError(f"Invalid engine. Expected one of {self._engines_options}.")
+        elif self.engine=="python":
+            transformed_Xs = simple_view_imputer(Xs)
+            transformed_Xs = [self.kernel(X) for X in transformed_Xs]
+            transformed_Xs = np.array(transformed_Xs).swapaxes(0, -1)
+            U, WP, HP, obj = self.incomplete_multikernel_late_fusion_clustering(transformed_Xs, self.n_clusters,
+                                                                                self.lambda_reg)
 
         model = KMeans(n_clusters= self.n_clusters, n_init="auto", random_state= self.random_state)
         self.labels_ = model.fit_predict(X= U)
@@ -180,3 +192,179 @@ class LFIMVC(BaseEstimator, ClassifierMixin):
 
         labels = self.fit(Xs)._predict(Xs)
         return labels
+
+    # def k_center(self, KH):
+    #     r"""
+    #     Center a kernel matrix.
+    #     """
+    #     n = KH.shape[1]
+    #
+    #     if np.ndim(KH) == 2:
+    #         D = np.sum(KH) / n
+    #         E = np.sum(D) / n
+    #         J = np.matmul(np.ones(shape=(n, 1)), D)
+    #         KH -= J - J.T + np.matmul(E, np.ones(shape=(n, n)))
+    #         K = 0.5 * (KH + KH.T)
+    #
+    #     elif np.ndim(KH) == 3:
+    #         for i in range(KH.shape[2]):
+    #             D = np.sum(KH[:, :, i], 0) / n
+    #             E = np.sum(D) / n
+    #             J = np.ones(shape=(n,)) * D
+    #             KH[:, :, i] = KH[:, :, i] - J - J.T + E * np.ones(shape=(n, n))
+    #             KH[:, :, i] = 0.5 * (KH[:, :, i] + KH[:, :, i].T) + 1e-12 * np.eye(n)
+    #
+    #     return KH
+    #
+    # def k_norm(self, KH):
+    #     r"""
+    #     Normalize a kernel matrix.
+    #     """
+    #     if KH.shape[2] > 1:
+    #         for i in range(KH.shape[2]):
+    #             KH[:, :, i] = KH[:, :, i] / np.sqrt(np.outer(np.diag(KH[:, :, i]), np.diag(KH[:, :, i]).T))
+    #     else:
+    #         KH = KH / np.sqrt(np.matmul(np.diag(KH),np.diag(KH).T))
+    #     return KH
+
+    def my_kernel_kmeans(self, K, n_clusters):
+        r"""
+        Determines eigenvectors.
+
+        Parameters
+        ----------
+        K: 2-D array of shape (n_samples, n_samples)
+        n_clusters: int
+            The number of clusters.
+
+        Returns
+        -------
+        H_normalized: 2-D array of shape (n_samples, n_clusters)
+        """
+        K = (K + K.T) / 2
+        _, H = eigs(A=K, k=n_clusters, which='LR')  # Debuggé
+        H_normalized = H / np.tile(np.sqrt(np.sum(H ** 2, 1)), reps=(n_clusters, 1)).T
+        return H_normalized
+
+    def update_wp_absent_clustering_v1(self, HP, Hstar):
+        r"""
+        Update WP variable.
+
+        Parameters
+        ----------
+        HP: 3-D array of shape (n_samples, n_clusters, n_views)
+        Hstar: 2-D array of shape (n_samples, n_clusters)
+
+        Returns
+        -------
+        WP: 3-D array of shape (n_clusters, n_clusters, n_views)
+        """
+        k = HP.shape[1]
+        numker = HP.shape[2]
+        WP = np.zeros(shape=(k, k, numker))
+        for p in range(numker):
+            Tp = np.matmul(HP[:, :, p].T, Hstar)
+            Up, Sp, Vp = np.linalg.svd(Tp, full_matrices=False)
+            V = Vp.T.conj()
+            WP[:, :, p] = np.matmul(Up, V.T)
+
+        return WP
+
+    def update_hp_absent_clustering_v1(self, WP, Hstar, lambda_reg, HP00):
+        r"""
+        Update HP variable.
+
+        Parameters
+        ----------
+        WP: 3-D array of shape (n_clusters, n_clusters, n_views)
+        Hstar: 2-D array of shape (n_samples, n_clusters)
+        lambda_reg : float, default=1.
+            Regularization parameter. The algorithm demonstrated stable performance across a wide range of
+            this hyperparameter.
+        HP00: 3-D array of shape (n_samples, n_clusters, n_views)
+
+        Returns
+        -------
+        HP: 3-D array of shape (n_samples, n_clusters, n_views)
+        """
+        num = HP00.shape[0]
+        k = HP00.shape[1]
+        numker = HP00.shape[2]
+        HP = np.zeros(shape=(num, k, numker))
+        for p in range(numker):
+            Vp = np.matmul(Hstar, WP[:, :, p]) + lambda_reg * HP00[:, :, p]
+            Up, Sp, Vp = np.linalg.svd(Vp, full_matrices=False)
+            V = Vp.T.conj()
+            HP[:, :, p] = np.matmul(Up, V.T)
+
+        return HP
+
+    def incomplete_multikernel_late_fusion_clustering(self, KH, n_clusters, lambda_reg):
+        r"""
+        Runs the LFIMVC clustering algorithm.
+
+        Parameters
+        ----------
+        KH: 3-D array of shape (n_samples, ?, n_views)
+        n_clusters : int, default=8
+            The number of clusters to generate.
+        lambda_reg : float, default=1.
+            Regularization parameter. The algorithm demonstrated stable performance across a wide range of
+            this hyperparameter.
+        normalize: bool, default=True
+            True if you want to normalize the kernel matrix.
+
+        Returns
+        -------
+        H_normalized: list of array-likes of shape (n_samples, n_clusters)
+        WP: 3-D array of shape (n_clusters, n_clusters, n_views)
+        HP: 3-D array of shape (n_samples, n_clusters, n_views)
+        obj: list of float
+        """
+        # if normalize:
+        #     KH = self.k_center(KH)  # K_center debuggé
+        #     KH = self.k_norm(KH)  # K_norm debuggé
+
+        num = KH.shape[0]  # Number of samples
+        numker = KH.shape[2]  # Number of kernels
+
+        HP = np.zeros(shape=(num, n_clusters, numker))
+        for ker in range(numker):
+            HP[:, :, ker] = self.my_kernel_kmeans(KH[:, :, ker], n_clusters)
+
+        max_iter = 200
+        WP = np.zeros(shape=(n_clusters, n_clusters, numker))
+        for p in range(numker):
+            WP[:, :, p] = np.eye(n_clusters)
+
+        HP00 = HP
+
+        flag = 1
+        iter = 0
+        obj = []
+        obj.append(0)
+        while flag:
+            iter += 1
+            RpHpwp = np.zeros(shape=(num, n_clusters))
+            for p in range(numker):
+                RpHpwp = RpHpwp + (np.matmul(HP[:, :, p], WP[:, :, p]))
+
+            Uh, Sh, Vh = np.linalg.svd(RpHpwp, full_matrices=False)
+            V = Vh.T.conj()
+            Hstar = np.matmul(Uh, V.T)
+
+            WP = self.update_wp_absent_clustering_v1(HP, Hstar)
+            HP = self.update_hp_absent_clustering_v1(WP, Hstar, lambda_reg, HP00)
+
+            RpHpwp = np.zeros(shape=(num, n_clusters))
+            obj2 = 0
+            for p in range(numker):
+                RpHpwp += np.matmul(HP[:, :, p], WP[:, :, p])
+                obj2 += np.trace(np.matmul(HP[:, :, p].T, HP00[:, :, p]))
+
+            obj.append(np.trace(np.matmul(Hstar.T, RpHpwp)) + lambda_reg * obj2)
+            if (iter > 2) and ((np.abs((obj[iter] - obj[iter - 1]) / obj[iter]) < 1e-4) or (iter > max_iter)):
+                flag = 0
+
+        H_normalized = Hstar / np.tile(A=np.sqrt(np.sum(Hstar ** 2, 1)), reps=(n_clusters, 1)).T
+        return H_normalized, WP, HP, obj

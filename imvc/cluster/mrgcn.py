@@ -9,7 +9,7 @@ try:
     torch_installed = True
 except ImportError:
     torch_installed = False
-    error_message = "torch and lightning needs to be installed."
+    torch_module_error = "torch and lightning needs to be installed."
 
 
 class MRGCN(pl.LightningModule):
@@ -60,7 +60,7 @@ class MRGCN(pl.LightningModule):
     >>> from sklearn.impute import SimpleImputer
     >>> from imvc.preprocessing import MultiViewTransformer
     >>> import numpy as np
-    >>> from imvc.data_loaders import MRGCNDataset
+    >>> from imvc.data_loader import MRGCNDataset
     >>> from lightning import Trainer
     >>> from torch.utils.data import DataLoader
 
@@ -82,12 +82,14 @@ class MRGCN(pl.LightningModule):
 
     def __init__(self, n_clusters: int = 8, Xs = None, k_num:int = 10, learning_rate:float = 0.001, reg2:float = 1.,
                  reg3:float = 1.):
+        if not torch_installed:
+            raise ImportError(torch_module_error)
         super(MRGCN, self).__init__()
 
         if not isinstance(n_clusters, int):
             raise ValueError(f"Invalid n_clusters. It must be an int. A {type(n_clusters)} was passed.")
         if n_clusters < 2:
-            raise ValueError(f"Invalid n_clusters. It must be an greather than 1. {n_clusters} was passed.")
+            raise ValueError(f"Invalid n_clusters. It must be an greater than 1. {n_clusters} was passed.")
         if not isinstance(Xs, list):
             raise ValueError(f"Invalid Xs. It must be a list of array-likes. A {type(Xs)} was passed.")
         if not isinstance(k_num, int):
@@ -108,6 +110,7 @@ class MRGCN(pl.LightningModule):
         self.n_views_ = len(Xs)
         self.learning_rate = learning_rate
         self.criterion = torch.nn.MSELoss(reduction='sum')
+        self.n_clusters = n_clusters
         we = []
         self.kmeans_ = KMeans(n_clusters=n_clusters, n_init="auto")
         self.reg2 = reg2

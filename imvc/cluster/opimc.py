@@ -7,12 +7,13 @@ from sklearn.base import BaseEstimator, ClassifierMixin
 from ..impute import get_observed_view_indicator, simple_view_imputer
 from ..utils import check_Xs
 
+oct2py_installed = False
+oct2py_module_error = "Oct2Py needs to be installed to use matlab engine."
 try:
     import oct2py
     oct2py_installed = True
 except ImportError:
-    oct2py_installed = False
-    error_message = "Oct2Py needs to be installed to use matlab engine."
+    pass
 
 
 class OPIMC(BaseEstimator, ClassifierMixin):
@@ -76,6 +77,16 @@ class OPIMC(BaseEstimator, ClassifierMixin):
 
     def __init__(self, n_clusters: int = 8, alpha: float = 10, num_passes: int = 1, max_iter: int = 30,
                  tol: float = 1e-6, block_size: int = 250, random_state:int = None, engine: str ="matlab", verbose = False):
+        if not isinstance(n_clusters, int):
+            raise ValueError(f"Invalid n_clusters. It must be an int. A {type(n_clusters)} was passed.")
+        if n_clusters < 2:
+            raise ValueError(f"Invalid n_clusters. It must be an greater than 1. {n_clusters} was passed.")
+        engines_options = ["matlab"]
+        if engine not in engines_options:
+            raise ValueError(f"Invalid engine. Expected one of {engines_options}. {engine} was passed.")
+        if (engine == "matlab") and (not oct2py_installed):
+            raise ImportError(oct2py_module_error)
+
         self.n_clusters = n_clusters
         self.alpha = alpha
         self.num_passes = num_passes
@@ -83,13 +94,17 @@ class OPIMC(BaseEstimator, ClassifierMixin):
         self.tol = tol
         self.block_size = block_size
         self.random_state = random_state
-        self._engines_options = ["matlab"]
-        if engine not in self._engines_options:
-            raise ValueError(f"Invalid engine. Expected one of {self._engines_options}.")
-        if (engine == "matlab") and (not oct2py_installed):
-            raise ModuleNotFoundError(error_message)
         self.engine = engine
         self.verbose = verbose
+
+        if self.engine == "matlab":
+            matlab_folder = dirname(__file__)
+            matlab_folder = os.path.join(matlab_folder, "_" + (os.path.basename(__file__).split(".")[0]))
+            matlab_files = [x for x in os.listdir(matlab_folder) if x.endswith(".m")]
+            self._oc = oct2py.Oct2Py(temp_dir= matlab_folder)
+            for matlab_file in matlab_files:
+                with open(os.path.join(matlab_folder, matlab_file)) as f:
+                    self._oc.eval(f.read())
 
 
     def fit(self, Xs, y=None):
@@ -112,14 +127,6 @@ class OPIMC(BaseEstimator, ClassifierMixin):
         Xs = check_Xs(Xs, force_all_finite='allow-nan')
 
         if self.engine=="matlab":
-            matlab_folder = dirname(__file__)
-            matlab_folder = os.path.join(matlab_folder, "_" + (os.path.basename(__file__).split(".")[0]))
-            matlab_files = [x for x in os.listdir(matlab_folder) if x.endswith(".m")]
-            oc = oct2py.Oct2Py(temp_dir= matlab_folder)
-            for matlab_file in matlab_files:
-                with open(os.path.join(matlab_folder, matlab_file)) as f:
-                    oc.eval(f.read())
-
             if isinstance(Xs[0], pd.DataFrame):
                 transformed_Xs = [X.values for X in Xs]
             elif isinstance(Xs[0], np.ndarray):
@@ -129,14 +136,12 @@ class OPIMC(BaseEstimator, ClassifierMixin):
             transformed_Xs = [X.T for X in transformed_Xs]
             transformed_Xs = tuple(transformed_Xs)
 
-            w = tuple([oc.diag(missing_view) for missing_view in observed_view_indicator])
+            w = tuple([self._oc.diag(missing_view) for missing_view in observed_view_indicator])
             options = {"block_size": self.block_size, "k": self.n_clusters, "maxiter": self.max_iter,
                        "tol": self.tol, "pass": self.num_passes, "loss": 0, "alpha": self.alpha}
             if self.random_state is not None:
-                oc.rand('seed', self.random_state)
-            labels, V = oc.OPIMC(transformed_Xs, w, options, observed_view_indicator, nout= 2)
-        else:
-            raise ValueError(f"Invalid engine. Expected one of {self._engines_options}.")
+                self._oc.rand('seed', self.random_state)
+            labels, V = self._oc.OPIMC(transformed_Xs, w, options, observed_view_indicator, nout= 2)
 
         self.labels_ = pd.factorize(labels[:,0])[0]
         self.embedding_ = V

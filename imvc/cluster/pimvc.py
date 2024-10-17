@@ -7,12 +7,13 @@ from sklearn.cluster import KMeans
 from ..impute import get_observed_view_indicator
 from ..utils import check_Xs
 
+oct2py_installed = False
+oct2py_module_error = "Oct2Py needs to be installed to use matlab engine."
 try:
     import oct2py
     oct2py_installed = True
 except ImportError:
-    oct2py_installed = False
-    error_message = "Oct2Py needs to be installed to use matlab engine."
+    pass
 
 
 class PIMVC(BaseEstimator, ClassifierMixin):
@@ -88,16 +89,22 @@ class PIMVC(BaseEstimator, ClassifierMixin):
     def __init__(self, n_clusters: int = 8, dele: float = 0.1, lamb: int = 100000, beta: int = 1, k: int = 3,
                  neighbor_mode: str = 'KNN', weight_mode: str = 'Binary', max_iter: int = 100,
                  random_state: int = None, engine: str = "matlab", verbose = False):
+        if not isinstance(n_clusters, int):
+            raise ValueError(f"Invalid n_clusters. It must be an int. A {type(n_clusters)} was passed.")
+        if n_clusters < 2:
+            raise ValueError(f"Invalid n_clusters. It must be an greater than 1. {n_clusters} was passed.")
+        engines_options = ["matlab"]
+        if engine not in engines_options:
+            raise ValueError(f"Invalid engine. Expected one of {engines_options}. {engine} was passed.")
+        if (engine == "matlab") and (not oct2py_installed):
+            raise ImportError(oct2py_module_error)
+        if lamb <= 0:
+            raise ValueError(f"Invalid lamb. It must be a positive value. {lamb} was passed.")
+        if k <= 0:
+            raise ValueError(f"Invalid k. It must be a positive value. {k} was passed.")
+
         self.n_clusters = n_clusters
         self.dele = dele
-        try:
-            assert lamb > 0
-        except AssertionError:
-            raise ValueError("lamb should be a positive value.")
-        try:
-            assert k > 0
-        except AssertionError:
-            raise ValueError("k should be a positive value.")
         self.lamb = lamb
         self.beta = beta
         self.k = k
@@ -105,13 +112,17 @@ class PIMVC(BaseEstimator, ClassifierMixin):
         self.weight_mode = weight_mode
         self.max_iter = max_iter
         self.random_state = random_state
-        self._engines_options = ["matlab"]
-        if engine not in self._engines_options:
-            raise ValueError(f"Invalid engine. Expected one of {self._engines_options}.")
-        if (engine == "matlab") and (not oct2py_installed):
-            raise ModuleNotFoundError(error_message)
         self.engine = engine
         self.verbose = verbose
+
+        if self.engine == "matlab":
+            matlab_folder = dirname(__file__)
+            matlab_folder = os.path.join(matlab_folder, "_" + (os.path.basename(__file__).split(".")[0]))
+            matlab_files = [x for x in os.listdir(matlab_folder) if x.endswith(".m")]
+            self._oc = oct2py.Oct2Py(temp_dir= matlab_folder)
+            for matlab_file in matlab_files:
+                with open(os.path.join(matlab_folder, matlab_file)) as f:
+                    self._oc.eval(f.read())
 
 
     def fit(self, Xs, y=None):
@@ -136,7 +147,8 @@ class PIMVC(BaseEstimator, ClassifierMixin):
         try:
             assert self.n_clusters <= min([X.shape[1] for X in Xs])
         except AssertionError:
-            raise ValueError("n_clusters should be smaller or equal to the smallest n_features_i.")
+            raise ValueError(f"n_clusters ({self.n_clusters}) should be smaller or equal to " +
+                             f"the smallest n_features_i ({min([X.shape[1] for X in Xs])}).")
 
 
         if self.engine=="matlab":
@@ -154,13 +166,11 @@ class PIMVC(BaseEstimator, ClassifierMixin):
             transformed_Xs = tuple([X.T for X in Xs])
 
             if self.random_state is not None:
-                oc.rand('seed', self.random_state)
-            v, loss = oc.PIMVC(transformed_Xs, self.n_clusters, observed_view_indicator, self.lamb, self.beta,
+                self._oc.rand('seed', self.random_state)
+            v, loss = self._oc.PIMVC(transformed_Xs, self.n_clusters, observed_view_indicator, self.lamb, self.beta,
                                self.max_iter, {"NeighborMode": self.neighbor_mode,
                                                "WeightMode": self.weight_mode,
                                                "k": self.k}, nout=2)
-        else:
-            raise ValueError(f"Invalid engine. Expected one of {self._engines_options}.")
 
         model = KMeans(n_clusters= self.n_clusters, n_init= "auto", random_state= self.random_state)
         v = v.T

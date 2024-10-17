@@ -38,7 +38,7 @@ for dataset_name in datasets:
 
     if run_amputation == False:
         probs = [0]
-        amputation_mechanisms = ["EDM"]
+        amputation_mechanisms = ["edm"]
 
     for binary_combination, prob, amputation_mechanism, run_n in itertools.product(binary_combination, probs, amputation_mechanisms, runs_per_alg):
         Xs = CommonOperations.load_Xs(dataset_name=dataset_name)
@@ -46,7 +46,7 @@ for dataset_name in datasets:
         Xs = [view for i, view in enumerate(Xs) if view_combinations[i] == True]
 
         if prob == 0:
-            if amputation_mechanism == "EDM":
+            if amputation_mechanism == "edm":
                 amputation_mechanism = "No"
             else:
                 continue
@@ -57,7 +57,7 @@ for dataset_name in datasets:
             continue
         try:
             random_state = RANDOM_STATE + run_n
-            if (dataset_name in two_view_datasets) and (amputation_mechanism in ["MAR", "MNAR"]):
+            if (dataset_name in two_view_datasets) and (amputation_mechanism in ["mnar"]):
                 continue
             *train_Xs, = shuffle(*Xs, random_state=random_state)
             p = prob/100

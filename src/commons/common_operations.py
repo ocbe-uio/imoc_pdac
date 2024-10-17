@@ -45,7 +45,7 @@ class CommonOperations:
 
         if run_amputation == False:
             probs = [0]
-            amputation_mechanisms = ["EDM"]
+            amputation_mechanisms = ["edm"]
         # variables in results_table
         indexes_results = {"dataset": datasets,
                            "view_combination": list(combinations_matrix),

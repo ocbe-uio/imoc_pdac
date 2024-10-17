@@ -45,7 +45,7 @@ run_amputation = True       # Set to False if there will be no amputation happen
 select_datasets = ['PDAC_partial_noise']       # set to False if using all datasets
 
 n_clusters = [2]
-amputation_mechanisms = ["EDM", 'MCAR', 'MNAR', "PM"]
+amputation_mechanisms = ["edm", 'mcar', 'mnar', "pm"]
 probs = [20, 40, 60, 80]
 imputation = [False]
 runs_per_alg = np.arange(10)

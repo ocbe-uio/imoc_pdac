@@ -17,7 +17,7 @@ class CreateResultTable:
             results = results.merge(pd.Series(v, name=k), how="cross")
 
         # change the name when there is no missing
-        results.loc[(results["amputation_mechanism"] == "EDM") & (
+        results.loc[(results["amputation_mechanism"] == "edm") & (
                 results["missing_percentage"] == 0), "amputation_mechanism"] = "No"
         results = results.set_index(indexes_names)
 
@@ -49,7 +49,7 @@ class CreateResultTable:
                     results_amputation_mechanism_none_tochange)
 
         # when there are only two views, remove amputation for multiple views
-        for amputation_mechanism, dataset in itertools.product(["MNAR"], two_view_datasets):
+        for amputation_mechanism, dataset in itertools.product(["mnar"], two_view_datasets):
             idx_to_drop = results.xs(dataset, level="dataset",
                                      drop_level=False).xs(amputation_mechanism, level="amputation_mechanism",
                                                           drop_level=False).index

@@ -46,6 +46,9 @@ class DatasetUtils:
         """
         Xs = check_Xs(Xs=Xs, force_all_finite="allow-nan")
         transformed_Xs = []
+        for X_idx, X in enumerate(Xs):
+            idx_to_keep = X.index.intersection(observed_view_indicator.index)
+            Xs[X_idx] = X.loc[idx_to_keep]
         if isinstance(observed_view_indicator, pd.DataFrame):
             observed_view_indicator = observed_view_indicator.values
         for X_idx, X in enumerate(Xs):

@@ -1,12 +1,8 @@
 import numpy as np
 import pandas as pd
-from lightning import Trainer
-from lightning.pytorch.utilities.seed import isolate_rng
 from sklearn.cluster import SpectralClustering
 from sklearn.manifold import spectral_embedding
 from snf import compute
-from torch.utils.data import DataLoader
-from imvc.decomposition import DeepMFDataset
 
 from src.utils import Utils
 
@@ -90,21 +86,6 @@ class Model:
         model[-1].set_params(n_clusters=n_clusters, random_state=random_state + run_n)
         return model
 
-
-    def deepmf(self, train_Xs, n_clusters, random_state, run_n):
-        pipeline = self.alg["alg"]
-        transformed_Xs = pipeline[:4].fit_transform(train_Xs)
-        train_data = DeepMFDataset(X=transformed_Xs)
-        train_dataloader = DataLoader(dataset=train_data, batch_size=50, shuffle=True)
-        trainer = Trainer(max_epochs=10, logger=False, enable_checkpointing=False)
-        pipeline[4].set_params(X=transformed_Xs)
-        with isolate_rng():
-            trainer.fit(pipeline[4], train_dataloader)
-        train_dataloader = DataLoader(dataset=train_data, batch_size=50, shuffle=False)
-        transformed_Xs = pipeline[4].transform(transformed_Xs)
-        pipeline[-1].set_params(n_clusters=n_clusters, random_state=random_state + run_n)
-        clusters = pipeline[5:].fit_predict(transformed_Xs)
-        return clusters, transformed_Xs
 
 
     def dfmf(self, model, n_clusters, random_state, run_n):

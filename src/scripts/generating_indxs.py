@@ -3,6 +3,7 @@ import itertools
 import json
 import os.path
 import shutil
+import pandas as pd
 from sklearn.utils import shuffle
 from imvc.ampute import Amputer
 from imvc.impute import get_observed_view_indicator
@@ -65,6 +66,10 @@ for dataset_name in datasets:
             if p != 0:
                 amp = Amputer(p=round(p, 2), mechanism=amputation_mechanism, random_state=random_state)
                 train_Xs = amp.fit_transform(train_Xs)
+
+            if run_amputation == False:
+                samples = pd.Series(train_Xs[0].index).sample(frac=0.8, random_state=random_state)
+                train_Xs = [X.loc[samples] for X in train_Xs]
 
             observed_view_indicator = get_observed_view_indicator(train_Xs)
             assert (train_Xs[0].index == observed_view_indicator.index).all()

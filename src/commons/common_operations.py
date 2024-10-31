@@ -34,14 +34,13 @@ class CommonOperations:
             if isinstance(best_combination, list) and len(best_combination) > 1:
                 view_combinations = ['1' if view in best_combination else '0' for view in views]
                 combinations_matrix = [''.join(view_combinations)]
-            else:
-                raise ValueError("best_combination must be a list with at least two views")
+            elif isinstance(best_combination, str) and best_combination == 'all':
+                view_combinations = ['1' for _ in views]
+                combinations_matrix = [''.join(view_combinations)]
         elif best_combination == False:
             view_combinations = [row for row in itertools.product([0, 1], repeat=len(views)) if sum(row) >= 2]
             combinations_matrix = pd.DataFrame(view_combinations, columns=views)
             combinations_matrix = combinations_matrix.apply(lambda row: ''.join(row.astype(str)), axis=1)
-        else:
-            raise TypeError
 
         if run_amputation == False:
             probs = [0]

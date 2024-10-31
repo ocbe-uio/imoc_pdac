@@ -4,8 +4,8 @@ from sklearn.pipeline import make_pipeline
 from preprocessing_transformers import (InitialProcessing, RemoveFeaturesWithZeros, RemoveFeaturesWithNaN, RemoveFeaturesLowMAD,
                                         RemoveCorrelatedFeatures, Log2Transformation, GeneMutations, ValueImputation, CopyNumberGistic)
 
-complete_sample_set = False   # True if all samples are being used, False if subset with complete information across all views
-add_noise = True
+complete_sample_set = True   # True if all samples are being used, False if subset with complete information across all views
+add_noise = False
 
 # OMIC DATA TYPES
 
@@ -51,7 +51,6 @@ mutations_pipeline = make_pipeline(
     RemoveFeaturesWithZeros(threshold=0.95, verbose=True)
 )
 mutations_new = mutations_pipeline.fit_transform(mutations_data)
-# Line to add noise (can comment out)
 if add_noise == True:
     mutations_new = mutations_new + np.random.default_rng(42).normal(scale=0.1, size=mutations_new.shape)
 
@@ -73,6 +72,11 @@ if complete_sample_set == False:
 elif complete_sample_set == True:
     complete_samples = pd.concat(dataframes, axis=0, join='outer').index.unique()
     RNAseq_complete, RPPA_complete, miRNA_complete, methylation_complete, mutations_complete, cnv_complete = [df.reindex(complete_samples) for df in dataframes]
-
+RNAseq_complete.to_csv('data/TCGA_PDAC_all/TCGA_PDAC_all_RNAseq.csv', index=True)
+RPPA_complete.to_csv('data/TCGA_PDAC_all/TCGA_PDAC_all_RPPA.csv', index=True)
+miRNA_complete.to_csv('data/TCGA_PDAC_all/TCGA_PDAC_all_miRNA.csv', index=True)
+methylation_complete.to_csv('data/TCGA_PDAC_all/TCGA_PDAC_all_Methylation.csv', index=True)
+mutations_complete.to_csv('data/TCGA_PDAC_all/TCGA_PDAC_all_Mutation.csv', index=True)
+cnv_complete.to_csv('data/TCGA_PDAC_all/TCGA_PDAC_all_CNA.csv', index=True)
 
 print("Completed successfully!")

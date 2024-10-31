@@ -84,8 +84,7 @@ class Amputer(BaseEstimator, TransformerMixin):
             if pandas_format:
                 rownames = Xs[0].index
                 colnames = [X.columns for X in Xs]
-                Xs = [X.values for X in Xs]
-            sample_names = pd.Index(list(range(len(Xs[0]))))
+            sample_names = rownames
 
             if self.mechanism == "edm":
                 pseudo_observed_view_indicator = self._edm_mask(sample_names=sample_names)

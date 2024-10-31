@@ -21,6 +21,8 @@ if not args.continue_indxs:
     shutil.rmtree(PROFILES_PATH, ignore_errors=True)
     os.mkdir(PROFILES_PATH)
 
+sampling = False   # select a subset (80%) of samples, False to use all samples
+
 datasets, two_view_datasets = CommonOperations.get_list_of_datasets(DATASET_TABLE_PATH, select_datasets)
 
 for dataset_name in datasets:
@@ -67,7 +69,7 @@ for dataset_name in datasets:
                 amp = Amputer(p=round(p, 2), mechanism=amputation_mechanism, random_state=random_state)
                 train_Xs = amp.fit_transform(train_Xs)
 
-            if run_amputation == False:
+            if sampling is True:
                 samples = pd.Series(train_Xs[0].index).sample(frac=0.8, random_state=random_state)
                 train_Xs = [X.loc[samples] for X in train_Xs]
 

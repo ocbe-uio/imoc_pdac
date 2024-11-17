@@ -40,7 +40,8 @@ INCOMPLETE_ERRORS_PATH = os.path.join(RESULTS_FOLDER, INCOMPLETE_ERRORS_FILE)
 TIME_ERRORS_PATH = os.path.join(RESULTS_FOLDER, TIME_ERRORS_FILE)
 
 views = ["CNA", "Methylation", "Mutations", "RNAseq", "RPPA", "miRNA"]  # All possible views in the dataset
-best_combination = ["CNA", "miRNA"]       # Set to False if there is no set combination of data types to use (will run all possible combinations of data types)
+# views_mt = ["CNV", "INDELs", "RNAexpr", "RNAfus", "SNV", "pathology", "plasmalipids", "plasmaproteins", "proteomics"]
+best_combination = ["CNA", "Methylation"]       # Set to False if there is no set combination of data types to use (will run all possible combinations of data types)
 run_amputation = False       # Set to False if there will be no amputation happening
 select_datasets = ['TCGA_PDAC_all']       # set to False if using all datasets
 

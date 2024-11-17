@@ -21,7 +21,7 @@ if not args.continue_indxs:
     shutil.rmtree(PROFILES_PATH, ignore_errors=True)
     os.mkdir(PROFILES_PATH)
 
-sampling = False   # select a subset (80%) of samples, False to use all samples
+sampling = True   # select a subset (80%) of samples, False to use all samples
 
 datasets, two_view_datasets = CommonOperations.get_list_of_datasets(DATASET_TABLE_PATH, select_datasets)
 

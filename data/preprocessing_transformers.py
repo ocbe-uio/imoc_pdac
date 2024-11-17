@@ -140,26 +140,6 @@ class GeneMutations(BaseEstimator, TransformerMixin):
         return transformed_X
 
 
-class CopyNumberGistic(BaseEstimator, TransformerMixin):
-    def __init__(self, verbose: bool = False):
-        self.verbose = verbose
-
-    def fit(self, X, y=None):
-        self.initial_columns = X.columns
-        return self
-
-    def transform(self, X, y=None):
-        X = X.drop(columns=X.columns[X.loc["Cytoband"].str.startswith("X")])
-        X.columns = X.loc["Gene.Symbol"]
-        X = X.drop(["Gene.Symbol", "Locus.ID", "Cytoband"])
-        X = X.drop(list(X.filter(regex='ENSG').columns), axis=1)
-        self.columns_to_keep = [col for col in X.columns if X[col].isin([2, -2]).any()]
-        transformed_X = X[self.columns_to_keep]
-        if self.verbose:
-            print(f"{self.__class__.__name__} keeping {len(self.columns_to_keep)} columns")
-        return transformed_X
-
-
 class ValueImputation(BaseEstimator, TransformerMixin):
     def __init__(self, verbose: bool = False):
         self.verbose = verbose

@@ -56,7 +56,7 @@ class LoadDataset:
                      "TCGA_PDAC_subset_Mutation.csv",
                      "TCGA_PDAC_subset_CNA.csv"]
         module_path = dirname(__file__)
-        Xs = [pd.read_csv(os.path.join(module_path, "data", "TCGA" , "TCGA_PDAC_subset", filename)) for filename in filenames]
+        Xs = [pd.read_csv(os.path.join(module_path, "data", "TCGA_PDAC_subset", filename)) for filename in filenames]
         Xs = DatasetUtils.ampute(Xs=Xs, p=p, assess_percentage=assess_percentage, random_state=random_state)
         if shuffle:
             Xs = DatasetUtils.shuffle_imvd(Xs=Xs, random_state=random_state)
@@ -116,7 +116,7 @@ class LoadDataset:
                      "TCGA_PDAC_subset_noise_Mutation.csv",
                      "TCGA_PDAC_subset_noise_CNA.csv"]
         module_path = dirname(__file__)
-        Xs = [pd.read_csv(os.path.join(module_path, "data", "TCGA", "TCGA_PDAC_subset_noise", filename)) for filename in filenames]
+        Xs = [pd.read_csv(os.path.join(module_path, "data", "TCGA_PDAC_subset_noise", filename)) for filename in filenames]
         Xs = DatasetUtils.ampute(Xs=Xs, p=p, assess_percentage=assess_percentage, random_state=random_state)
         if shuffle:
             Xs = DatasetUtils.shuffle_imvd(Xs=Xs, random_state=random_state)
@@ -174,7 +174,7 @@ class LoadDataset:
                      "TCGA_PDAC_all_Mutation.csv",
                      "TCGA_PDAC_all_CNA.csv"]
         module_path = dirname(__file__)
-        Xs = [pd.read_csv(os.path.join(module_path, "data", "TCGA", "TCGA_PDAC_all", filename)) for filename in filenames]
+        Xs = [pd.read_csv(os.path.join(module_path, "data", "TCGA_PDAC_all", filename)) for filename in filenames]
         Xs = DatasetUtils.ampute(Xs=Xs, p=p, assess_percentage=assess_percentage, random_state=random_state)
         if shuffle:
             Xs = DatasetUtils.shuffle_imvd(Xs=Xs, random_state=random_state)
@@ -189,7 +189,7 @@ class LoadDataset:
     def load_incomplete_MT_subset(p, return_y: bool = False, shuffle: bool = True,
                                   assess_percentage: bool = True, random_state: int = None):
         r"""
-        Load an incomplete multi-view version of the MT dataset, an eight-view dataset from a multi-omic study on a
+        Load an incomplete multi-view version of the MT_rawdata dataset, an eight-view dataset from a multi-omic study on a
         subset of PDAC patients (n=39).
 
         Parameters
@@ -217,7 +217,7 @@ class LoadDataset:
 
         Notes
         -----
-        This data consists of eight views from an MT multi-omics study of 39 PDAC patients:
+        This data consists of eight views from an MT_rawdata multi-omics study of 39 PDAC patients:
         - RPPA : protein expression of 192 proteins
         - miRNA: miRNA expression of 385 miRNA
         - RNAseq: gene expression of 1419 genes
@@ -234,9 +234,10 @@ class LoadDataset:
                      "MT_subset_proteomics.csv",
                      "MT_subset_RNAexpr.csv",
                      "MT_subset_RNAfus.csv",
-                     "MT_subset_SNV.csv"]
+                     "MT_subset_SNV.csv",
+                     "MT_subset_pathology.csv"]
         module_path = dirname(__file__)
-        Xs = [pd.read_csv(os.path.join(module_path, "data", "MT", "MT_subset", filename)) for filename in filenames]
+        Xs = [pd.read_csv(os.path.join(module_path, "data", "MT_subset", filename)) for filename in filenames]
         Xs = DatasetUtils.ampute(Xs=Xs, p=p, assess_percentage=assess_percentage, random_state=random_state)
         if shuffle:
             Xs = DatasetUtils.shuffle_imvd(Xs=Xs, random_state=random_state)
@@ -251,7 +252,7 @@ class LoadDataset:
     def load_incomplete_MT_all(p, return_y: bool = False, shuffle: bool = True,
                                assess_percentage: bool = True, random_state: int = None):
         r"""
-        Load an incomplete multi-view version of the MT dataset, an eight-view dataset from a multi-omic study on a
+        Load an incomplete multi-view version of the MT_rawdata dataset, an eight-view dataset from a multi-omic study on a
         subset of PDAC patients (n=74).
 
         Parameters
@@ -279,7 +280,7 @@ class LoadDataset:
 
         Notes
         -----
-        This data consists of eight views from an MT multi-omics study of 39 PDAC patients:
+        This data consists of eight views from an MT_rawdata multi-omics study of 39 PDAC patients:
         - RPPA : protein expression of 192 proteins
         - miRNA: miRNA expression of 385 miRNA
         - RNAseq: gene expression of 1419 genes
@@ -296,9 +297,10 @@ class LoadDataset:
                      "MT_all_proteomics.csv",
                      "MT_all_RNAexpr.csv",
                      "MT_all_RNAfus.csv",
-                     "MT_all_SNV.csv"]
+                     "MT_all_SNV.csv",
+                     "MT_all_pathology.csv"]
         module_path = dirname(__file__)
-        Xs = [pd.read_csv(os.path.join(module_path, "data", "MT", "MT_all", filename)) for filename in filenames]
+        Xs = [pd.read_csv(os.path.join(module_path, "data", "MT_all", filename)) for filename in filenames]
         Xs = DatasetUtils.ampute(Xs=Xs, p=p, assess_percentage=assess_percentage, random_state=random_state)
         if shuffle:
             Xs = DatasetUtils.shuffle_imvd(Xs=Xs, random_state=random_state)

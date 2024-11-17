@@ -61,7 +61,7 @@ PLATFORM_CODE <- "TCGA"
 metadata <- curatedTCGAData(diseaseCode = TCGA_CODE, version = "2.0.1")
 
 # filter by omics
-omics <- c("RNASeq2GeneNorm*", "RPPA*", "*Methylation*", "*miRNA*", "Mutation", "*GISTIC_ThresholdedByGene*")
+omics <- c("RNASeq2GeneNorm*", "RPPA*", "*Methylation*", "*miRNA*", "Mutation", "GISTIC_Peaks")
 curatedTCGAData(diseaseCode = TCGA_CODE, assays = omics, version = "2.0.1")
 
 # download data
@@ -111,12 +111,12 @@ oncoPrintTCGA(cancer_data, matchassay = rag)
 #filename_rds <- pathJoin(folder_raw_data, paste0("rnaseqnorm_meth_rppa_mirna_", CANCER_CODE, PLATFORM_CODE, ".rds"))
 #saveRDS(cancer_data, filename_rds)
 getwd()
-exportClass(cancer_data, dir = 'C:/Users/alepg/PycharmProjects/imo_clustering/data/raw_data', fmt = "csv", ext = ".csv")
+exportClass(cancer_data, dir = 'C:/Users/alepg/Downloads', fmt = "csv", ext = ".csv")
 # CNV data (since we have to get all the information in the matrix to analyse)
-cnv_data <- as.matrix(assay(cancer_data[[1]]))
-cnv_row_data <- as.data.frame(rowData(cancer_data[[1]]))
-cnv_complete <- cbind(cnv_row_data, cnv_data)
-write.csv(cnv_complete, 'cancer_data_PAAD_CNA-20160128.csv')
+row_data_cna <- as.data.frame(rowData(cancer_data[[1]]))
+assay_data_cna <- as.data.frame(assay(cancer_data[[1]]))
+merged_data_cna <- cbind(row_data_cna, assay_data_cna)
+write.csv(merged_data_cna, file = "C:/Users/alepg/Downloads/cna_data_peaks.csv", row.names = FALSE)
 
 
 

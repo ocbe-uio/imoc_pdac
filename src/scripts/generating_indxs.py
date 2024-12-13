@@ -69,12 +69,15 @@ for dataset_name in datasets:
                 amp = Amputer(p=round(p, 2), mechanism=amputation_mechanism, random_state=random_state)
                 train_Xs = amp.fit_transform(train_Xs)
 
-            if sampling is True:
-                samples = pd.Series(train_Xs[0].index).sample(frac=0.8, random_state=random_state)
-                train_Xs = [X.loc[samples] for X in train_Xs]
-
             observed_view_indicator = get_observed_view_indicator(train_Xs)
             assert (train_Xs[0].index == observed_view_indicator.index).all()
+            empty_rows = (observed_view_indicator == False).all(axis=1)
+            observed_view_indicator.drop(index=observed_view_indicator[empty_rows].index, inplace=True)
+
+            if sampling is True:
+                sampling_random_state = RANDOM_STATE + run_n
+                samples = pd.Series(observed_view_indicator[0].index).sample(frac=0.8, random_state=sampling_random_state)
+                observed_view_indicator = observed_view_indicator.loc[samples]
 
             dict_indxs = {
                 "observed_view_indicator": observed_view_indicator.to_dict(),

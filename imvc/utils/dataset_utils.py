@@ -49,14 +49,12 @@ class DatasetUtils:
         for X_idx, X in enumerate(Xs):
             idx_to_keep = X.index.intersection(observed_view_indicator.index)
             Xs[X_idx] = X.loc[idx_to_keep]
-        if isinstance(observed_view_indicator, pd.DataFrame):
-            observed_view_indicator = observed_view_indicator.values
+            observed_view_indicator = observed_view_indicator.loc[idx_to_keep]
         for X_idx, X in enumerate(Xs):
-            idxs_to_remove = observed_view_indicator[:,X_idx] == False
-            if isinstance(X, pd.DataFrame):
-                X = X.values
+            column_name = observed_view_indicator.columns[X_idx]
+            idxs_to_remove = ~observed_view_indicator[column_name].astype(bool)
             transformed_X = copy.deepcopy(X).astype(float)
-            transformed_X[idxs_to_remove, :] = np.nan
+            transformed_X.loc[idxs_to_remove, :] = np.nan
             transformed_Xs.append(transformed_X)
         if isinstance(Xs[0], pd.DataFrame):
             transformed_Xs = [pd.DataFrame(transformed_X, columns=X.columns, index=X.index) for X, transformed_X in zip(Xs, transformed_Xs)]

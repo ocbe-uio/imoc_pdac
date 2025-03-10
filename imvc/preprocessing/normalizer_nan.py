@@ -20,7 +20,7 @@ class NormalizerNaN(Normalizer):
     >>> from imvc.ampute import Amputer
     >>> from imvc.preprocessing import NormalizerNaN, MultiViewTransformer
     >>> Xs = LoadDataset.load_dataset(dataset_name="simulated_gm")
-    >>> amp = Amputer(p=0.3, mechanism="EDM")
+    >>> amp = Amputer(p=0.3, mechanism="um")
     >>> Xs = amp.fit_transform(Xs)
     >>> transformer = MultiViewTransformer(NormalizerNaN())
     >>> transformer.fit_transform(Xs)
@@ -73,10 +73,12 @@ class NormalizerNaN(Normalizer):
         """
 
         X = check_array(X, force_all_finite='allow-nan')
+        X = X.astype(float)
         if self.norm == "l1":
             norms = np.nansum(np.abs(X), axis=1)
         elif self.norm == "l2":
             norms = np.nansum(X**2, axis=1)
+            norms = np.sqrt(norms, norms)
         elif self.norm == "max":
             norms = np.nanmax(np.abs(X), axis=1)
         norms[norms == 0] = 1.

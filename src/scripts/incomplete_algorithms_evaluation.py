@@ -6,7 +6,7 @@ from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
 from imvc.decomposition import DFMF, MOFA
 from imvc.preprocessing import MultiViewTransformer, NormalizerNaN
-from imvc.cluster import NEMO, PIMVC, EEIMVC, SIMCADC, LFIMVC
+from imvc.cluster import NEMO, PIMVC, EEIMVC, SIMCADC, LFIMVC, IMSR, MKKMIK
 from settings import INCOMPLETE_RESULTS_PATH, INCOMPLETE_SUBRESULTS_PATH, INCOMPLETE_LOGS_PATH, INCOMPLETE_ERRORS_PATH, \
     TIME_RESULTS_PATH, DATASET_TABLE_PATH, amputation_mechanisms, probs, \
     imputation, runs_per_alg, INCOMPLETE_RESULTS_FILE, INCOMPLETE_LOGS_FILE, INCOMPLETE_ERRORS_FILE, \
@@ -49,6 +49,12 @@ algorithms = {
     "LFIMVC": {"alg": make_pipeline(MultiViewTransformer(VarianceThreshold().set_output(transform="pandas")),
                                     MultiViewTransformer(StandardScaler().set_output(transform="pandas")),
                                     LFIMVC()), "params": {}},
+    "IMSR": {"alg": make_pipeline(MultiViewTransformer(VarianceThreshold().set_output(transform="pandas")),
+                                  MultiViewTransformer(NormalizerNaN().set_output(transform="pandas")),
+                                  IMSR()), "params": {}},
+    "MKKMIK": {"alg": make_pipeline(MultiViewTransformer(VarianceThreshold().set_output(transform="pandas")),
+                                    MultiViewTransformer(StandardScaler().set_output(transform="pandas")),
+                                    MKKMIK()), "params": {}},
 }
 incomplete_algorithms = True
 CommonOperations.run_script(dataset_table_path=DATASET_TABLE_PATH, algorithms=algorithms, probs=probs, views=views,

@@ -6,7 +6,7 @@ from sklearn.base import BaseEstimator, ClassifierMixin
 from sklearn.cluster import KMeans
 from scipy.sparse.linalg import eigs
 
-from ..impute import get_observed_mod_indicator
+from ..impute import get_observed_view_indicator
 from ..utils import check_Xs
 
 oct2py_installed = False
@@ -66,7 +66,7 @@ class IMSR(BaseEstimator, ClassifierMixin):
     --------
     >>> import numpy as np
     >>> import pandas as pd
-    >>> from imml.cluster import IMSR
+    >>> from imvc.cluster import IMSR
     >>> Xs = [pd.DataFrame(np.random.default_rng(42).random((20, 10))) for i in range(3)]
     >>> estimator = IMSR(n_clusters = 2)
     >>> labels = estimator.fit_predict(Xs)
@@ -129,7 +129,7 @@ class IMSR(BaseEstimator, ClassifierMixin):
 
         if not isinstance(Xs[0], pd.DataFrame):
             Xs = [pd.DataFrame(X) for X in Xs]
-        observed_mod_indicator = get_observed_mod_indicator(Xs)
+        observed_mod_indicator = get_observed_view_indicator(Xs)
         if isinstance(observed_mod_indicator, pd.DataFrame):
             observed_mod_indicator = observed_mod_indicator.reset_index(drop=True)
         observed_mod_indicator = [(1 + missing_mod[missing_mod == 0].index).to_list() for _, missing_mod in observed_mod_indicator.items()]

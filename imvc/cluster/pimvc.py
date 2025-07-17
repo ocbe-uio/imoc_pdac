@@ -20,16 +20,13 @@ class PIMVC(BaseEstimator, ClassifierMixin):
     r"""
     Projective Incomplete Multi-View Clustering (PIMVC).
 
-    The objective of PIMVC is to simultaneously discover the projection matrix for each view and establish a unified
+    The objective of PIMVC is to simultaneously discover the projection matrix for each modality and establish a unified
     feature representation shared across incomplete multiple views, facilitating clustering. Essentially, PIMVC
-    transforms the traditional multi-view matrix factorization model into a multi-view projection learning model. By
-    consolidating various view-specific objective losses into a cohesive subspace of equal dimensions, it adeptly
-    handles the challenge where a single view might overly influence consensus representation learning due to
+    transforms the traditional multi-modality matrix factorization model into a multi-modality projection learning model. By
+    consolidating various modality-specific objective losses into a cohesive subspace of equal dimensions, it adeptly
+    handles the challenge where a single modality might overly influence consensus representation learning due to
     imbalanced information across views stemming from diverse dimensions. Furthermore, to capture the data geometric
     structure, PIMVC incorporates a penalty term for graph regularization.
-
-    It is recommended to normalize (Normalizer or NormalizerNaN in case incomplete views) the data before applying
-    this algorithm.
 
     Parameters
     ----------
@@ -55,6 +52,8 @@ class PIMVC(BaseEstimator, ClassifierMixin):
         Engine to use for computing the model. Currently only 'matlab' is supported.
     verbose : bool, default=False
         Verbosity mode.
+    clean_space : bool, default=True
+        If engine is 'matlab' and clean_space is True, the session will be closed after fitting the model.
 
     Attributes
     ----------
@@ -62,7 +61,7 @@ class PIMVC(BaseEstimator, ClassifierMixin):
         Labels of each point in training data.
     embedding_ : array-like of shape (n_samples, n_clusters)
         Consensus clustering matrix to be used as input for the KMeans clustering step.
-    loss_ : array-like of shape (n_iter_,)
+    loss_ : array-like of shape (n_iter\_,)
         Values of the loss function.
     n_iter_ : int
         Number of iterations.
@@ -75,20 +74,17 @@ class PIMVC(BaseEstimator, ClassifierMixin):
 
     Example
     --------
-    >>> from sklearn.pipeline import make_pipeline
-    >>> from imvc.datasets import LoadDataset
+    >>> import numpy as np
+    >>> import pandas as pd
     >>> from imvc.cluster import PIMVC
-    >>> from imvc.preprocessing import NormalizerNaN, MultiViewTransformer
-    >>> Xs = LoadDataset.load_dataset(dataset_name="nutrimouse")
-    >>> normalizer = NormalizerNaN().set_output(transform="pandas")
+    >>> Xs = [pd.DataFrame(np.random.default_rng(42).random((20, 10))) for i in range(3)]
     >>> estimator = PIMVC(n_clusters = 2)
-    >>> pipeline = make_pipeline(MultiViewTransformer(normalizer), estimator)
-    >>> labels = pipeline.fit_predict(Xs)
+    >>> labels = estimator.fit_predict(Xs)
     """
 
     def __init__(self, n_clusters: int = 8, dele: float = 0.1, lamb: int = 100000, beta: int = 1, k: int = 3,
                  neighbor_mode: str = 'KNN', weight_mode: str = 'Binary', max_iter: int = 100,
-                 random_state: int = None, engine: str = "matlab", verbose = False):
+                 random_state: int = None, engine: str = "matlab", verbose = False, clean_space: bool = True):
         if not isinstance(n_clusters, int):
             raise ValueError(f"Invalid n_clusters. It must be an int. A {type(n_clusters)} was passed.")
         if n_clusters < 2:
@@ -114,10 +110,12 @@ class PIMVC(BaseEstimator, ClassifierMixin):
         self.random_state = random_state
         self.engine = engine
         self.verbose = verbose
+        self.clean_space = clean_space
 
         if self.engine == "matlab":
             matlab_folder = dirname(__file__)
             matlab_folder = os.path.join(matlab_folder, "_" + (os.path.basename(__file__).split(".")[0]))
+            self._matlab_folder = matlab_folder
             matlab_files = [x for x in os.listdir(matlab_folder) if x.endswith(".m")]
             self._oc = oct2py.Oct2Py(temp_dir= matlab_folder)
             for matlab_file in matlab_files:
@@ -132,9 +130,10 @@ class PIMVC(BaseEstimator, ClassifierMixin):
         Parameters
         ----------
         Xs : list of array-likes
-            - Xs length: n_views
+            - Xs length: n_mods
             - Xs[i] shape: (n_samples, n_features_i)
-            A list of different views.
+
+            A list of different modalities.
         y : Ignored
             Not used, present here for API consistency by convention.
 
@@ -150,27 +149,31 @@ class PIMVC(BaseEstimator, ClassifierMixin):
             raise ValueError(f"n_clusters ({self.n_clusters}) should be smaller or equal to " +
                              f"the smallest n_features_i ({min([X.shape[1] for X in Xs])}).")
 
-
         if self.engine=="matlab":
-            matlab_folder = dirname(__file__)
-            matlab_folder = os.path.join(matlab_folder, "_" + (os.path.basename(__file__).split(".")[0]))
-            matlab_files = [x for x in os.listdir(matlab_folder) if x.endswith(".m")]
-            oc = oct2py.Oct2Py(temp_dir= matlab_folder)
-            for matlab_file in matlab_files:
-                with open(os.path.join(matlab_folder, matlab_file)) as f:
-                    oc.eval(f.read())
 
-            observed_view_indicator = get_observed_view_indicator(Xs)
-            if isinstance(observed_view_indicator, pd.DataFrame):
-                observed_view_indicator = observed_view_indicator.values
+            observed_mod_indicator = get_observed_view_indicator(Xs)
+            if isinstance(observed_mod_indicator, pd.DataFrame):
+                observed_mod_indicator = observed_mod_indicator.values
             transformed_Xs = tuple([X.T for X in Xs])
 
             if self.random_state is not None:
                 self._oc.rand('seed', self.random_state)
-            v, loss = self._oc.PIMVC(transformed_Xs, self.n_clusters, observed_view_indicator, self.lamb, self.beta,
+            v, loss = self._oc.PIMVC(transformed_Xs, self.n_clusters, observed_mod_indicator, self.lamb, self.beta,
                                self.max_iter, {"NeighborMode": self.neighbor_mode,
                                                "WeightMode": self.weight_mode,
                                                "k": self.k}, nout=2)
+
+            if self.clean_space:
+                self._clean_space()
+
+                matlab_folder = dirname(__file__)
+                matlab_folder = os.path.join(matlab_folder, "_" + (os.path.basename(__file__).split(".")[0]))
+                self._matlab_folder = matlab_folder
+                matlab_files = [x for x in os.listdir(matlab_folder) if x.endswith(".m")]
+                self._oc = oct2py.Oct2Py(temp_dir= matlab_folder)
+                for matlab_file in matlab_files:
+                    with open(os.path.join(matlab_folder, matlab_file)) as f:
+                        self._oc.eval(f.read())
 
         model = KMeans(n_clusters= self.n_clusters, n_init= "auto", random_state= self.random_state)
         v = v.T
@@ -189,9 +192,10 @@ class PIMVC(BaseEstimator, ClassifierMixin):
         Parameters
         ----------
         Xs : list of array-likes
-            - Xs length: n_views
+            - Xs length: n_mods
             - Xs[i] shape: (n_samples, n_features_i)
-            A list of different views.
+
+            A list of different modalities.
 
         Returns
         -------
@@ -209,9 +213,10 @@ class PIMVC(BaseEstimator, ClassifierMixin):
         Parameters
         ----------
         Xs : list of array-likes
-            - Xs length: n_views
+            - Xs length: n_mods
             - Xs[i] shape: (n_samples, n_features_i)
-            A list of different views.
+
+            A list of different modalities.
 
         Returns
         -------
@@ -221,3 +226,11 @@ class PIMVC(BaseEstimator, ClassifierMixin):
 
         labels = self.fit(Xs)._predict(Xs)
         return labels
+
+
+    def _clean_space(self):
+        [os.remove(os.path.join(self._matlab_folder, x)) for x in ["reader.mat", "writer.mat"]]
+        self._oc.exit()
+        del self._oc
+        return None
+

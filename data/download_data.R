@@ -118,6 +118,11 @@ assay_data_cna <- as.data.frame(assay(cancer_data[[1]]))
 merged_data_cna <- cbind(row_data_cna, assay_data_cna)
 write.csv(merged_data_cna, file = "C:/Users/alepg/Downloads/cna_data_peaks.csv", row.names = FALSE)
 
+# Methylation data (genes)
+row_data_methyl <- as.data.frame(rowData(cancer_data[[6]]))
+row_data_methyl$Methylation_Site <- rownames(rowData(cancer_data[[6]]))
+row_data_methyl <- row_data_methyl[, c("Methylation_Site", colnames(row_data_methyl)[1:3])]
+write.csv(row_data_methyl, file = "C:/Users/alepg/Downloads/genes_methyl.csv", row.names = FALSE)
 
 
 # FOR SUPERVISED LEARNING

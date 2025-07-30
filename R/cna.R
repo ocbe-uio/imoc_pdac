@@ -133,6 +133,7 @@ genes_del <- read.delim("data/data_omics/TCGA/raw data/data_gistic_genes_del.txt
 genes <- rbind(genes_amp, genes_del)
 
 cytobands <- left_join(cytobands, genes[,c("cytoband","genes_in_peak","genes_in_region")], by = join_by(Descriptor == cytoband))
+save(cytobands, file = "data/data_omics/cna/cytobands.RData")
 
 genes_in_peak <- cytobands$genes_in_peak %>% str_split(pattern = "[,|]")
 names(genes_in_peak) <- cytobands$Descriptor

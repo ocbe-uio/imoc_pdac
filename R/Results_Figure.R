@@ -279,6 +279,31 @@ kegg_ora <- kk_results_long %>% filter(p.adjust < 0.001) %>%
                          subtitle = "FDR < 0.001")
 
 # FIGURE ----
+
+## Features Information Tables ----
+
+# Load libraries for annotation of CpGs
+library(annotate)
+library(IlluminaHumanMethylation450kanno.ilmn12.hg19)
+
+
+cpg_sites <- met_features_genes$cpg_name
+annot <- getAnnotation(IlluminaHumanMethylation450kanno.ilmn12.hg19)
+names(annot)
+head(annot)
+
+cpg_info <- annot[cpg_sites, c("Name","chr", "pos", "strand", "UCSC_RefGene_Name", "UCSC_RefGene_Group")]
+cpg_info <- as.data.frame(cpg_info)
+openxlsx2::write_xlsx(cpg_info, "data/data_omics/methylomics/Fig_Table_A.xlsx")
+
+load("data/data_omics/cna/cytobands.RData")
+cytobands <- as.data.frame(cytobands)
+
+tblB <- cytobands %>% dplyr::select(Descriptor, rowRanges, Unique.Name, type, genes_in_peak)
+openxlsx2::write_xlsx(tblB, "data/data_omics/cna/Fig_Table_B.xlsx")
+
+## Figures ----
+
 cd <- cowplot::plot_grid(cna_violin, OR_cna, ncol = 2, labels = c("C", "D"), rel_widths = c(0.4, 0.6))
 ef <- cowplot::plot_grid(dmp_volcano, rna_volcano, labels = c("E", "F"))
 gh <- cowplot::plot_grid(c6_methyl, c6_rna, labels = c("G", "H"))
@@ -292,3 +317,4 @@ abc <- cowplot::plot_grid(OR_cna_genes, MEOX2_cor, TBX2_cor, nrow = 1, labels = 
 de <- cowplot::plot_grid(DEP_volcano, kegg_ora, labels = c("D", "E"))
 supp_fig <- plot_grid(abc, de, ncol = 1, rel_heights = c(0.4, 0.6))
 ggsave("figures/omics_analysis/supp_fig.pdf", plot = supp_fig, height = 2*11.69, width = 3*8.27)
+

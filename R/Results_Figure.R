@@ -106,7 +106,8 @@ dmp_volcano <- EnhancedVolcano(toptable = DMPs, lab = rownames(DMPs), x = "logFC
                                title = "Volcano Plot of Differentially Methylated CpG sites",
                                selectLab = met_features_genes$cpg_name,
                                boxedLabels = T, xlim = c(-4,4),
-                               drawConnectors = TRUE, max.overlaps = Inf, legendPosition = "top", gridlines.minor = F, gridlines.major = F)
+                               drawConnectors = TRUE, max.overlaps = Inf, legendPosition = "top", gridlines.minor = F, gridlines.major = F,
+                               raster = TRUE)
 dmp_volcano
 
 ### Volcano plot RNA ----
@@ -129,7 +130,8 @@ rna_volcano <- EnhancedVolcano(toptable = top.table, lab = top.table$Gene, x = "
                                colCustom = keyvals, ylab = "-log10 p-value", subtitle = "Cluster 2 vs Cluster 1",
                                title = "Volcano Plot of Differentially Expressed Genes", xlim = c(-4,4),
                                boxedLabels = T, labSize = 4, selectLab = c(met_features_genes$UCSC_RefGene_Name, cytobands_select$genes_in_peak),
-                               drawConnectors = T, max.overlaps = Inf, legendPosition = "top", gridlines.minor = F, gridlines.major = F)
+                               drawConnectors = T, max.overlaps = Inf, legendPosition = "top", gridlines.minor = F, gridlines.major = F,
+                               raster = TRUE)
 rna_volcano
 
 ## Correlation plots ----
@@ -265,7 +267,8 @@ DEP_volcano <- EnhancedVolcano(toptable = rppa_toptable, lab = rppa_toptable$pep
                                colCustom = keyvals, ylab = "-log10 p-value", subtitle = "Cluster 2 vs Cluster 1",
                                title = "Volcano Plot of Differentially Expressed/Phosphorylated Proteins",
                                boxedLabels = T, labCol = keyvals[names(keyvals) != "NS"], labSize = 4, ylim = c(0,5), xlim = c(-1,1),
-                               drawConnectors = T,maxoverlapsConnectors = Inf, typeConnectors = "open",max.overlaps = Inf, legendPosition = "top", gridlines.minor = F, gridlines.major = F)
+                               drawConnectors = T,maxoverlapsConnectors = Inf, typeConnectors = "open",max.overlaps = Inf, legendPosition = "top", gridlines.minor = F, gridlines.major = F,
+                               raster = TRUE)
 
 kegg_ora <- kk_results_long %>% filter(p.adjust < 0.001) %>%
   arrange(RichFactor) %>% mutate(Description = factor(Description, levels = unique(Description))) %>% 

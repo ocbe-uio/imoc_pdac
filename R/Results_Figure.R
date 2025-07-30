@@ -284,11 +284,11 @@ ef <- cowplot::plot_grid(dmp_volcano, rna_volcano, labels = c("E", "F"))
 gh <- cowplot::plot_grid(c6_methyl, c6_rna, labels = c("G", "H"))
 
 fig <- cowplot::plot_grid(NULL, NULL, cd,ef,gh, ncol = 1, rel_heights = c(0.1,0.1, 0.25, 0.25, 0.25))
-ggsave(plot = fig, filename = "figures/fig.pdf", height = 3*11.69, width = 3*8.27)
+ggsave(plot = fig, filename = "figures/omics_analysis/fig.pdf", height = 3*11.69, width = 3*8.27)
 
 # SUPP FIGURE ----
 
 abc <- cowplot::plot_grid(OR_cna_genes, MEOX2_cor, TBX2_cor, nrow = 1, labels = "AUTO")
 de <- cowplot::plot_grid(DEP_volcano, kegg_ora, labels = c("D", "E"))
 supp_fig <- plot_grid(abc, de, ncol = 1, rel_heights = c(0.4, 0.6))
-ggsave("figures/supp_fig.pdf", plot = supp_fig, height = 2*11.69, width = 3*8.27)
+ggsave("figures/omics_analysis/supp_fig.pdf", plot = supp_fig, height = 2*11.69, width = 3*8.27)

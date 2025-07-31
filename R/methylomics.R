@@ -213,23 +213,3 @@ met_features_genes <- DCpGs %>% filter(cpg_name %in% met_features)
 openxlsx2::write_xlsx(met_features_genes, file = "data/data_omics/methylomics/met_features_genes.xlsx")
 
 
-# 4. Differential Variability ----
-
-design <- model.matrix(~cluster)
-
-# Fit the model for differential variability
-# specifying the intercept and age as the grouping factor
-fitvar <- varFit(na.omit(Mval), design = design, coef = c(1,2))
-
-# Summary of differential variability
-summary(decideTests(fitvar))
-
-topDV <- topVar(fitvar, coef=2, number = 100000)
-topDV$cpg_name <- rownames(topDV)
-# Top 10 differentially variable CpGs between old vs. newborns
-topDV
-
-
-par(mfrow = c(2,2))
-minfi::plotCpg(Bval, cpg = met_features, pheno=cluster, ylab = "Beta values")
-par(mfrow = c(1,1))

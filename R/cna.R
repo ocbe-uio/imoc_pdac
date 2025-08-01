@@ -55,7 +55,7 @@ openxlsx2::write_xlsx(cna_tcga_ID_long, file = "data/data_omics/cna/cna_tcga_ID_
 
 head(cna_tcga_ID_long,20)
 
-df <- cna_tcga_ID_long %>% group_by(patient, cluster) %>% summarise(counts = sum(!is.na(CNA)))
+df <- cna_tcga_ID_long %>% group_by(patient, cluster) %>% summarise(counts = mean(!is.na(CNA)))
 
 df %>% ggplot(aes(x = counts)) + geom_density(aes(colour = cluster))
 
@@ -66,7 +66,7 @@ df %>% ggplot(aes(x = cluster, y = counts)) +
               draw_quantiles = c(0.25, 0.5, 0.75)) +
   geom_jitter(aes(color = cluster), shape = 1, width = 0.15) +
   ylab("Number of CNA by Patient") + xlab("") +
-  theme_cowplot() + labs(title = "Total Copy Number Alterations by Patient",
+  theme_cowplot() + labs(title = "Mean Copy Number Alterations by Patient",
                          caption = "p-value < 2.2e-16 Wilcoxon rank sum test")
 wilcox.test(counts ~ cluster, data = df)
 

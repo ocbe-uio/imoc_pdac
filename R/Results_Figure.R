@@ -61,14 +61,15 @@ cna_violin
 
 ### Odds Ratio CNA ----
 
-OR_cna <- cna_tcga %>% filter(fisher_adjpval < 0.001) %>% arrange(OR) %>% 
-  mutate(Descriptor = factor(Descriptor, levels = Descriptor)) %>% ggplot(aes(x = OR, y = Descriptor)) +
+OR_cna <- cna_tcga %>% filter(fisher_adjpval < 0.05) %>% arrange(OR) %>% 
+  mutate(Descriptor = factor(Descriptor, levels = Descriptor)) %>% 
+  slice_max(OR, n = 10) %>% ggplot(aes(x = OR, y = Descriptor)) +
   geom_segment(aes(xend = 0, yend = Descriptor), color = "gray80") +
   geom_point(aes(fill = -log10(fisher_adjpval), shape = type), size = 6) +
   scale_shape_manual(values = c(21,23), name = "Type of CNA") +
   scale_fill_gradient(high = "#fc0352", low = "white", name = "-log10 Fisher's\ntest FDR", limits = c(3,16)) +
   theme_cowplot() +
-  labs(title = "Odds Ratio CNA Cluster 1 vs Cluster 0", subtitle = "Fisher's test FDR < 0.001") +
+  labs(title = "Odds Ratio CNA Cluster 2 vs Cluster 1", subtitle = "Top 10 cytobands with higher odds ratio") +
   xlab("Odds Ratio") + ylab("Cytoband")
 OR_cna
 
@@ -205,14 +206,14 @@ names(SigGenesInSet) <- topOncoSig$OncoSig
 topOncoSig$SigGenesInSet <- SigGenesInSet
 topOncoSig_unnest <- topOncoSig %>% unnest_longer(SigGenesInSet)
 
-c6_methyl <- topOncoSig %>% filter(FDR < 0.1) %>% arrange(propDE) %>% 
-  mutate(OncoSig = factor(OncoSig, levels = OncoSig)) %>% 
+c6_methyl <- topOncoSig %>% filter(FDR < 0.25) %>% arrange(propDE) %>% 
+  mutate(OncoSig = factor(OncoSig, levels = OncoSig)) %>% slice_max(propDE, n = 10) %>%
   ggplot(aes(x = propDE, y = OncoSig)) + 
   geom_segment(aes(xend = 0, yend = OncoSig)) +
   geom_point(aes(fill = FDR, size = DE/N), color = "gray50", shape = 21) +
-  scale_fill_gradient(name = "FDR", high = "white", low = "#fc0352") +
-  labs(title = "Significantly Enriched Oncogenic Gene Sets - Methylomics",
-       subtitle = "FDR < 0.1") + ylab("") + theme_cowplot(font_size = 14) +
+  scale_fill_gradient(name = "FDR", high = "white", low = "#fc0352", limits = c(0,0.1)) +
+  labs(title = "Enriched Oncogenic Gene Sets - Methylomics",
+       subtitle = "Top 10 enriched gene sets by gene ratio with FDR < 0.25") + ylab("") + theme_cowplot(font_size = 14) +
   scale_size_continuous(name = "Gene Ratio") +
   xlab("Gene Ratio")
 c6_methyl
@@ -241,14 +242,15 @@ enrich_gsea_c6$`LEADING EDGE` <- enrich_gsea_c6$`LEADING EDGE` %>% str_remove(pa
 enrich_gsea_c6$`LEADING EDGE` <- as.numeric(enrich_gsea_c6$`LEADING EDGE`)
 
 c6_rna <- enrich_gsea_c6 %>% filter(`FDR q-val`< 0.25) %>%
-  dplyr::arrange(NES) %>% mutate(NAME = factor(NAME, levels = NAME)) %>% ggplot(aes(x = NES, y = NAME)) +
+  dplyr::arrange(NES) %>% mutate(NAME = factor(NAME, levels = NAME)) %>% slice_max(abs(NES), n = 10) %>%
+  ggplot(aes(x = NES, y = NAME)) +
   geom_segment(aes(xend = 0, yend = NAME), color = "gray50") +
   geom_point(aes(fill = `FDR q-val`, size = `LEADING EDGE`/100), shape = 21, color = "gray50") +
   geom_vline(xintercept = 0, color = "gray") +
   scale_fill_gradient(name = "FDR", high = "white", low = "#fc0352") +
   scale_size_area(name = "Gene Ratio") +
-  labs(title = "Significantly Enriched Oncogenic Gene Sets - Transcriptomics",
-       subtitle = "FDR < 0.25") + ylab("") + theme_cowplot()
+  labs(title = "Enriched Oncogenic Gene Sets - Transcriptomics",
+       subtitle = "Top 10 enriched gene sets by NES with FDR < 0.25") + ylab("") + theme_cowplot()
 c6_rna
 
 ## RPPA ----
@@ -270,16 +272,26 @@ DEP_volcano <- EnhancedVolcano(toptable = rppa_toptable, lab = rppa_toptable$pep
                                drawConnectors = T,maxoverlapsConnectors = Inf, typeConnectors = "open",max.overlaps = Inf, legendPosition = "top", gridlines.minor = F, gridlines.major = F,
                                raster = TRUE)
 
-kegg_ora <- kk_results_long %>% filter(p.adjust < 0.001) %>%
+# Identify top 10 pathways by RichFactor (using unique Description values)
+top10_paths <- kk_results_long %>%
+  filter(p.adjust < 0.05) %>%
+  distinct(Description, RichFactor) %>%    # one row per pathway
+  arrange(desc(RichFactor)) %>%
+  slice_head(n = 10) %>%
+  pull(Description)
+
+kegg_ora <- kk_results_long %>% filter(p.adjust < 0.05, Description %in% top10_paths) %>%
   arrange(RichFactor) %>% mutate(Description = factor(Description, levels = unique(Description))) %>% 
   ggplot(aes(x = RichFactor, y = Description)) +
   geom_segment(aes(xend = 0, yend = Description), color = "gray50") +
   geom_text_repel(aes(label = ALIAS, color = logFC), max.overlaps = Inf, fontface = "bold") +
   geom_point(aes(fill = -log10(p.adjust)), shape = 21, size = 8, color = "gray50") +
   scale_fill_gradient(high = "#fc0352", low = "white", name = "-log10 FDR") +
-  scale_color_gradient(low = "blue", high= "red", limits = c(-0.6,0.6)) +
+  scale_color_gradient2(low = "purple", mid = "gray80", high= "orange", limits = c(-0.6,0.6)) +
   theme_cowplot() + labs(title = "KEGG Pathways Over-Representation Analysis",
-                         subtitle = "FDR < 0.001")
+                         subtitle = "Top 10 KEGG Pathways by Rich Factor with FDR < 0.05")
+
+kegg_ora
 
 # FIGURE ----
 
@@ -307,12 +319,15 @@ openxlsx2::write_xlsx(tblB, "data/data_omics/cna/Fig_Table_B.xlsx")
 
 ## Figures ----
 
-cd <- cowplot::plot_grid(cna_violin, OR_cna, ncol = 2, labels = c("C", "D"), rel_widths = c(0.4, 0.6))
-ef <- cowplot::plot_grid(dmp_volcano, rna_volcano, labels = c("E", "F"))
-gh <- cowplot::plot_grid(c6_methyl, c6_rna, labels = c("G", "H"))
 
-fig <- cowplot::plot_grid(NULL, NULL, cd,ef,gh, ncol = 1, rel_heights = c(0.1,0.1, 0.25, 0.25, 0.25))
-ggsave(plot = fig, filename = "figures/omics_analysis/fig.pdf", height = 3*11.69, width = 3*8.27)
+abc <- cowplot::plot_grid(OR_cna, dmp_volcano, rna_volcano, nrow = 1, labels = "AUTO")
+abc
+#cd <- cowplot::plot_grid(cna_violin, OR_cna, ncol = 2, labels = c("C", "D"), rel_widths = c(0.4, 0.6))
+#ef <- cowplot::plot_grid(dmp_volcano, rna_volcano, labels = c("E", "F"))
+de <- cowplot::plot_grid(c6_methyl, c6_rna, labels = c("D", "E"))
+
+fig <- cowplot::plot_grid(abc, de, ncol = 1, rel_heights = c(0.4,0.6))
+ggsave(plot = fig, filename = "figures/omics_analysis/fig.pdf", height = 2*11.69, width = 3*8.27)
 
 # SUPP FIGURE ----
 

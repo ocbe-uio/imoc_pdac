@@ -211,10 +211,10 @@ c6_methyl <- topOncoSig %>% filter(FDR < 0.25) %>% arrange(propDE) %>%
   ggplot(aes(x = propDE, y = OncoSig)) + 
   geom_segment(aes(xend = 0, yend = OncoSig)) +
   geom_point(aes(fill = FDR, size = DE/N), color = "gray50", shape = 21) +
-  scale_fill_gradient(name = "FDR", high = "white", low = "#fc0352", limits = c(0,0.1)) +
+  scale_fill_gradient(name = "FDR", high = "white", low = "#fc0352", limits = c(0,0.16)) +
   labs(title = "Enriched Oncogenic Gene Sets - Methylomics",
        subtitle = "Top 10 enriched gene sets by gene ratio with FDR < 0.25") + ylab("") + theme_cowplot(font_size = 14) +
-  scale_size_continuous(name = "Gene Ratio") +
+  scale_size_area(name = "Gene Ratio", max_size = 15) +
   xlab("Gene Ratio")
 c6_methyl
 
@@ -248,7 +248,7 @@ c6_rna <- enrich_gsea_c6 %>% filter(`FDR q-val`< 0.25) %>%
   geom_point(aes(fill = `FDR q-val`, size = `LEADING EDGE`/100), shape = 21, color = "gray50") +
   geom_vline(xintercept = 0, color = "gray") +
   scale_fill_gradient(name = "FDR", high = "white", low = "#fc0352") +
-  scale_size_area(name = "Gene Ratio") +
+  scale_size_area(name = "Gene Ratio", max_size = 15) +
   labs(title = "Enriched Oncogenic Gene Sets - Transcriptomics",
        subtitle = "Top 10 enriched gene sets by NES with FDR < 0.25") + ylab("") + theme_cowplot()
 c6_rna
@@ -265,12 +265,13 @@ names(keyvals)[keyvals == 'slateblue4'] <- 'Down'
 names(keyvals)[keyvals == 'gray50'] <- 'NS'
 
 DEP_volcano <- EnhancedVolcano(toptable = rppa_toptable, lab = rppa_toptable$peptide_target, x = "logFC", y = "P.Value", FCcutoff = 0,
-                               xlab = "Log2 fold-change Normalized Expression", pCutoff = 0.05,
+                               xlab = "Log2 fold-change Normalized Expression", pCutoff = 0.05, pointSize = 5, 
                                colCustom = keyvals, ylab = "-log10 p-value", subtitle = "Cluster 2 vs Cluster 1",
                                title = "Volcano Plot of Differentially Expressed/Phosphorylated Proteins",
-                               boxedLabels = T, labCol = keyvals[names(keyvals) != "NS"], labSize = 4, ylim = c(0,5), xlim = c(-1,1),
+                               boxedLabels = T, labCol = keyvals[names(keyvals) != "NS"], labSize = 4, ylim = c(0,4), xlim = c(-1,1),
                                drawConnectors = T,maxoverlapsConnectors = Inf, typeConnectors = "open",max.overlaps = Inf, legendPosition = "top", gridlines.minor = F, gridlines.major = F,
                                raster = TRUE)
+DEP_volcano
 
 # Identify top 10 pathways by RichFactor (using unique Description values)
 top10_paths <- kk_results_long %>%
@@ -284,8 +285,8 @@ kegg_ora <- kk_results_long %>% filter(p.adjust < 0.05, Description %in% top10_p
   arrange(RichFactor) %>% mutate(Description = factor(Description, levels = unique(Description))) %>% 
   ggplot(aes(x = RichFactor, y = Description)) +
   geom_segment(aes(xend = 0, yend = Description), color = "gray50") +
-  geom_text_repel(aes(label = ALIAS, color = logFC), max.overlaps = Inf, fontface = "bold") +
-  geom_point(aes(fill = -log10(p.adjust)), shape = 21, size = 8, color = "gray50") +
+  geom_text_repel(aes(label = ALIAS, color = logFC), force = 5, max.overlaps = Inf, fontface = "bold") +
+  geom_point(aes(fill = -log10(p.adjust)), shape = 21, size = 12, color = "gray50") +
   scale_fill_gradient(high = "#fc0352", low = "white", name = "-log10 FDR") +
   scale_color_gradient2(low = "purple", mid = "gray80", high= "orange", limits = c(-0.6,0.6)) +
   theme_cowplot() + labs(title = "KEGG Pathways Over-Representation Analysis",
@@ -326,7 +327,7 @@ abc
 #ef <- cowplot::plot_grid(dmp_volcano, rna_volcano, labels = c("E", "F"))
 de <- cowplot::plot_grid(c6_methyl, c6_rna, labels = c("D", "E"))
 
-fig <- cowplot::plot_grid(abc, de, ncol = 1, rel_heights = c(0.4,0.6))
+fig <- cowplot::plot_grid(abc, de, ncol = 1)
 ggsave(plot = fig, filename = "figures/omics_analysis/fig.pdf", height = 2*11.69, width = 3*8.27)
 
 # SUPP FIGURE ----

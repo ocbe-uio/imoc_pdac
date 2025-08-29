@@ -139,7 +139,7 @@ barplot(height = c(68492, 57253, 270320), names.arg = c("Up", "Down", "NotSig"),
         ylab = "Differentially Methylated CpGs Count", main = "DM CpGs at FDR < 0.05", ylim = c(0,300000))
 
 
-# get the table of results for the first contrast (naive - rTreg)
+# get the table of results for the first contrast
 DMPs <- topTable(fit2, num=Inf)
 head(DMPs)
 

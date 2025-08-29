@@ -55,7 +55,7 @@ openxlsx2::write_xlsx(cna_tcga_ID_long, file = "data/data_omics/cna/cna_tcga_ID_
 
 head(cna_tcga_ID_long,20)
 
-df <- cna_tcga_ID_long %>% group_by(patient, cluster) %>% summarise(counts = sum(!is.na(CNA)))
+df <- cna_tcga_ID_long %>% group_by(patient, cluster) %>% summarise(counts = mean(!is.na(CNA)))
 
 df %>% ggplot(aes(x = counts)) + geom_density(aes(colour = cluster))
 
@@ -66,7 +66,7 @@ df %>% ggplot(aes(x = cluster, y = counts)) +
               draw_quantiles = c(0.25, 0.5, 0.75)) +
   geom_jitter(aes(color = cluster), shape = 1, width = 0.15) +
   ylab("Number of CNA by Patient") + xlab("") +
-  theme_cowplot() + labs(title = "Total Copy Number Alterations by Patient",
+  theme_cowplot() + labs(title = "Mean Copy Number Alterations by Patient",
                          caption = "p-value < 2.2e-16 Wilcoxon rank sum test")
 wilcox.test(counts ~ cluster, data = df)
 
@@ -127,34 +127,92 @@ cna_tcga %>% filter(fisher_adjpval < 0.001) %>% arrange(OR) %>%
 sel_cna <- c("17p12", "9p21.3", "21q11.2", "18q21.2")
 cytobands <- cna_tcga %>% filter(Descriptor %in% sel_cna)
 
-genes_amp <- read.delim("data/data_omics/TCGA/raw data/data_gistic_genes_amp.txt")
-genes_del <- read.delim("data/data_omics/TCGA/raw data/data_gistic_genes_del.txt")
+## Assign genes to selected cytobands ----
+#https://bioconductor.org/packages/release/bioc/vignettes/biomaRt/inst/doc/accessing_ensembl.html
 
-genes <- rbind(genes_amp, genes_del)
 
-cytobands <- left_join(cytobands, genes[,c("cytoband","genes_in_peak","genes_in_region")], by = join_by(Descriptor == cytoband))
+# Loading Ensembl database
+library(biomaRt)
+ensembl <- useEnsembl(biomart = "genes", dataset = "hsapiens_gene_ensembl")
+
+# Checking names of filters and attributes
+filters <- listFilters(ensembl)
+attributes = listAttributes(ensembl)
+
+# Preparing the list of coordinates
+
+WidePeakLimits <- cytobands$Wide.Peak.Limits %>% str_remove("chr") %>% str_remove("\\(.*") %>% str_replace_all(pattern = "-", replacement = ":")
+PeakLimits <- cytobands$Peak.Limits %>% str_remove("chr") %>% str_remove("\\(.*") %>% str_replace_all(pattern = "-", replacement = ":")
+
+# Wide Peak Limits
+genesWidePeak <- lapply(WidePeakLimits, function(r) {
+  coords <- strsplit(r, ":")[[1]]
+  getBM(attributes = c("ensembl_gene_id","hgnc_symbol", "chromosome_name", "start_position", "end_position", "strand","description"),
+        filters = c("chromosome_name", "start", "end"),
+        values = list(coords[1], coords[2], coords[3]),
+        mart = ensembl)
+})
+
+names(genesWidePeak) <- cytobands$Descriptor
+
+# Flatten genes without extra commas
+flat_genes <- lapply(genesWidePeak, function(x){
+  symbols <- x$hgnc_symbol[x$hgnc_symbol != ""]
+  str_flatten_comma(symbols)
+})
+
+# Convert to a dataframe
+flat_genes <- data.frame(
+  Descriptor = names(flat_genes),
+  Genes.Wide.Peak = unlist(flat_genes),
+  stringsAsFactors = FALSE
+)
+
+cytobands <- cytobands %>% left_join(flat_genes, by = "Descriptor")
+
+# Peak Limits
+
+genesPeakLimits <- lapply(PeakLimits, function(r) {
+  coords <- strsplit(r, ":")[[1]]
+  getBM(attributes = c("ensembl_gene_id","hgnc_symbol", "chromosome_name", "start_position", "end_position", "strand","description"),
+        filters = c("chromosome_name", "start", "end"),
+        values = list(coords[1], coords[2], coords[3]),
+        mart = ensembl)
+})
+
+names(genesPeakLimits) <- cytobands$Descriptor
+
+# Flatten genes without extra commas
+flat_genes <- lapply(genesPeakLimits, function(x){
+  symbols <- x$hgnc_symbol[x$hgnc_symbol != ""]
+  str_flatten_comma(symbols)
+})
+
+# Convert to a dataframe
+flat_genes <- data.frame(
+  Descriptor = names(flat_genes),
+  Genes.Peak.Limits = unlist(flat_genes),
+  stringsAsFactors = FALSE
+)
+
+cytobands <- cytobands %>% left_join(flat_genes, by = "Descriptor")
+
 save(cytobands, file = "data/data_omics/cna/cytobands.RData")
 
-genes_in_peak <- cytobands$genes_in_peak %>% str_split(pattern = "[,|]")
+genes_in_peak <- cytobands$Genes.Peak.Limits %>% str_split(pattern = ", ")
 names(genes_in_peak) <- cytobands$Descriptor
 
-genes_in_peak <- lapply(genes_in_peak, str_remove_all, pattern = "[\\[\\]]")
-genes_in_peak <- lapply(genes_in_peak, function(x){x[x!=""]})
-
-genes_in_region <- cytobands$genes_in_region %>% str_split(pattern = "[,|]")
-names(genes_in_region) <- cytobands$Descriptor
-
-genes_in_region <- lapply(genes_in_region, str_remove_all, pattern = "[\\[\\]]")
-genes_in_region <- lapply(genes_in_region, function(x){x[x!=""]})
+genes_in_wide_peak <- cytobands$Genes.Peak.Limits %>% str_split(pattern = ", ")
+names(genes_in_wide_peak) <- cytobands$Descriptor
 
 
 cytobands_select <- cytobands %>% dplyr::select(Descriptor, type, fisher_adjpval, OR)
 cytobands_select$genes_in_peak <- genes_in_peak
-cytobands_select$genes_in_region <- genes_in_region
+cytobands_select$genes_in_wide_peak <- genes_in_wide_peak
 
 save(cytobands_select, file = "data/data_omics/cna/cytobands_select.Rdata")
 
-cytobands_select <- subset(cytobands_select, select = -genes_in_region)
+cytobands_select <- subset(cytobands_select, select = -genes_in_wide_peak)
 
 cytobands_select <- cytobands_select %>% unnest_longer(col = genes_in_peak)
 openxlsx::write.xlsx(cytobands_select, "data/data_omics/cna/cytobands_select.xlsx")

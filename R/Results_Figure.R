@@ -322,7 +322,7 @@ abc
 #ef <- cowplot::plot_grid(dmp_volcano, rna_volcano, labels = c("E", "F"))
 de <- cowplot::plot_grid(c6_methyl, c6_rna, labels = c("D", "E"))
 
-fig <- cowplot::plot_grid(abc, de, ncol = 1)
+fig <- cowplot::plot_grid(abc, de, ncol = 1, rel_heights = c(0.4,0.6))
 ggsave(plot = fig, filename = "figures/omics_analysis/fig.pdf", height = 2*11.69, width = 3*8.27)
 
 # SUPP FIGURE ----

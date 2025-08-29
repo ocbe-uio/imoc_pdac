@@ -65,21 +65,21 @@ OR_cna <- cna_tcga %>% filter(fisher_adjpval < 0.05) %>% arrange(OR) %>%
   mutate(Descriptor = factor(Descriptor, levels = Descriptor)) %>% 
   slice_max(OR, n = 10) %>% ggplot(aes(x = OR, y = Descriptor)) +
   geom_segment(aes(xend = 0, yend = Descriptor), color = "gray80") +
-  geom_point(aes(fill = -log10(fisher_adjpval), shape = type), size = 6) +
+  geom_point(aes(fill = -log10(fisher_adjpval), shape = type), size = 10) +
   scale_shape_manual(values = c(21,23), name = "Type of CNA") +
   scale_fill_gradient(high = "#fc0352", low = "white", name = "-log10 Fisher's\ntest FDR", limits = c(3,16)) +
   theme_cowplot() +
-  labs(title = "Odds Ratio CNA Cluster 2 vs Cluster 1", subtitle = "Top 10 cytobands with higher odds ratio") +
+  labs(title = "Odds Ratio CNA Cluster 2 vs Cluster 1") +
   xlab("Odds Ratio") + ylab("Cytoband")
 OR_cna
 
 ### Odss Ratio with Genes ----
-
+      
 OR_cna_genes <- cytobands_select %>% arrange(OR) %>% 
   mutate(Descriptor = factor(Descriptor, levels = c(unique(Descriptor)))) %>% ggplot(aes(x = OR, y = Descriptor)) +
   geom_segment(aes(xend = 0, yend = Descriptor), color = "gray80") +
   geom_point(aes(fill = -log10(fisher_adjpval), shape = type), size = 5) +
-  geom_text_repel(aes(label = genes_in_peak, color = type), size = 4, max.overlaps = Inf, force = 1, segment.linetype =2, segment.alpha = 0.5) +  # Add gene names
+  geom_text_repel(aes(label = genes_in_peak), color = "firebrick", size = 3, max.overlaps = Inf, force = 4, segment.alpha = 0.2) +  # Add gene names
   scale_shape_manual(values = c(23), name = "Type of CNA") +
   scale_fill_gradient(high = "#fc0352", low = "white", name = "-log10 Fisher's\ntest FDR", limits = c(3,16)) +
   scale_color_manual(values = c("firebrick", "navy"), name = "Type of CNA")+
@@ -103,8 +103,8 @@ rownames(DMPs) <- DMPs$cpg_name
 
 dmp_volcano <- EnhancedVolcano(toptable = DMPs, lab = rownames(DMPs), x = "logFC", y = "adj.P.Val", FCcutoff = 2,
                                xlab = "Log2 fold-change M value",
-                               colCustom = keyvals, ylab = "-log10 Adjusted -value", subtitle = "Cluster 2 vs Cluster 1",
-                               title = "Volcano Plot of Differentially Methylated CpG sites",
+                               colCustom = keyvals, ylab = "-log10 Adjusted -value",
+                               title = "Volcano Plot of Differentially Methylated CpG sites", subtitle = "",
                                selectLab = met_features_genes$cpg_name,
                                boxedLabels = T, xlim = c(-4,4),
                                drawConnectors = TRUE, max.overlaps = Inf, legendPosition = "top", gridlines.minor = F, gridlines.major = F,
@@ -128,8 +128,8 @@ met_features_genes$UCSC_RefGene_Name <- met_features_genes$UCSC_RefGene_Name %>%
 rna_volcano <- EnhancedVolcano(toptable = top.table, lab = top.table$Gene, x = "logFC",
                                y = "adj.P.Val", FCcutoff = 0.25,
                                xlab = "Log2 fold-change Normalized Expression", pCutoff = 0.05,
-                               colCustom = keyvals, ylab = "-log10 p-value", subtitle = "Cluster 2 vs Cluster 1",
-                               title = "Volcano Plot of Differentially Expressed Genes", xlim = c(-4,4),
+                               colCustom = keyvals, ylab = "-log10 p-value",
+                               title = "Volcano Plot of Differentially Expressed Genes", subtitle = "", xlim = c(-4,4),
                                boxedLabels = T, labSize = 4, selectLab = c(met_features_genes$UCSC_RefGene_Name, cytobands_select$genes_in_peak),
                                drawConnectors = T, max.overlaps = Inf, legendPosition = "top", gridlines.minor = F, gridlines.major = F,
                                raster = TRUE)
@@ -212,8 +212,7 @@ c6_methyl <- topOncoSig %>% filter(FDR < 0.25) %>% arrange(propDE) %>%
   geom_segment(aes(xend = 0, yend = OncoSig)) +
   geom_point(aes(fill = FDR, size = DE/N), color = "gray50", shape = 21) +
   scale_fill_gradient(name = "FDR", high = "white", low = "#fc0352", limits = c(0,0.16)) +
-  labs(title = "Enriched Oncogenic Gene Sets - Methylomics",
-       subtitle = "Top 10 enriched gene sets by gene ratio with FDR < 0.25") + ylab("") + theme_cowplot(font_size = 14) +
+  labs(title = "Enriched Oncogenic Gene Sets - Methylomics") + ylab("") + theme_cowplot(font_size = 14) +
   scale_size_area(name = "Gene Ratio", max_size = 15) +
   xlab("Gene Ratio")
 c6_methyl
@@ -224,8 +223,7 @@ topOncoSig_unnest %>% filter(FDR < 0.05) %>% arrange(propDE) %>%
   geom_text_repel(aes(label = SigGenesInSet), max.overlaps = Inf, segment.colour = "gray", segment.alpha = 0.5) +
   geom_point(aes(fill = FDR, size = DE/N), color = "gray50", shape = 21) +
   scale_fill_gradient(name = "FDR",low = "white", high = "#fc0352") +
-  labs(title = "Significantly Enriched Oncogenic Gene Sets",
-       subtitle = "FDR < 0.05") + ylab("") + theme_cowplot(font_size = 14) +
+  labs(title = "Significantly Enriched Oncogenic Gene Sets") + ylab("") + theme_cowplot(font_size = 14) +
   scale_size_continuous(name = "Gene Ratio") +
   xlab("Gene Ratio")
 
@@ -249,8 +247,7 @@ c6_rna <- enrich_gsea_c6 %>% filter(`FDR q-val`< 0.25) %>%
   geom_vline(xintercept = 0, color = "gray") +
   scale_fill_gradient(name = "FDR", high = "white", low = "#fc0352") +
   scale_size_area(name = "Gene Ratio", max_size = 15) +
-  labs(title = "Enriched Oncogenic Gene Sets - Transcriptomics",
-       subtitle = "Top 10 enriched gene sets by NES with FDR < 0.25") + ylab("") + theme_cowplot()
+  labs(title = "Enriched Oncogenic Gene Sets - Transcriptomics") + ylab("") + theme_cowplot()
 c6_rna
 
 ## RPPA ----
@@ -266,9 +263,9 @@ names(keyvals)[keyvals == 'gray50'] <- 'NS'
 
 DEP_volcano <- EnhancedVolcano(toptable = rppa_toptable, lab = rppa_toptable$peptide_target, x = "logFC", y = "P.Value", FCcutoff = 0,
                                xlab = "Log2 fold-change Normalized Expression", pCutoff = 0.05, pointSize = 5, 
-                               colCustom = keyvals, ylab = "-log10 p-value", subtitle = "Cluster 2 vs Cluster 1",
-                               title = "Volcano Plot of Differentially Expressed/Phosphorylated Proteins",
-                               boxedLabels = T, labCol = keyvals[names(keyvals) != "NS"], labSize = 4, ylim = c(0,4), xlim = c(-1,1),
+                               colCustom = keyvals, ylab = "-log10 p-value",
+                               title = "Volcano Plot of Differentially Expressed/Phosphorylated Proteins", subtitle = "",
+                               boxedLabels = T, labCol = keyvals[names(keyvals) != "NS"], labSize = 7, ylim = c(0,4), xlim = c(-1,1),
                                drawConnectors = T,maxoverlapsConnectors = Inf, typeConnectors = "open",max.overlaps = Inf, legendPosition = "top", gridlines.minor = F, gridlines.major = F,
                                raster = TRUE)
 DEP_volcano
@@ -285,12 +282,11 @@ kegg_ora <- kk_results_long %>% filter(p.adjust < 0.05, Description %in% top10_p
   arrange(RichFactor) %>% mutate(Description = factor(Description, levels = unique(Description))) %>% 
   ggplot(aes(x = RichFactor, y = Description)) +
   geom_segment(aes(xend = 0, yend = Description), color = "gray50") +
-  geom_text_repel(aes(label = ALIAS, color = logFC), force = 5, max.overlaps = Inf, fontface = "bold") +
+  geom_text_repel(aes(label = ALIAS, color = logFC), force = 5, max.overlaps = Inf, fontface = "bold", size = 8) +
   geom_point(aes(fill = -log10(p.adjust)), shape = 21, size = 12, color = "gray50") +
   scale_fill_gradient(high = "#fc0352", low = "white", name = "-log10 FDR") +
   scale_color_gradient2(low = "purple", mid = "gray80", high= "orange", limits = c(-0.6,0.6)) +
-  theme_cowplot() + labs(title = "KEGG Pathways Over-Representation Analysis",
-                         subtitle = "Top 10 KEGG Pathways by Rich Factor with FDR < 0.05")
+  theme_cowplot() + labs(title = "KEGG Pathways Over-Representation Analysis")
 
 kegg_ora
 
@@ -315,11 +311,10 @@ openxlsx2::write_xlsx(cpg_info, "data/data_omics/methylomics/Fig_Table_A.xlsx")
 load("data/data_omics/cna/cytobands.RData")
 cytobands <- as.data.frame(cytobands)
 
-tblB <- cytobands %>% dplyr::select(Descriptor, rowRanges, Unique.Name, type, genes_in_peak)
+tblB <- cytobands %>% dplyr::select(Descriptor, rowRanges, Unique.Name, type, Genes.Peak.Limits)
 openxlsx2::write_xlsx(tblB, "data/data_omics/cna/Fig_Table_B.xlsx")
 
 ## Figures ----
-
 
 abc <- cowplot::plot_grid(OR_cna, dmp_volcano, rna_volcano, nrow = 1, labels = "AUTO")
 abc

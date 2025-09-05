@@ -10,9 +10,6 @@ library(missMDA)
 library(minfi)
 library(openxlsx)
 
-# Refs
-# https://nbis-workshop-epigenomics.readthedocs.io/en/latest/content/tutorials/methylationArray/Array_Tutorial.html#introduction
-# https://bioconductor.org/packages/release/workflows/vignettes/methylationArrayAnalysis/inst/doc/methylationArrayAnalysis.html#introduction
 
 # 1. Load data ----
 patient_cluster <- read_csv("data/patient_clusters.csv")
@@ -43,12 +40,8 @@ met_tcga <- met_tcga[, which(!colMeans(is.na(met_tcga)) > 0.2)]
 met_tcga <- apply(met_tcga, 2, as.numeric)
 met_tcga <- as.data.frame(met_tcga)
 
-str(met_tcga)
-
 # Assign patients
 met_tcga$patient <- patient
-
-#rownames(met_tcga) <- met_tcga$patient
 
 ## Assign cluster IDs
 
@@ -62,38 +55,6 @@ write_csv(met_tcga, file = "data/data_omics/methylomics/met_tcga.csv")
 
 met_features <- c("cg06785999",	"cg07095230",	"cg00839579")
 
-# 2. Quick EDA ----
-
-# PCA and HPCP
-
-met_mat <- as.matrix(subset(met_tcga, select = -c(cluster,patient)))
-
-rownames(met_mat) <- met_tcga$patient
-
-str(met_mat)
-
-#nb <- estim_ncpPCA(met_mat, ncp.max = 5, verbose = TRUE)
-res.comp <- imputePCA(met_mat,ncp=15)
-met_pca <- PCA(res.comp$completeObs)
-
-#met_pca <- PCA(met_mat)
-
-p2 <- fviz_pca_ind(met_pca, habillage = met_tcga$cluster, repel = TRUE, addEllipses = T, label = "none",
-             mean.point = FALSE) + theme_cowplot()
-
-met_hcpc <- HCPC(met_pca, graph = FALSE)
-
-
-p1 <- fviz_dend(met_hcpc, rect = T, rect_fill = T, cex = 0.5, ggtheme = cowplot::theme_cowplot())
-
-p3 <- fviz_cluster(met_hcpc,
-             repel = TRUE,            # Avoid label overlapping
-             show.clust.cent = FALSE, # Show cluster centers
-             #palette = "jco",         # Color palette see ?ggpubr::ggpar
-             ggtheme = cowplot::theme_cowplot(),
-             main = "Factor map", geom = "point")
-
-plot_grid(p1, p2, p3)
 
 # Distribution of beta values
 
@@ -131,14 +92,6 @@ contMatrix
 fit2 <- contrasts.fit(fit, contMatrix)
 fit2 <- eBayes(fit2)
 
-# look at the numbers of DM CpGs at FDR < 0.05
-summary(decideTests(fit2))
-
-barplot(height = c(68492, 57253, 270320), names.arg = c("Up", "Down", "NotSig"), 
-        col = c("pink", "lightblue", "gray80"), border = c("firebrick3", "slateblue4", "gray50"),
-        ylab = "Differentially Methylated CpGs Count", main = "DM CpGs at FDR < 0.05", ylim = c(0,300000))
-
-
 # get the table of results for the first contrast
 DMPs <- topTable(fit2, num=Inf)
 head(DMPs)
@@ -151,11 +104,6 @@ openxlsx::write.xlsx(DMPs, file = "data/data_omics/methylomics/DMPs.xlsx")
 
 DMPs <- openxlsx::read.xlsx("data/data_omics/methylomics/DMPs.xlsx")
 
-# Plot most significant differentially methylated CpG
-
-par(mfrow = c(2,2))
-minfi::plotCpg(Bval, cpg = rownames(DMPs)[1:4], pheno=cluster, ylab = "Beta values")
-par(mfrow = c(1,1))
 
 ## Volcano Plot ----
 
@@ -184,8 +132,6 @@ EnhancedVolcano(toptable = DMPs, lab = rownames(DMPs), x = "logFC", y = "adj.P.V
 
 # 3. Gene Enrichment ----
 
-# https://bioconductor.org/packages/release/workflows/vignettes/methylationArrayAnalysis/inst/doc/methylationArrayAnalysis.html#additional-analyses 
-
 library(missMethyl)
 
 DCpGs <- DMPs %>% filter(abs(logFC) > 2 & adj.P.Val < 1e-05)
@@ -207,7 +153,6 @@ gene_info <- as.data.frame(gene_info)
 
 DCpGs <- left_join(DCpGs, gene_info, by = join_by(cpg_name == Name))
 openxlsx::write.xlsx(DCpGs, "data/data_omics/methylomics/DCpGs.xlsx")
-DCpGs <- openxlsx::read.xlsx("results/methylomics/DCpGs.xlsx")
 
 met_features_genes <- DCpGs %>% filter(cpg_name %in% met_features)
 openxlsx2::write_xlsx(met_features_genes, file = "data/data_omics/methylomics/met_features_genes.xlsx")

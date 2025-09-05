@@ -46,20 +46,7 @@ kk_results_long <- openxlsx2::read_xlsx("data/data_omics/rppa/KEGG_ORA_long.xlsx
 
 # 2. Plots ----
 
-### CNA by patient ----
-
-df <- cna_tcga_ID_long %>% group_by(patient, cluster) %>% summarise(counts = sum(!is.na(CNA)))
-
-cna_violin <- df %>% ggplot(aes(x = cluster, y = counts)) + 
-  geom_violin(aes(color = cluster, fill = cluster), alpha = 0.15, trim = T,
-              draw_quantiles = c(0.25, 0.5, 0.75)) +
-  geom_jitter(aes(color = cluster), shape = 1, width = 0.15) +
-  ylab("Number of CNA by Patient") + xlab("") +
-  theme_cowplot() + labs(title = "Total Copy Number Alterations by Patient") +
-  annotate(geom = "text", x = 1, y = 30, label = "p-value < 2.2e-16 Wilcoxon rank sum test")
-cna_violin
-
-### Odds Ratio CNA ----
+### Fig. 5A ----
 
 OR_cna <- cna_tcga %>% filter(fisher_adjpval < 0.05) %>% arrange(OR) %>% 
   mutate(Descriptor = factor(Descriptor, levels = Descriptor)) %>% 
@@ -73,13 +60,13 @@ OR_cna <- cna_tcga %>% filter(fisher_adjpval < 0.05) %>% arrange(OR) %>%
   xlab("Odds Ratio") + ylab("Cytoband")
 OR_cna
 
-### Odss Ratio with Genes ----
+### Fig. S1A ----
       
 OR_cna_genes <- cytobands_select %>% arrange(OR) %>% 
   mutate(Descriptor = factor(Descriptor, levels = c(unique(Descriptor)))) %>% ggplot(aes(x = OR, y = Descriptor)) +
   geom_segment(aes(xend = 0, yend = Descriptor), color = "gray80") +
   geom_point(aes(fill = -log10(fisher_adjpval), shape = type), size = 5) +
-  geom_text_repel(aes(label = genes_in_peak), color = "firebrick", size = 3, max.overlaps = Inf, force = 4, segment.alpha = 0.2) +  # Add gene names
+  geom_text_repel(aes(label = genes_in_peak), color = "firebrick", size = 3.5, max.overlaps = Inf, force = 4, segment.alpha = 0.2) +  # Add gene names
   scale_shape_manual(values = c(23), name = "Type of CNA") +
   scale_fill_gradient(high = "#fc0352", low = "white", name = "-log10 Fisher's\ntest FDR", limits = c(3,16)) +
   scale_color_manual(values = c("firebrick", "navy"), name = "Type of CNA")+
@@ -88,7 +75,11 @@ OR_cna_genes <- cytobands_select %>% arrange(OR) %>%
   xlab("Odds Ratio") + ylab("Cytoband")
 OR_cna_genes
 
-### Volcano plot Methylation ----
+### Fig. 5B ----
+
+nrow(DMPs %>% filter(logFC > 2 & adj.P.Val < 0.05))
+nrow(DMPs %>% filter(logFC < -2 & adj.P.Val < 0.05))
+
 
 keyvals <- ifelse(
   DMPs$logFC < -2 & DMPs$adj.P.Val < 1e-05, 'slateblue4',
@@ -111,9 +102,13 @@ dmp_volcano <- EnhancedVolcano(toptable = DMPs, lab = rownames(DMPs), x = "logFC
                                raster = TRUE)
 dmp_volcano
 
-### Volcano plot RNA ----
+### Fig. 5C ----
 
 top.table <- limma_results
+
+nrow(top.table %>% filter(logFC > 0.25 & adj.P.Val < 0.05))
+nrow(top.table %>% filter(logFC < -0.25 & adj.P.Val < 0.05))
+
 
 keyvals <- ifelse(
   top.table$logFC < -0.25 & top.table$adj.P.Val < 0.05, 'slateblue4',
@@ -135,7 +130,7 @@ rna_volcano <- EnhancedVolcano(toptable = top.table, lab = top.table$Gene, x = "
                                raster = TRUE)
 rna_volcano
 
-## Correlation plots ----
+## Fig. S1B and S1C ----
 
 rna_features <- as.data.frame(t(rna_mat_norm))
 colnames(rna_features) <- rna_tcga$patient
@@ -182,7 +177,7 @@ MEOX2_cor <- ggpubr::ggscatter(data = MEOX2, x = "Bval", y = "RSEM_TPM",
                                xlab = "Methylation B values", ylab = "RSEM TPM Normalized Counts") + 
   labs(title = "Correlation RNA - Methylation MEOX2") + theme_cowplot()
 
-### C6 GSEA Methylomics ----
+### Fig. 5D ----
 
 library(missMethyl)
 
@@ -227,7 +222,7 @@ topOncoSig_unnest %>% filter(FDR < 0.05) %>% arrange(propDE) %>%
   scale_size_continuous(name = "Gene Ratio") +
   xlab("Gene Ratio")
 
-### C6 GSEA RNA-Seq ----
+### Fig. 5E----
 
 enrich_cluster2 <- read_delim("data/data_omics/rna_seq/GSEA/C6_Oncogenic_Norm.Gsea.1753876686244/gsea_report_for_Cluster_2_1753876686244.tsv",
                               delim = "\t")
@@ -250,7 +245,49 @@ c6_rna <- enrich_gsea_c6 %>% filter(`FDR q-val`< 0.25) %>%
   labs(title = "Enriched Oncogenic Gene Sets - Transcriptomics") + ylab("") + theme_cowplot()
 c6_rna
 
-## RPPA ----
+## Fig. S1D ----
+
+counts_df <- cna_tcga_ID_long
+counts_df$CNA[is.na(counts_df$CNA)] <- 0
+counts_df$CNA <- factor(counts_df$CNA, levels = c("0", "1", "2"))
+
+counts_df <- counts_df %>%
+  group_by(cluster, CNA) %>%
+  summarise(n = n(), .groups = "drop_last") %>%
+  mutate(prop = n /sum(n)) %>% ungroup()
+
+counts_df <- counts_df %>%
+  tidyr::complete(cluster, CNA, fill = list(n = 0, prop = 0))
+
+
+alleles_plot <- counts_df %>% ggplot(aes(x = CNA, y = prop)) + 
+  geom_bar(aes( color = cluster, fill = cluster), alpha = 0.4,stat = "identity", position = position_dodge()) + 
+  labs(title = "Proportion of alleles affected\nwith CNA") + xlab("Alleles affected") + ylab("Proportion") + 
+  theme_cowplot()
+
+
+cytobands_long <- cna_tcga_ID_long %>% filter(Descriptor %in% sel_cna)
+cytobands_long$CNA[is.na(cytobands_long$CNA)] <- 0
+cytobands_long$CNA <- factor(cytobands_long$CNA, levels = c("0", "1", "2"))
+
+cytobands_long_count <- cytobands_long %>%
+  group_by(cluster, CNA) %>%
+  summarise(n = n(), .groups = "drop_last") %>%
+  mutate(prop = n / sum(n)) %>% ungroup()
+
+cytobands_long_count <- cytobands_long_count %>%
+  tidyr::complete(cluster, CNA, fill = list(n = 0, prop = 0))
+
+
+alleles_plot_selected <- cytobands_long_count %>% ggplot(aes(x = CNA, y = prop)) + 
+  geom_bar(aes( color = cluster, fill = cluster), alpha = 0.4,stat = "identity", position = position_dodge()) + 
+  labs(title = "Proportion of alleles affected\nwith CNA in selected cytobands") + xlab("Alleles affected") + ylab("Proportion") + 
+  ylim (0,1) + theme_cowplot()
+
+alleles <- cowplot::plot_grid(alleles_plot, alleles_plot_selected, ncol = 1)
+
+
+## Fig. S1E ----
 
 keyvals <- ifelse(
   rppa_toptable$logFC < 0 & rppa_toptable$P.Value < 0.05, 'slateblue4',
@@ -269,6 +306,8 @@ DEP_volcano <- EnhancedVolcano(toptable = rppa_toptable, lab = rppa_toptable$pep
                                drawConnectors = T,maxoverlapsConnectors = Inf, typeConnectors = "open",max.overlaps = Inf, legendPosition = "top", gridlines.minor = F, gridlines.major = F,
                                raster = TRUE)
 DEP_volcano
+
+## Fig. S1F ----
 
 # Identify top 10 pathways by RichFactor (using unique Description values)
 top10_paths <- kk_results_long %>%
@@ -290,9 +329,25 @@ kegg_ora <- kk_results_long %>% filter(p.adjust < 0.05, Description %in% top10_p
 
 kegg_ora
 
-# FIGURE ----
+# 3. FIGURES SAVING ----
 
-## Features Information Tables ----
+## Fig. 5 ----
+
+abc <- cowplot::plot_grid(OR_cna, dmp_volcano, rna_volcano, nrow = 1, labels = "AUTO")
+de <- cowplot::plot_grid(c6_methyl, c6_rna, labels = c("D", "E"))
+fig <- cowplot::plot_grid(abc, de, ncol = 1, rel_heights = c(0.4,0.6))
+ggsave(plot = fig, filename = "figures/omics_analysis/fig.pdf", height = 2*11.69, width = 3*8.27)
+
+## Fig. S1 ----
+
+abc <- cowplot::plot_grid(OR_cna_genes, MEOX2_cor, TBX2_cor, nrow = 1, labels = "AUTO")
+def <- cowplot::plot_grid(alleles, DEP_volcano, kegg_ora, labels = c("D", "E", "F"), rel_widths = c(0.2,0.4,0.4), nrow = 1)
+supp_fig <- plot_grid(abc, def, ncol = 1, rel_heights = c(0.4, 0.6))
+ggsave("figures/omics_analysis/supp_fig.pdf", plot = supp_fig, height = 2*11.69, width = 3.5*8.27)
+
+
+
+# 4. Features Information Tables ----
 
 # Load libraries for annotation of CpGs
 library(annotate)
@@ -306,29 +361,80 @@ head(annot)
 
 cpg_info <- annot[cpg_sites, c("Name","chr", "pos", "strand", "UCSC_RefGene_Name", "UCSC_RefGene_Group")]
 cpg_info <- as.data.frame(cpg_info)
-openxlsx2::write_xlsx(cpg_info, "data/data_omics/methylomics/Fig_Table_A.xlsx")
+
+openxlsx2::write_xlsx(cpg_info, "results/cpg_genes.xlsx")
 
 load("data/data_omics/cna/cytobands.RData")
 cytobands <- as.data.frame(cytobands)
 
-tblB <- cytobands %>% dplyr::select(Descriptor, rowRanges, Unique.Name, type, Genes.Peak.Limits)
-openxlsx2::write_xlsx(tblB, "data/data_omics/cna/Fig_Table_B.xlsx")
+cna_genes <- cytobands %>% dplyr::select(Descriptor, Peak.Limits, Unique.Name, type, Genes.Peak.Limits)
+cna_genes$Peak.Limits <- cna_genes$Peak.Limits %>% str_remove("\\(probe.*")
+openxlsx2::write_xlsx(cna_genes, "results/cna_genes.xlsx")
 
-## Figures ----
+# 5. Data S2 ----
 
-abc <- cowplot::plot_grid(OR_cna, dmp_volcano, rna_volcano, nrow = 1, labels = "AUTO")
-abc
-#cd <- cowplot::plot_grid(cna_violin, OR_cna, ncol = 2, labels = c("C", "D"), rel_widths = c(0.4, 0.6))
-#ef <- cowplot::plot_grid(dmp_volcano, rna_volcano, labels = c("E", "F"))
-de <- cowplot::plot_grid(c6_methyl, c6_rna, labels = c("D", "E"))
+## Data S2.1 ----
 
-fig <- cowplot::plot_grid(abc, de, ncol = 1, rel_heights = c(0.4,0.6))
-ggsave(plot = fig, filename = "figures/omics_analysis/fig.pdf", height = 2*11.69, width = 3*8.27)
+DataS2.1 <- cna_tcga %>% dplyr::select(Descriptor, Peak.Limits, Wide.Peak.Limits, type, OR, lwr, upr, fisher_adjpval)
+DataS2.1$Peak.Limits <- DataS2.1$Peak.Limits %>% str_remove(pattern = "\\(probes.*")
+DataS2.1$Wide.Peak.Limits <- DataS2.1$Wide.Peak.Limits %>% str_remove(pattern = "\\(probes.*")
+DataS2.1 <- DataS2.1 %>% arrange(desc(OR))
 
-# SUPP FIGURE ----
+## Data S2.2 ----
 
-abc <- cowplot::plot_grid(OR_cna_genes, MEOX2_cor, TBX2_cor, nrow = 1, labels = "AUTO")
-de <- cowplot::plot_grid(DEP_volcano, kegg_ora, labels = c("D", "E"))
-supp_fig <- plot_grid(abc, de, ncol = 1, rel_heights = c(0.4, 0.6))
-ggsave("figures/omics_analysis/supp_fig.pdf", plot = supp_fig, height = 2*11.69, width = 3*8.27)
+cpg_sites <- DMPs$cpg_name
+annot <- getAnnotation(IlluminaHumanMethylation450kanno.ilmn12.hg19)
+names(annot)
+
+gene_info <- annot[cpg_sites, c("Name", "UCSC_RefGene_Name", "UCSC_RefGene_Group", "UCSC_RefGene_Accession")]
+
+rownames(gene_info) <- NULL
+
+gene_info <- as.data.frame(gene_info)
+
+DMPs <- left_join(DMPs, gene_info, by = join_by(cpg_name == Name))
+
+DataS2.2 <- DMPs
+
+## Data S2.3 ----
+
+DataS2.3 <- limma_results
+
+## Data S2.4 ----
+
+gsa_OncoSig$logFDR <- -log10(gsa_OncoSig$FDR)
+gsa_OncoSig$propDE <- gsa_OncoSig$DE/gsa_OncoSig$N
+gsa_OncoSig$OncoSig <- rownames(gsa_OncoSig)
+gsa_OncoSig <- gsa_OncoSig %>% arrange(desc(logFDR))
+DataS2.4 <- gsa_OncoSig
+
+## Data S2.5 ----
+
+DataS2.5 <- rbind(enrich_cluster2, enrich_cluster1)
+
+## Data S2.6 ----
+
+DataS2.6 <- rppa_toptable
+
+## Data S2.7 ----
+
+kk_results <- read_xlsx("data/data_omics/rppa/KEGG_ORA.xlsx")
+
+DataS2.7 <- kk_results
+
+## SAVING DATA S2 ----
+
+DataS2 <- list(DataS2.1 = DataS2.1, DataS2.2 = DataS2.2, DataS2.3 = DataS2.3, 
+               DataS2.4 = DataS2.4, DataS2.5 = DataS2.5, DataS2.6 = DataS2.6, 
+               DataS2.7 = DataS2.7)
+
+wb <- wb_workbook()
+
+for(i in names(DataS2)) {
+  wb$add_worksheet(i)
+  wb$add_data(sheet = i, x = DataS2[[i]])
+}
+
+
+wb$save("results/DataS2.xlsx")
 

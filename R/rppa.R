@@ -33,41 +33,8 @@ rppa_tgca <- left_join(rppa_tgca, patient_cluster[,c(1,3)], by = join_by(patient
 
 rppa_tgca$cluster <- as.factor(rppa_tgca$cluster)
 
-# 2. Quick EDA ----
 
-# PCA and HPCP
-
-rppa_mat <- as.matrix(subset(rppa_tgca, select = -c(cluster,patient)))
-
-rownames(rppa_mat) <- rppa_tgca$patient
-
-str(rppa_mat)
-
-
-rppa_pca <- PCA(rppa_mat)
-
-p2 <- fviz_pca_ind(rppa_pca, habillage = rppa_tgca$cluster, repel = TRUE, addEllipses = T, label = "none",
-                   mean.point = FALSE) + theme_cowplot()
-
-rppa_hcpc <- HCPC(rppa_pca, graph = FALSE)
-
-p1 <- fviz_dend(rppa_hcpc, rect = T, rect_fill = T, cex = 0.2, ggtheme = cowplot::theme_cowplot())
-
-p3 <- fviz_cluster(rppa_hcpc,
-                   repel = TRUE,            # Avoid label overlapping
-                   show.clust.cent = FALSE, # Show cluster centers
-                   #palette = "jco",         # Color palette see ?ggpubr::ggpar
-                   ggtheme = cowplot::theme_cowplot(),
-                   main = "Factor map", geom = "point") + geom_hline(yintercept = 0, linetype = 2) + geom_vline(xintercept = 0, linetype = 2)
-
-plot_grid(p1, p2, p3)
-
-rppa_tgca_long <- pivot_longer(subset(rppa_tgca, select = -patient), cols = -cluster, names_to = "patient", values_to = "beta")
-
-rppa_tgca_long %>% ggplot(aes(x = beta)) + geom_density(aes(color = cluster, fill = cluster), alpha = 0.1, lwd = 1) + theme_cowplot() +
-  xlab("Normalized Expression") + ylab("Density") + labs(title = "Normalized Expression Values")
-
-# 3. Differential Expression ----
+# 2. Differential Expression ----
 
 rppa <- as.data.frame(t(subset(rppa_tgca, select = -c(patient, cluster))))
 colnames(rppa) <- rppa_tgca$patient %>% str_replace_all(pattern = "-", replacement = "_")
@@ -105,25 +72,9 @@ rppa_toptable <- left_join(rppa_toptable, subset(rppa_ann, select = c("peptide_t
 rppa_toptable$peptide_target <- peptide_target
 rppa_toptable[is.na(rppa_toptable$gene_id),]
 
-deg_count <- summary(decideTests(fit2, adjust.method = "none"))
-
-
-barplot(height = c(deg_count["Up",], deg_count["Down",], deg_count["NotSig",]), names.arg = c("Up", "Down", "NotSig"), 
-        col = c("pink", "lightblue", "gray80"), border = c("firebrick3", "slateblue4", "gray50"),
-        ylab = "Count", main = "Differentially Expressed/Phosphorylated\nProteins at p-value < 0.05", ylim = c(0,200))
-
-top5 <- rppa_toptable[1:5,]
-
-top5 <- rppa_tgca %>% select(c(top5$peptide_target, cluster))
-
-top5 %>% pivot_longer(cols = -cluster) %>% ggplot(aes(x = name, y = value)) +
-  geom_boxplot(aes(fill = cluster), alpha = 0.5, outliers = F) +
-  geom_dotplot(aes(fill = cluster), binaxis='y', stackdir='center',
-                 position=position_jitterdodge(0.2), dotsize = 0.2) + theme_cowplot()
-
 write_csv(rppa_toptable, file = "data/data_omics/rppa/rppa_toptable.csv")
 
-## 3.1 Volcano Plot ----
+### Volcano Plot ----
 
 # create custom key-value pairs for 'high', 'low', 'mid' expression by fold-change
 # this can be achieved with nested ifelse statements
@@ -144,9 +95,7 @@ EnhancedVolcano(toptable = rppa_toptable, lab = rppa_toptable$peptide_target, x 
                                boxedLabels = T, labCol = keyvals[names(keyvals) != "NS"], labSize = 4, ylim = c(0,5), xlim = c(-1,1),
                                drawConnectors = T, max.overlaps = Inf, legendPosition = "top", gridlines.minor = F, gridlines.major = F)
 
-## 4 ClusterProfiler ----
-
-### GO over-representation analysis ----
+# 3. ClusterProfiler ----
 
 library(clusterProfiler)
 library(org.Hs.eg.db)
@@ -190,6 +139,8 @@ kk_results_long <- kk_results %>% unnest(ALIAS)
 sel_DEP <- rppa_toptable_sig[!duplicated(rppa_toptable_sig$gene_name),]
 
 kk_results_long <- left_join(kk_results_long, sel_DEP[,c("logFC", "gene_name")], by = join_by(ALIAS == gene_name))
+kk_results_long <- distinct(kk_results_long)
+
 openxlsx2::write_xlsx(kk_results_long, file = "data/data_omics/rppa/KEGG_ORA_long.xlsx")
 
 kk_results_long %>% filter(p.adjust < 0.001) %>%
@@ -203,19 +154,3 @@ kk_results_long %>% filter(p.adjust < 0.001) %>%
   theme_cowplot() + labs(title = "KEGG Pathways Over-Representation Analysis",
                          subtitle = "FDR < 0.001")
 
-browseKEGG(kk, pathID = "hsa04066")
-
-library(pathview)
-
-table(sel_DEP$gene_name == unique(gene.df$ALIAS))
-
-df <- sel_DEP$logFC
-names(df) <- gene.df[!duplicated(gene.df$ALIAS),"ENTREZID"]
-
-hsa04066 <- pathview(gene.data = df,
-                     pathway.id = "hsa04066",
-                     species = "hsa", low = "slateblue2", high = "firebrick2")
-
-
-
-cowplot::plot_grid(DEP_volcano, kegg_ora)

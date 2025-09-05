@@ -47,14 +47,11 @@ patient <- patient %>% str_replace(pattern = "-01A.*", replacement = "")
 
 rna_tcga <- apply(rna_tcga, 2, as.numeric)
 
-
 rna_tcga <- rna_tcga[, which(!colMeans((rna_tcga == 0)) > 0.2)]
 
 rna_tcga <- as.data.frame(rna_tcga)
 
 rna_tcga$patient <- patient
-
-#rownames(met_tcga) <- met_tcga$patient
 
 ## Assign cluster IDs
 
@@ -62,76 +59,11 @@ rna_tcga <- left_join(rna_tcga, patient_cluster[,c(1,3)], by = join_by(patient =
 
 rna_tcga$cluster <- as.factor(rna_tcga$cluster)
 
-## 2. Quick EDA ----
-
-# PCA and HPCP
-
 rna_mat <- as.matrix(subset(rna_tcga, select = -c(cluster,patient)))
-write.csv(rna_mat, "data/data_omics/rna_seq/rna_mat_norm.csv")
-rna_mat_norm <- rna_mat
+
 rownames(rna_mat) <- rna_tcga$patient
 
-barplot(rowSums(rna_mat), col = "firebrick2", 
-        main = "RNASeg2GeneNorm", sub = "Histogram of Counts by Patient")
-
-EDASeq::plotRLE(t(rna_mat), outline = FALSE,
-                col = as.numeric(rna_tcga$cluster),
-                main = "TCGA RNASeq2GeneNorm")
-
-
-rna_pca <- PCA(rna_mat)
-
-p2 <- fviz_pca_ind(rna_pca, habillage = rna_tcga$cluster, repel = TRUE, addEllipses = T, label = "none",
-                   mean.point = FALSE) + theme_cowplot()
-
-rna_hcpc <- HCPC(rna_pca, graph = FALSE)
-
-
-p1 <- fviz_dend(rna_hcpc, rect = T, rect_fill = T, cex = 0.5, ggtheme = cowplot::theme_cowplot())
-
-p3 <- fviz_cluster(rna_hcpc,
-                   repel = TRUE,            # Avoid label overlapping
-                   show.clust.cent = FALSE, # Show cluster centers
-                   #palette = "jco",         # Color palette see ?ggpubr::ggpar
-                   ggtheme = cowplot::theme_cowplot(),
-                   main = "Factor map", geom = "point")
-
-plot_grid(p1, p2, p3)
-
-# Distribution of counts
-
-rna_tcga_long <- pivot_longer(subset(rna_tcga, select = -patient), cols = -cluster, names_to = "patient", values_to = "TPM")
-
-rna_tcga_long %>% ggplot(aes(x = log(TPM))) + geom_density()
-
-
-# Heatmap of most variable genes
-
-# TPM values
-tpm <- as.data.frame(t(subset(rna_tcga, select = -c(patient, cluster))))
-colnames(tpm) <- patient
-
-#compute the variance of each gene across samples
-V <- apply(tpm, 1, var)
-#sort the results by variance in decreasing order 
-#and select the top 100 genes 
-selectedGenes <- names(V[order(V, decreasing = T)][1:1000])
-
-annotation_col <- data.frame(Cluster = rna_tcga$cluster)
-rownames(annotation_col) <- colnames(tpm)
-
-
-pheatmap::pheatmap(tpm[selectedGenes,], scale = 'row', show_rownames = FALSE, annotation_col = annotation_col, treeheight_row = 0,
-         main = "Heatmap of 1000 most variable genes", treeheight_col = 10, color = hcl.colors(50, palette = "RdBu", rev = T),
-         width = 10, height = 10, fontsize_col = 5)
-
-## 3. Differential Expression Analysis ----
-
-# As these are normalized TPM values, we cannot perform differential expression
-# analysis using limma or DESeq2. But, we can do GSEA analysis using permutation
-# of samples: https://docs.gsea-msigdb.org/#GSEA/GSEA_and_RNA-Seq/
-
-# Files for GSEA
+## 2. Files for GSEA ----
 
 countsNormalized <- t(rna_mat)
 
@@ -154,7 +86,7 @@ table(c2$patient %in% c1$patient)
 write_csv(phenotype, file = "data/data_omics/rna_seq/GSEA/NormCounts_phenotype.csv")
 
 
-# "Raw" Counts ----
+# Raw Counts ----
 
 ## 0. Download data ----
 
@@ -248,7 +180,6 @@ rna_tcga <- as.data.frame(rna_tcga)
 
 rna_tcga$patient <- patient
 
-#rownames(met_tcga) <- met_tcga$patient
 
 ## Assign cluster IDs
 
@@ -258,72 +189,14 @@ rna_tcga$cluster <- as.factor(rna_tcga$cluster)
 
 write.csv(rna_tcga, "data/data_omics/rna_seq/rna_tcga.csv")
 
-## 2. Quick EDA ----
-
-# PCA and HPCP
-
 rna_mat <- as.matrix(subset(rna_tcga, select = -c(cluster,patient)))
 
 rownames(rna_mat) <- rna_tcga$patient
 
-barplot(rowSums(rna_mat), col = "slateblue2", 
-        main = "RNASeg2Gene", sub = "Histogram of Counts by Patient")
 
-range(rna_mat)
+## 2. Differential Expression Analysis ----
 
-str(rna_mat)
-
-rna_pca <- PCA(rna_mat)
-
-p2 <- fviz_pca_ind(rna_pca, habillage = rna_tcga$cluster, repel = TRUE, addEllipses = T, label = "none",
-                   mean.point = FALSE) + theme_cowplot()
-
-rna_hcpc <- HCPC(rna_pca, graph = FALSE)
-
-
-p1 <- fviz_dend(rna_hcpc, rect = T, rect_fill = T, cex = 0.5, ggtheme = cowplot::theme_cowplot())
-
-p3 <- fviz_cluster(rna_hcpc,
-                   repel = TRUE,            # Avoid label overlapping
-                   show.clust.cent = FALSE, # Show cluster centers
-                   #palette = "jco",         # Color palette see ?ggpubr::ggpar
-                   ggtheme = cowplot::theme_cowplot(),
-                   main = "Factor map", geom = "point")
-
-plot_grid(p1, p2, p3)
-
-# Distribution of counts
-
-rna_tcga_long <- pivot_longer(subset(rna_tcga, select = -patient), cols = -cluster, names_to = "Gene", values_to = "Counts")
-
-rna_tcga_long %>% ggplot(aes(x = log(Counts))) + geom_density()
-
-# Heatmap of most variable genes
-
-# TPM values
-tpm <- as.data.frame(t(subset(rna_tcga, select = -c(patient, cluster))))
-colnames(tpm) <- patient
-
-#compute the variance of each gene across samples
-V <- apply(tpm, 1, var)
-#sort the results by variance in decreasing order 
-#and select the top 100 genes 
-selectedGenes <- names(V[order(V, decreasing = T)][1:1000])
-
-annotation_col <- data.frame(Cluster = rna_tcga$cluster)
-rownames(annotation_col) <- colnames(tpm)
-
-
-pheatmap::pheatmap(tpm[selectedGenes,], scale = 'row', show_rownames = FALSE, annotation_col = annotation_col, treeheight_row = 0,
-         main = "Heatmap of 1000 most variable genes", treeheight_col = 10, color = hcl.colors(50, palette = "RdBu", rev = T),
-         fontsize_col = 5)
-
-## 3. Differential Expression Analysis ----
-
-### 3.2 Limma ----
-
-# https://ucdavis-bioinformatics-training.github.io/2018-June-RNA-Seq-Workshop/thursday/DE.html
-
+### 2.1 Limma ----
 
 #define the read count table (rows = features, columns = patients)
 countData <- t(rna_mat)

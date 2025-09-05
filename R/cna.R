@@ -40,8 +40,6 @@ cna_tcga_ID <- as.data.frame(cna_tcga_ID)
 
 cna_tcga_ID$patient <- patient
 
-#rownames(met_tcga) <- met_tcga$patient
-
 ## Assign cluster IDs
 
 cna_tcga_ID <- left_join(cna_tcga_ID, patient_cluster[,c(1,3)], by = join_by(patient == patient))
@@ -53,31 +51,11 @@ cna_tcga_ID_long$CNA[cna_tcga_ID_long$CNA == 0] <- NA
 
 openxlsx2::write_xlsx(cna_tcga_ID_long, file = "data/data_omics/cna/cna_tcga_ID_long.xlsx")
 
-head(cna_tcga_ID_long,20)
-
-df <- cna_tcga_ID_long %>% group_by(patient, cluster) %>% summarise(counts = mean(!is.na(CNA)))
-
-df %>% ggplot(aes(x = counts)) + geom_density(aes(colour = cluster))
-
-# 2.  Copy number alteration by patient ----
-
-df %>% ggplot(aes(x = cluster, y = counts)) + 
-  geom_violin(aes(color = cluster, fill = cluster), alpha = 0.15, trim = F,
-              draw_quantiles = c(0.25, 0.5, 0.75)) +
-  geom_jitter(aes(color = cluster), shape = 1, width = 0.15) +
-  ylab("Number of CNA by Patient") + xlab("") +
-  theme_cowplot() + labs(title = "Mean Copy Number Alterations by Patient",
-                         caption = "p-value < 2.2e-16 Wilcoxon rank sum test")
-wilcox.test(counts ~ cluster, data = df)
-
-# 3. Contingency table ----
+# 2. Contingency table ----
 
 contin_cna <- cna_tcga_ID_long %>% group_by(Descriptor, cluster) %>% summarise(Altered = sum(!is.na(CNA)))
 
-table(cna_tcga_ID$cluster == "Cluster_2")
-
 contin_cna <- contin_cna %>% mutate(Normal = c(32,121) - Altered)
-
 
 # Create list of contingency tables
 contingency_tables <- split(contin_cna, contin_cna$Descriptor) %>%
@@ -86,8 +64,6 @@ contingency_tables <- split(contin_cna, contin_cna$Descriptor) %>%
     rownames(table_matrix) <- sub_df$cluster
     return(table_matrix)
   })
-
-contingency_tables
 
 cna_fisher <- lapply(contingency_tables, FUN = fisher.test)
 
@@ -101,13 +77,22 @@ pvals$fisher_adjpval <- p.adjust(pvals$pval, method = "BH")
 
 
 OddsRatio <- function(mat) {
-  OR <- ((mat[2]+0.5)/(mat[4]+0.5))/((mat[1]+0.5)/(mat[3]+0.5))
+  a <- mat[2] + 0.5
+  b <- mat[4] + 0.5 
+  c <- mat[1] + 0.5
+  d <- mat[3] + 0.5
+  OR <- ((a)/(b))/((c)/(d))
+  SElogOR <- sqrt(1/a+1/b+1/c+1/d)
+  lwr <- exp(log(OR) - 1.96*SElogOR)
+  upr <- exp(log(OR) + 1.96*SElogOR)
+  OR <- data.frame(OR = OR, lwr = lwr, upr = upr)
   return(OR)
 }
 
+
+
 OR <- lapply(contingency_tables, OddsRatio)
-OR <- data.frame(OR = unlist(OR))
-OR$Descriptor <- rownames(OR)
+OR <- imap_dfr(OR, ~mutate(.x, Descriptor = .y))
 
 cna_tcga <- left_join(cna_tcga, pvals[,c("Descriptor", "fisher_adjpval")], by = join_by(Descriptor == Descriptor))
 cna_tcga <- left_join(cna_tcga, OR, by = join_by(Descriptor == Descriptor))
@@ -128,8 +113,6 @@ sel_cna <- c("17p12", "9p21.3", "21q11.2", "18q21.2")
 cytobands <- cna_tcga %>% filter(Descriptor %in% sel_cna)
 
 ## Assign genes to selected cytobands ----
-#https://bioconductor.org/packages/release/bioc/vignettes/biomaRt/inst/doc/accessing_ensembl.html
-
 
 # Loading Ensembl database
 library(biomaRt)
@@ -205,7 +188,6 @@ names(genes_in_peak) <- cytobands$Descriptor
 genes_in_wide_peak <- cytobands$Genes.Peak.Limits %>% str_split(pattern = ", ")
 names(genes_in_wide_peak) <- cytobands$Descriptor
 
-
 cytobands_select <- cytobands %>% dplyr::select(Descriptor, type, fisher_adjpval, OR)
 cytobands_select$genes_in_peak <- genes_in_peak
 cytobands_select$genes_in_wide_peak <- genes_in_wide_peak
@@ -229,4 +211,42 @@ cytobands_select %>% arrange(OR) %>%
   labs(title = "Genes in Significant Fisher Test Cytobands") +
   xlab("Odds Ratio") + ylab("Cytoband")
 
+## Proportion of homozygous vs hemizygous deletions ----
+
+counts_df <- cna_tcga_ID_long
+counts_df$CNA[is.na(counts_df$CNA)] <- 0
+counts_df$CNA <- factor(counts_df$CNA, levels = c("0", "1", "2"))
+
+counts_df <- counts_df %>%
+  group_by(cluster, CNA) %>%
+  summarise(n = n(), .groups = "drop") %>%
+  arrange(cluster, CNA)
+
+counts_df <- counts_df %>%
+  tidyr::complete(cluster, CNA, fill = list(n = 0))
+
+
+counts_df %>% ggplot(aes(x = CNA, y = n)) + 
+  geom_bar(aes( color = cluster, fill = cluster), alpha = 0.4,stat = "identity", position = position_dodge()) + 
+  labs(title = "Alleles affected by copy number alterations") + xlab("Alleles affected") + ylab("Count") + 
+  ylim(0,5000) + theme_cowplot()
+
+cytobands_long <- cna_tcga_ID_long %>% filter(Descriptor %in% cytobands$Descriptor)
+cytobands_long$CNA[is.na(cytobands_long$CNA)] <- 0
+cytobands_long$CNA <- factor(cytobands_long$CNA, levels = c("0", "1", "2"))
+
+cytobands_long_count <- cytobands_long %>%
+  group_by(cluster, CNA) %>%
+  summarise(n = n(), .groups = "drop") %>%
+  arrange(cluster, CNA)
+
+cytobands_long_count <- cytobands_long_count %>%
+  tidyr::complete(cluster, CNA, fill = list(n = 0))
+
+
+cytobands_long_count %>% ggplot(aes(x = CNA, y = n)) + 
+  geom_bar(aes( color = cluster, fill = cluster), alpha = 0.4,stat = "identity", position = position_dodge()) + 
+  labs(title = "Alleles affected by copy number alterations\nin selected cytobands") + xlab("Alleles affected") + ylab("Count") + 
+  ylim(0,400) +
+  theme_cowplot()
 

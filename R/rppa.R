@@ -57,7 +57,9 @@ contMatrix
 fit2 <- contrasts.fit(fit, contMatrix)
 fit2 <- eBayes(fit2, trend = TRUE)
 
-rppa_ann <- read_delim("data/data_omics/rppa/TCGA_antibodies_descriptions.gencode.v36.tsv", delim = "\t")
+## Antibody Description Files for TCGA RPPA Data (v36) downloaded from: https://gdc.cancer.gov/about-data/gdc-data-processing/gdc-reference-files
+
+rppa_ann <- read_delim("https://api.gdc.cancer.gov/v0/data/62647302-b4d3-4a81-a7c0-d141f5dbd300", delim = "\t")
 
 rppa_toptable <- topTable(fit2, number = Inf)
 peptide_target <- rownames(rppa_toptable)

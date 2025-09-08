@@ -181,7 +181,10 @@ MEOX2_cor <- ggpubr::ggscatter(data = MEOX2, x = "Bval", y = "RSEM_TPM",
 
 library(missMethyl)
 
+# Download MSigDB signature from https://www.gsea-msigdb.org/gsea/msigdb/human/collections.jsp#C6
+
 OncoSig <- GSA::GSA.read.gmt("data/data_omics/c6.all.v2025.1.Hs.entrez.gmt")
+
 OncoSig.genesets <- OncoSig %>% pluck("genesets")
 names(OncoSig.genesets) <- OncoSig$geneset.names
 gsa_OncoSig<- gsameth(

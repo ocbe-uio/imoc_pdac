@@ -20,7 +20,7 @@ patient_cluster <- patient_cluster %>% filter(!is.na(patient))
 patient_cluster$cluster <- patient_cluster$cluster %>% str_replace(pattern = "1", "2")
 patient_cluster$cluster <- patient_cluster$cluster %>% str_replace(pattern = "0", "1")
 
-rppa_tgca <- read_csv("TCGA/omics_data/preprocessed/RPPA_processed.csv")
+rppa_tgca <- read_csv("data/TCGA/omics_data/preprocessed/RPPA_processed.csv")
 
 rppa_tgca$patient <- rppa_tgca$...1
 rppa_tgca <- rppa_tgca[,-1]

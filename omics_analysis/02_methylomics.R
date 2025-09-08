@@ -19,7 +19,7 @@ colnames(patient_cluster) <- c("cluster", "ID", "patient")
 patient_cluster$cluster <- patient_cluster$cluster %>% str_replace(pattern = "1", "2")
 patient_cluster$cluster <- patient_cluster$cluster %>% str_replace(pattern = "0", "1")
 
-met_tcga <- read_csv("TCGA/omics_data/raw/cancer_data_PAAD_Methylation-20160128.csv")
+met_tcga <- read_csv("data/TCGA/omics_data/raw/cancer_data_PAAD_Methylation-20160128.csv")
 
 met_tcga <- as.data.frame(t(met_tcga))
 

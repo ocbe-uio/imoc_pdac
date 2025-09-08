@@ -18,7 +18,7 @@ patient_cluster <- patient_cluster %>% filter(!is.na(patient))
 patient_cluster$cluster <- patient_cluster$cluster %>% str_replace(pattern = "1", "2")
 patient_cluster$cluster <- patient_cluster$cluster %>% str_replace(pattern = "0", "1")
 
-cna_tcga <- read_csv("TCGA/omics_data/raw/cancer_data_PAAD_GISTIC_Peaks-20160128.csv")
+cna_tcga <- read_csv("data/TCGA/omics_data/raw/cancer_data_PAAD_GISTIC_Peaks-20160128.csv")
 
 cna_tcga_ID <- cna_tcga[,c(3,13:ncol(cna_tcga))]
 

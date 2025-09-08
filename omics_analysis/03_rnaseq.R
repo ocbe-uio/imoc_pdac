@@ -29,7 +29,7 @@ patient_cluster <- patient_cluster %>% filter(!is.na(patient))
 patient_cluster$cluster <- patient_cluster$cluster %>% str_replace(pattern = "1", "2")
 patient_cluster$cluster <- patient_cluster$cluster %>% str_replace(pattern = "0", "1")
 
-rna_tcga <- read_csv("TCGA/omics_data/raw/cancer_data_PAAD_RNASeq2GeneNorm-20160128.csv")
+rna_tcga <- read_csv("data/TCGA/omics_data/raw/cancer_data_PAAD_RNASeq2GeneNorm-20160128.csv")
 
 rna_tcga <- as.data.frame(t(rna_tcga))
 
@@ -134,7 +134,7 @@ patients <- rownames(clinical_data[clinical_data$histological_type == histologic
 # filter patients by histology
 cancer_data <- cancer_data[,colnames(cancer_data)[substr(colnames(cancer_data), 1, 12) %in% patients],]
 
-exportClass(cancer_data, dir = "./TCGA/omics_data/raw/", 
+exportClass(cancer_data, dir = ".data/TCGA/omics_data/raw/", 
             fmt = "csv", ext = ".csv")
 
 ## 1. Load data ----
@@ -155,7 +155,7 @@ c2 <- patient_cluster %>% filter(cluster == "Cluster_2")
 
 table(c2$patient %in% c1$patient)
 
-rna_tcga <- read_csv("TCGA/omics_data/raw/cancer_data_PAAD_RNASeq2Gene-20160128.csv")
+rna_tcga <- read_csv("data/TCGA/omics_data/raw/cancer_data_PAAD_RNASeq2Gene-20160128.csv")
 
 rna_tcga <- as.data.frame(t(rna_tcga))
 

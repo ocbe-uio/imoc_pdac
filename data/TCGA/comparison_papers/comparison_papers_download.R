@@ -1,6 +1,5 @@
 
-wd <- ".../imo_clustering/results/cluster_analysis" # edit to set working directory
-setwd(wd)
+getwd()
 
 library("dplyr")
 con <- file("TCGA_PAAD.rds", "rb")
@@ -39,5 +38,4 @@ all_clusters_cleaned <- all_clusters %>%
   filter(rowSums(!is.na(select(., -PatientID, -'My Clusters'))) > 0)
 all_clusters_cleaned
 
-csv_path <- ".../imo_clustering/results/cluster_analysis/clusters_papers.csv"    # edit to csv path
-write.csv(all_clusters_cleaned, csv_path, row.names = FALSE)
+write.csv(all_clusters_cleaned, "clusters_papers.csv", row.names = FALSE)

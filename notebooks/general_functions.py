@@ -1,17 +1,13 @@
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
 from tqdm import tqdm
 import itertools
 from sklearn.metrics.cluster import adjusted_mutual_info_score, adjusted_rand_score
-from scipy import stats
-from scipy.stats import pearsonr, kruskal, chi2_contingency, hmean
+from scipy.stats import kruskal, chi2_contingency
 import seaborn as sns
 from ptitprince import PtitPrince as pt
 from lifelines import KaplanMeierFitter
 from lifelines.statistics import multivariate_logrank_test
-from pandas.api.types import is_numeric_dtype
-import statsmodels
 from statsmodels.stats.multitest import multipletests
 
 

@@ -46,7 +46,7 @@ library(dplyr)
 ##############
 
 # data directory
-folder_data <- "data_paad"
+folder_data <- "TCGA/omics_data"
 folder_raw_data <- file.path(folder_data, "raw")
 
 # list diseaseCodes
@@ -95,7 +95,7 @@ cancer_data <- cancer_data[,colnames(cancer_data)[substr(colnames(cancer_data), 
 # visualize filtered data
 upsetSamples(cancer_data)
 
-# Visualise type of mutations in each gene
+# Visualise type of mutations in each gene (optional)
 rag <- "PAAD_Mutation-20160128"
 
 library(ComplexHeatmap)
@@ -111,29 +111,10 @@ oncoPrintTCGA(cancer_data, matchassay = rag)
 #filename_rds <- pathJoin(folder_raw_data, paste0("rnaseqnorm_meth_rppa_mirna_", CANCER_CODE, PLATFORM_CODE, ".rds"))
 #saveRDS(cancer_data, filename_rds)
 getwd()
-exportClass(cancer_data, dir = 'C:/Users/alepg/Downloads', fmt = "csv", ext = ".csv")
+out_dir <- file.path("TCGA", "omics_data", "raw")
+exportClass(cancer_data, dir = out_dir, fmt = "csv", ext = ".csv")
 # CNV data (since we have to get all the information in the matrix to analyse)
 row_data_cna <- as.data.frame(rowData(cancer_data[[1]]))
 assay_data_cna <- as.data.frame(assay(cancer_data[[1]]))
 merged_data_cna <- cbind(row_data_cna, assay_data_cna)
-write.csv(merged_data_cna, file = "C:/Users/alepg/Downloads/cna_data_peaks.csv", row.names = FALSE)
-
-# Methylation data (genes)
-row_data_methyl <- as.data.frame(rowData(cancer_data[[6]]))
-row_data_methyl$Methylation_Site <- rownames(rowData(cancer_data[[6]]))
-row_data_methyl <- row_data_methyl[, c("Methylation_Site", colnames(row_data_methyl)[1:3])]
-write.csv(row_data_methyl, file = "C:/Users/alepg/Downloads/genes_methyl.csv", row.names = FALSE)
-
-
-# FOR SUPERVISED LEARNING
-
-# split dataset in 60% as training set and remaining 40% as testing set
-patients <- as.data.frame(patients)
-dataset_type <- rep("training", nrow(patients))
-dataset_type[1:as.integer(nrow(patients)*0.4)] <- "testing"
-set.seed(42)
-patients$dataset_type <- sample(dataset_type)
-table(patients$dataset_type)
-table(patients$dataset_type)/length(patients$dataset_type)
-filename_samples <- pathJoin(folder_raw_data, paste0("patients_", CANCER_CODE, PLATFORM_CODE, ".csv"))
-write.csv2(x = patients, file = filename_samples)
+write.csv(merged_data_cna, file = "TCGA/omics_data/raw/cna_data_peaks.csv", row.names = FALSE)

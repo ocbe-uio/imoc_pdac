@@ -46,7 +46,7 @@ def clinical_enrichment(results, clinical_data):
         lambda row: [row["y_pred"][row["y_pred_idx"].index(patient_id)] for patient_id in row["sorted_y_pred_idx"]],
         axis=1)
     # Add clinical data
-    clinical_data = clinical_data[['Patient ID', 'Fraction Genome Altered', 'Diagnosis Age', 'Sex', 'Race Category', 
+    clinical_data = clinical_data[['Patient ID', 'Mutation Count', 'Fraction Genome Altered', 'Diagnosis Age', 'Sex', 'Race Category', 
                                    'Adjuvant Postoperative Targeted Therapy Administered Indicator', 'Alcohol History Documented', 'Tumor resected max dimension',
                                    'American Joint Committee on Cancer Metastasis Stage Code', 'American Joint Committee on Cancer Tumor Stage Code',
                                    'Chronic Pancreatitis Personal Medical History Indicator', 'Did patient start adjuvant postoperative radiotherapy?', 

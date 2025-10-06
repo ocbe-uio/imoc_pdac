@@ -39,13 +39,16 @@ COMPLETE_ERRORS_PATH = os.path.join(RESULTS_FOLDER, COMPLETE_ERRORS_FILE)
 INCOMPLETE_ERRORS_PATH = os.path.join(RESULTS_FOLDER, INCOMPLETE_ERRORS_FILE)
 TIME_ERRORS_PATH = os.path.join(RESULTS_FOLDER, TIME_ERRORS_FILE)
 
+# These parameters are constant throughout the study and should not be changed
 views = ["CNA", "Methylation", "Mutations", "RNAseq", "RPPA", "miRNA"]  # All possible views in the dataset
-best_combination = ["CNA", "Methylation"]       # Set to False if there is no set combination of data types to use (will run all possible combinations of data types)
-run_amputation = False       # Set to False if there will be no amputation happening
-select_datasets = ['TCGA_PDAC_all']       # set to False if using all datasets
-
-n_clusters = [2]
 amputation_mechanisms = ["edm", 'mcar', 'mnar', "pm"]
 probs = [20, 40, 60, 80]
 imputation = [False]
+
+# These parameters should be changed according to the main README.md file
+best_combination = ["CNA", "Methylation"]       # Set to False if there is no set combination of data types to use (will run all possible combinations of data types)
+run_amputation = False       # Set to False if there will be no amputation happening
+select_datasets = ['TCGA_PDAC_all']       # set to False if using all datasets
+n_clusters = [2]
 runs_per_alg = np.arange(1024)
+sampling = True   # select a subset (80%) of samples, False to use all samples

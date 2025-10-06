@@ -7,3 +7,4 @@ This folder contains all Jupyter notebooks, as well as the file `general_functio
 * `papers_clusters_analysis`: comparison of clusters identified with three (Collisson, Moffitt, Bailey).
 * `survival_clinical_analysis`: survival and disease-free analyses, as well as enrichment of various clinical labels.
 * `biomarker_analysis`: identification of potential copy number and methylation biomarkers.
+*`shapiq_analysis`: analysis using Shapley Interactions.

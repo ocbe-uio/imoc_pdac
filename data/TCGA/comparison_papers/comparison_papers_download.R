@@ -1,14 +1,30 @@
+install.packages("tidyverse")
 
 getwd()
+setwd('C:/Users/Carlos Paja Suarez/imoc_pdac/data/TCGA/comparison_papers')
 
 library("dplyr")
+library("tidyr")
 con <- file("TCGA_PAAD.rds", "rb")
 readBin(con, "raw", 10)
 close(con)
 
 # Upload my clusters
-my_clusters <- read.csv('survival_final_clusters.csv')
-baseline_clusters <- data.frame(my_clusters$Patient.ID, my_clusters$Cluster)
+my_clusters <- read.table("../../patient_clusters.csv", header = TRUE, sep = ",", stringsAsFactors = FALSE)
+baseline_clusters <- my_clusters %>%
+  pivot_longer(
+    cols = -X,
+    names_to = NULL,
+    values_to = "Patient.ID",
+    values_drop_na = TRUE
+  ) %>%
+  rename(Cluster = X) %>%
+  filter(Patient.ID != "") %>%
+  select(Patient.ID, Cluster)
+baseline_clusters
+baseline_clusters$Cluster[baseline_clusters$Cluster == "Cluster_0"] <- 1
+baseline_clusters$Cluster[baseline_clusters$Cluster == "Cluster_1"] <- 2
+baseline_clusters$Cluster <- as.numeric(baseline_clusters$Cluster)
 colnames(baseline_clusters) <- c('PatientID', 'My Clusters')
 baseline_clusters
 

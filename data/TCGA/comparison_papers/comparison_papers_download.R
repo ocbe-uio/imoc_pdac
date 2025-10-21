@@ -1,10 +1,10 @@
-install.packages("tidyverse")
+#install.packages("tidyverse")
 
-getwd()
-setwd('C:/Users/Carlos Paja Suarez/imoc_pdac/data/TCGA/comparison_papers')
 
-library("dplyr")
-library("tidyr")
+library(tidyverse)
+
+setwd("./data/TCGA/comparison_papers/")
+
 con <- file("TCGA_PAAD.rds", "rb")
 readBin(con, "raw", 10)
 close(con)

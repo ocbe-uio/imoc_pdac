@@ -91,10 +91,6 @@ To reproduce the omics analysis, open the `.Rproj` file in R. Then, run the R sc
 
 To reproduce the manuscript's figures and supplementary data, run the script `/omics_analysis/05_Results_Figure.R`
 
-```bash
-Rscript omics_analysis/05_Results_Figure.R
-```
-
 ## Use our model to stratify patients
 
 We have released the CNA-based PDAC patient stratification model to facilitate the stratification of new samples and clinical translation. This model requires only the four selected copy number 

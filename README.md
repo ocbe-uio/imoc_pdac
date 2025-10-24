@@ -1,17 +1,6 @@
 # Biomarker discovery and patient stratification in pancreatic cancer using incomplete multi-omics data
 This repository contains the data and scripts used in the paper "Biomarker discovery and patient stratification in pancreatic cancer using incomplete multi-omics data".
 
-## Abstract
-
-Pancreatic ductal adenocarcinoma (PDAC), with a 12% 5-year survival rate, is the most aggressive type of cancer.
-Early diagnosis for this pathology is rare, and conventional treatments such as surgery, radio- or chemotherapy, have little to no effect on reducing mortality.
-Machine learning (ML) approaches could be used to identify biomarkers that help clinicians stratify patients and improve treatment outcomes. 
-However, most ML techniques perform poorly with incomplete data, which is usually the case in real-world settings, often forcing researchers to discard valuable information. 
-In this study, ML algorithms capable of dealing with missing modalities were applied to incomplete multi-omics data from PDAC patients to identify clinically meaningful patient subgroups. 
-Through a large-scale clustering benchmark including six omics layers, we discovered two novel subgroups with statistically significant differences in survival and recurrence after surgery, particularly within the first two years, when most patient deaths occur, as well as distinct tumour mutational burden. 
-Comprehensive multi-omics analyses revealed substantial molecular differences between patients in both groups, identified three methylation biomarkers to stratify patients, and highlighted dysregulation in key oncogenic pathways. 
-These results could lead to stratified treatment regimens to improve prognosis of PDAC patients.
-
 [**Prerequisites**](#Prerequisites) | [**Data download**](#Data-download) | [**Benchmark steps**](#Benchmark-steps) |  [**Cluster analysis**](#Cluster-analysis) |
  [**Omics Analysis**](#Omics-Analysis) |  [**Predict**](#Use-our-model-to-stratify-patients) 
 

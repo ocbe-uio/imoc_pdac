@@ -1,4 +1,0 @@
-133 2 1
-# Squamous Other
-Squamous Squamous Squamous Squamous Squamous Squamous Squamous Squamous Squamous Squamous Squamous Squamous Squamous Squamous Squamous Squamous Squamous Squamous Squamous Squamous Squamous Squamous Squamous Squamous Squamous Squamous Squamous Squamous Squamous Other Other Other Other Other Other Other Other Other Other Other Other Other Other Other Other Other Other Other Other Other Other Other Other Other Other Other Other Other Other Other Other Other Other Other Other Other Other Other Other Other Other Other Other Other Other Other Other Other Other Other Other Other Other Other Other Other Other Other Other Other Other Other Other Other Other Other Other Other Other Other Other Other Other Other Other Other Other Other Other Other Other Other Other Other Other Other Other Other Other Other Other Other Other Other Other Other Other Other Other Other Other Other Other
-

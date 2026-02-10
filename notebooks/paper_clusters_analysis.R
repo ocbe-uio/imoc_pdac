@@ -10,12 +10,12 @@ library(pheatmap)
 library(ggpubr)
 library(GSVA)
 library(ComplexUpset)
+library(openxlsx2)
 
 
 # To run this script, open the imoc_pdac.Rproj file in the main folder (imoc_pdac)
 
 # 1. Load data ----
-
 
 papers_cluster_df <- read_csv("data/TCGA/comparison_papers/clusters_papers.csv")
 papers_cluster_df$`My Clusters`[papers_cluster_df$`My Clusters` == 1] <- "Cluster 1"
@@ -1104,3 +1104,124 @@ top10 %>% mutate(Pathway = fct_reorder(Pathway, logFC, .desc = F)) %>% ggplot(ae
   ylab("Oncogenic gene set (MSigDB C6)") +
   theme(title = element_text(face = "bold"), strip.text = element_text(face = "bold", size = 16))
 ggsave("figures/omics_analysis/limma_pathways.pdf", width = 2.5*width, height = height)
+
+# 8. Data S3 ----
+
+DataS3 <- list(GSVA_Score = gsva.es_df)
+
+wb <- wb_workbook()
+
+for(i in names(DataS3)) {
+  wb$add_worksheet(i)
+  wb$add_data(sheet = i, x = DataS3[[i]])
+}
+
+wb$save("results/DataS3.xlsx")
+
+# 9. Data S4 ---- 
+
+ADEX <- bailey_DEGs$ADEXvsOther
+Squamous <- bailey_DEGs$SquamousvsOther 
+Progenitor <- bailey_DEGs$ProgenitorvsOther
+Immunogenic <- bailey_DEGs$ImmunogenicvsOther
+
+
+Classical_collison <- collisson_DEGs$ClassicalvsOther
+QM <- collisson_DEGs$QMvsOther 
+Exocrine <- collisson_DEGs$ExocrinevsOther
+
+Basal_likevsClassical <- moffitt_DEGs$Basal_likevsClassical 
+
+DataS4 <- list(ADEX_Bailey = ADEX, Squamous_Bailey = Squamous, Progenitor_Bailey = Progenitor, 
+               Immunogenic_Bailey = Immunogenic, Classical_Collisson = Classical_collison, QM_Collisson = QM, 
+               Exocrine_Collisson = Exocrine, BasalvsClassical_Moffitt = Basal_likevsClassical)
+
+wb <- wb_workbook()
+
+for(i in names(DataS4)) {
+  wb$add_worksheet(i)
+  wb$add_data(sheet = i, x = DataS4[[i]])
+}
+
+
+wb$save("results/DataS4.xlsx")
+
+# 10. Data S5 ---- 
+
+folders <- list.dirs("results/omics_analysis/RNA_Seq/subtypes_GSEA", recursive = FALSE, full.names = TRUE)
+
+# Add the path to Clustering GSEA results
+
+folders <- c(folders, "results/omics_analysis/RNA_Seq")
+
+folders <- data.frame(dir = folders, subtype = c("ADEX", "Immunogenic", "Progenitor", "Squamous", "Classical_Collison", "Exocrine", "QM", "Basal_Like", "IMOC"))
+
+gsea_reports <- list()
+
+for (i in 1:nrow(folders)) {
+  
+  found_files <- list.files(
+    path = folders$dir[i],
+    pattern = paste0("^", "gsea_report", ".*.tsv"), # Matches the exact start (^) and end ($) of the filename
+    full.names = TRUE, # Returns the full path
+    recursive = FALSE # Set to TRUE if searching in subdirectories
+  )
+  
+  enrich_cluster2 <- read_delim(found_files[1],
+                                delim = "\t")
+  enrich_cluster1 <- read_delim(found_files[2],
+                                delim = "\t")
+  
+  enrich_gsea_c6 <- rbind(enrich_cluster2, enrich_cluster1)
+  
+  enrich_gsea_c6$`LEADING EDGE` <- enrich_gsea_c6$`LEADING EDGE` %>% str_remove(pattern = "%.*") %>% str_remove("tags=")
+  enrich_gsea_c6$`LEADING EDGE` <- as.numeric(enrich_gsea_c6$`LEADING EDGE`)
+  
+  gsea_reports[[i]] <- enrich_gsea_c6
+  names(gsea_reports)[i] <- folders$subtype[i]
+}
+
+
+ADEX <- gsea_reports$ADEX
+Squamous <- gsea_reports$Squamous
+Progenitor <- gsea_reports$Progenitor
+Immunogenic <- gsea_reports$Immunogenic
+
+
+Classical_collisson <- gsea_reports$Classical_Collison
+QM <- gsea_reports$QM
+Exocrine <- gsea_reports$Exocrine
+
+Basal_likevsClassical <- gsea_reports$Basal_Like
+
+
+DataS5 <- list(ADEX_Bailey = ADEX, Squamous_Bailey = Squamous, Progenitor_Bailey = Progenitor, 
+               Immunogenic_Bailey = Immunogenic, Classical_Collisson = Classical_collisson, QM_Collisson = QM, 
+               Exocrine_Collisson = Exocrine, BasalvsClassical_Moffitt = Basal_likevsClassical)
+
+wb <- wb_workbook()
+
+for(i in names(DataS5)) {
+  wb$add_worksheet(i)
+  wb$add_data(sheet = i, x = DataS5[[i]])
+}
+
+
+wb$save("results/DataS5.xlsx")
+
+# 11. Data S6 ----
+
+limma_gsva_bailey
+
+DataS6 <- list(limma_GSVA_Bailey = limma_gsva_bailey,
+               limma_GSVA_Collisson = limma_gsva_collisson,
+               limma_GSVA_MOffitt = limma_gsva_moffitt)
+
+wb <- wb_workbook()
+
+for(i in names(DataS6)) {
+  wb$add_worksheet(i)
+  wb$add_data(sheet = i, x = DataS6[[i]])
+}
+
+wb$save("results/DataS6.xlsx")

@@ -72,7 +72,12 @@ sampling = True
 ```
 
 ## Cluster analysis
+
 The analysis of the final clusters can be reproduced by running the jupyter notebooks in the `/notebooks` folder. This will generate the data used for the figures and supplementary data. The files 
+
+## Comparison with other classifications
+
+To reproduce the analysis, results, and figures of the comparison of clusters with other PDAC classification taxonomies, open the `.Rproj` file in R. Then run the R script `/notebooks/paper_clusters_analysis.R`.
 
 ## Omics Analysis
 

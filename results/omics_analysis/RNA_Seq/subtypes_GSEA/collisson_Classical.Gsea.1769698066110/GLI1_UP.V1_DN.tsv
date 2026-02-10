@@ -1,0 +1,18 @@
+NAME	SYMBOL	TITLE	RANK IN GENE LIST	RANK METRIC SCORE	RUNNING ES	CORE ENRICHMENT	
+row_0	OPN3	opsin 3 [Source:HGNC Symbol;Acc:HGNC:14007]	130	0.21528127789497375	0.16024736	Yes	
+row_1	CCNL2	cyclin L2 [Source:HGNC Symbol;Acc:HGNC:20570]	829	0.14775793254375458	0.23424686	Yes	
+row_2	BTBD16	BTB domain containing 16 [Source:HGNC Symbol;Acc:HGNC:26340]	1696	0.116379015147686	0.27383816	Yes	
+row_3	SEPTIN9	septin 9 [Source:HGNC Symbol;Acc:HGNC:7323]	3491	0.07471301406621933	0.22607149	Yes	
+row_4	ESYT1	extended synaptotagmin 1 [Source:HGNC Symbol;Acc:HGNC:29534]	3569	0.07300657033920288	0.27846923	Yes	
+row_5	GTDC1	glycosyltransferase like domain containing 1 [Source:HGNC Symbol;Acc:HGNC:20887]	4271	0.061558909714221954	0.28505117	Yes	
+row_6	YIPF1	Yip1 domain family member 1 [Source:HGNC Symbol;Acc:HGNC:25231]	4301	0.06122125685214996	0.33109304	Yes	
+row_7	CD2AP	CD2 associated protein [Source:HGNC Symbol;Acc:HGNC:14258]	4871	0.05201983451843262	0.33803675	Yes	
+row_8	RUNX1	RUNX family transcription factor 1 [Source:HGNC Symbol;Acc:HGNC:10471]	4922	0.051300156861543655	0.37509826	Yes	
+row_9	FOLR1	folate receptor alpha [Source:HGNC Symbol;Acc:HGNC:3791]	5335	0.045373350381851196	0.3861379	Yes	
+row_10	SLC22A1	solute carrier family 22 member 1 [Source:HGNC Symbol;Acc:HGNC:10963]	5543	0.04242958873510361	0.40699923	Yes	
+row_11	PPIL1	peptidylprolyl isomerase like 1 [Source:HGNC Symbol;Acc:HGNC:9260]	5837	0.038226619362831116	0.41949838	Yes	
+row_12	SPECC1	sperm antigen with calponin homology and coiled-coil domains 1 [Source:HGNC Symbol;Acc:HGNC:30615]	9242	-0.007251490838825703	0.22393726	No	
+row_13	CACUL1	CDK2 associated cullin domain 1 [Source:HGNC Symbol;Acc:HGNC:23727]	10856	-0.029857244342565536	0.15187977	No	
+row_14	RNF10	ring finger protein 10 [Source:HGNC Symbol;Acc:HGNC:10055]	11135	-0.03397418186068535	0.16194843	No	
+row_15	ZMYND11	zinc finger MYND-type containing 11 [Source:HGNC Symbol;Acc:HGNC:16966]	14382	-0.09033633023500443	0.040538043	No	
+row_16	ACSL6	acyl-CoA synthetase long chain family member 6 [Source:HGNC Symbol;Acc:HGNC:16496]	16049	-0.14126890897750854	0.052255202	No	

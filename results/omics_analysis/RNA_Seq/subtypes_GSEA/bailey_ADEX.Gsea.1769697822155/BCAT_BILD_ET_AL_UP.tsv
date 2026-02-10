@@ -1,0 +1,45 @@
+NAME	SYMBOL	TITLE	RANK IN GENE LIST	RANK METRIC SCORE	RUNNING ES	CORE ENRICHMENT	
+row_0	NDRG4	NDRG family member 4 [Source:HGNC Symbol;Acc:HGNC:14466]	272	0.2453126758337021	0.04128405	No	
+row_1	PALMD	palmdelphin [Source:HGNC Symbol;Acc:HGNC:15846]	662	0.21583494544029236	0.06874493	No	
+row_2	KLHL15	kelch like family member 15 [Source:HGNC Symbol;Acc:HGNC:29347]	2155	0.14601001143455505	0.014566098	No	
+row_3	DACH1	dachshund family transcription factor 1 [Source:HGNC Symbol;Acc:HGNC:2663]	2491	0.13605861365795135	0.02656132	No	
+row_4	MTCH2	mitochondrial carrier 2 [Source:HGNC Symbol;Acc:HGNC:17587]	3684	0.10584317892789841	-0.019252116	No	
+row_5	SLC27A2	solute carrier family 27 member 2 [Source:HGNC Symbol;Acc:HGNC:10996]	3933	0.09996099770069122	-0.010550563	No	
+row_6	SIRPA	signal regulatory protein alpha [Source:HGNC Symbol;Acc:HGNC:9662]	3946	0.09969092905521393	0.012060574	No	
+row_7	DTNBP1	dystrobrevin binding protein 1 [Source:HGNC Symbol;Acc:HGNC:17328]	5126	0.07425624132156372	-0.0403726	No	
+row_8	AXIN2	axin 2 [Source:HGNC Symbol;Acc:HGNC:904]	5178	0.073246531188488	-0.026256902	No	
+row_9	CYP24A1	cytochrome P450 family 24 subfamily A member 1 [Source:HGNC Symbol;Acc:HGNC:2602]	5314	0.07048063725233078	-0.017761612	No	
+row_10	CD2BP2	CD2 cytoplasmic tail binding protein 2 [Source:HGNC Symbol;Acc:HGNC:1656]	5652	0.06404243409633636	-0.022732211	No	
+row_11	CAMKMT	calmodulin-lysine N-methyltransferase [Source:HGNC Symbol;Acc:HGNC:26276]	6553	0.0467231422662735	-0.0650878	No	
+row_12	RPS6KA1	ribosomal protein S6 kinase A1 [Source:HGNC Symbol;Acc:HGNC:10430]	7452	0.031323403120040894	-0.11092759	No	
+row_13	RPL37A	ribosomal protein L37a [Source:HGNC Symbol;Acc:HGNC:10348]	7782	0.025834841653704643	-0.12436279	No	
+row_14	RPL27A	ribosomal protein L27a [Source:HGNC Symbol;Acc:HGNC:10329]	7864	0.024354416877031326	-0.12346107	No	
+row_15	LINC00661	long intergenic non-protein coding RNA 661 [Source:HGNC Symbol;Acc:HGNC:27002]	8533	0.012845639139413834	-0.160006	No	
+row_16	CALR	calreticulin [Source:HGNC Symbol;Acc:HGNC:1455]	9320	-6.698030629195273E-4	-0.20638572	No	
+row_17	ST6GALNAC2	ST6 N-acetylgalactosaminide alpha-2,6-sialyltransferase 2 [Source:HGNC Symbol;Acc:HGNC:10867]	9818	-0.009680775925517082	-0.2335467	No	
+row_18	WIPI1	WD repeat domain, phosphoinositide interacting 1 [Source:HGNC Symbol;Acc:HGNC:25471]	9824	-0.009725515730679035	-0.23156756	No	
+row_19	EEF2	eukaryotic translation elongation factor 2 [Source:HGNC Symbol;Acc:HGNC:3214]	10489	-0.021884074434638023	-0.26576123	No	
+row_20	HMGB1	high mobility group box 1 [Source:HGNC Symbol;Acc:HGNC:4983]	11615	-0.04244913533329964	-0.32243815	No	
+row_21	MYADM	myeloid associated differentiation marker [Source:HGNC Symbol;Acc:HGNC:7544]	12034	-0.05115886777639389	-0.33521846	No	
+row_22	FOXQ1	forkhead box Q1 [Source:HGNC Symbol;Acc:HGNC:20951]	12511	-0.06064259260892868	-0.34921414	Yes	
+row_23	C4orf36	chromosome 4 open reading frame 36 [Source:HGNC Symbol;Acc:HGNC:28386]	12665	-0.06418643146753311	-0.34325704	Yes	
+row_24	TAGLN	transgelin [Source:HGNC Symbol;Acc:HGNC:11553]	12869	-0.06821151822805405	-0.33931863	Yes	
+row_25	FHDC1	FH2 domain containing 1 [Source:HGNC Symbol;Acc:HGNC:29363]	12949	-0.07004810124635696	-0.32760897	Yes	
+row_26	CASP4	caspase 4 [Source:HGNC Symbol;Acc:HGNC:1505]	12956	-0.0701410099864006	-0.31155547	Yes	
+row_27	TCF3	transcription factor 3 [Source:HGNC Symbol;Acc:HGNC:11633]	13079	-0.07291601598262787	-0.30172077	Yes	
+row_28	MYL9	myosin light chain 9 [Source:HGNC Symbol;Acc:HGNC:15754]	13950	-0.09376366436481476	-0.33129555	Yes	
+row_29	SCAMP4	secretory carrier membrane protein 4 [Source:HGNC Symbol;Acc:HGNC:30385]	13959	-0.09394299238920212	-0.30979225	Yes	
+row_30	TMEM63B	transmembrane protein 63B [Source:HGNC Symbol;Acc:HGNC:17735]	14223	-0.10063524544239044	-0.30182105	Yes	
+row_31	IGSF8	immunoglobulin superfamily member 8 [Source:HGNC Symbol;Acc:HGNC:17813]	14824	-0.11780855059623718	-0.309785	Yes	
+row_32	STXBP2	syntaxin binding protein 2 [Source:HGNC Symbol;Acc:HGNC:11445]	14959	-0.12232820689678192	-0.28910133	Yes	
+row_33	CNOT3	CCR4-NOT transcription complex subunit 3 [Source:HGNC Symbol;Acc:HGNC:7879]	14976	-0.12273810058832169	-0.26133537	Yes	
+row_34	SLC35C2	solute carrier family 35 member C2 [Source:HGNC Symbol;Acc:HGNC:17117]	15132	-0.1281300187110901	-0.24053776	Yes	
+row_35	ICAM5	intercellular adhesion molecule 5 [Source:HGNC Symbol;Acc:HGNC:5348]	15137	-0.12832266092300415	-0.21075489	Yes	
+row_36	B4GALT1	beta-1,4-galactosyltransferase 1 [Source:HGNC Symbol;Acc:HGNC:924]	15151	-0.12868472933769226	-0.18142018	Yes	
+row_37	DTX2	deltex E3 ubiquitin ligase 2 [Source:HGNC Symbol;Acc:HGNC:15973]	15453	-0.14049385488033295	-0.16637434	Yes	
+row_38	CD151	CD151 molecule (Raph blood group) [Source:HGNC Symbol;Acc:HGNC:1630]	15711	-0.15206670761108398	-0.14601609	Yes	
+row_39	CAPS	calcyphosine [Source:HGNC Symbol;Acc:HGNC:1487]	16081	-0.17335836589336395	-0.12730801	Yes	
+row_40	CTSD	cathepsin D [Source:HGNC Symbol;Acc:HGNC:2529]	16160	-0.17754989862442017	-0.09039025	Yes	
+row_41	ZNF703	zinc finger protein 703 [Source:HGNC Symbol;Acc:HGNC:25883]	16165	-0.17775927484035492	-0.04904221	Yes	
+row_42	ACTN4	actinin alpha 4 [Source:HGNC Symbol;Acc:HGNC:166]	16395	-0.19534516334533691	-0.016901636	Yes	
+row_43	BMP4	bone morphogenetic protein 4 [Source:HGNC Symbol;Acc:HGNC:1071]	16512	-0.20815514028072357	0.024926044	Yes	

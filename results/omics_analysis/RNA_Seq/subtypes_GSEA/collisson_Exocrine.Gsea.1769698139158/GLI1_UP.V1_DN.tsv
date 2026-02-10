@@ -1,0 +1,18 @@
+NAME	SYMBOL	TITLE	RANK IN GENE LIST	RANK METRIC SCORE	RUNNING ES	CORE ENRICHMENT	
+row_0	RNF10	ring finger protein 10 [Source:HGNC Symbol;Acc:HGNC:10055]	1529	0.12526874244213104	-0.001379458	No	
+row_1	PPIL1	peptidylprolyl isomerase like 1 [Source:HGNC Symbol;Acc:HGNC:9260]	3536	0.07725043594837189	-0.06507224	No	
+row_2	ACSL6	acyl-CoA synthetase long chain family member 6 [Source:HGNC Symbol;Acc:HGNC:16496]	4084	0.06804037094116211	-0.049064133	No	
+row_3	CACUL1	CDK2 associated cullin domain 1 [Source:HGNC Symbol;Acc:HGNC:23727]	6165	0.03646422550082207	-0.14610967	No	
+row_4	FOLR1	folate receptor alpha [Source:HGNC Symbol;Acc:HGNC:3791]	6487	0.03211785852909088	-0.14226504	No	
+row_5	ZMYND11	zinc finger MYND-type containing 11 [Source:HGNC Symbol;Acc:HGNC:16966]	8200	0.008863565512001514	-0.23716749	No	
+row_6	BTBD16	BTB domain containing 16 [Source:HGNC Symbol;Acc:HGNC:26340]	8559	0.0037320097908377647	-0.25567806	No	
+row_7	SEPTIN9	septin 9 [Source:HGNC Symbol;Acc:HGNC:7323]	9775	-0.011701610870659351	-0.31918535	No	
+row_8	CD2AP	CD2 associated protein [Source:HGNC Symbol;Acc:HGNC:14258]	10126	-0.016310514882206917	-0.32828602	No	
+row_9	YIPF1	Yip1 domain family member 1 [Source:HGNC Symbol;Acc:HGNC:25231]	10386	-0.019836116582155228	-0.32950258	No	
+row_10	CCNL2	cyclin L2 [Source:HGNC Symbol;Acc:HGNC:20570]	11169	-0.031190240755677223	-0.35356772	No	
+row_11	ESYT1	extended synaptotagmin 1 [Source:HGNC Symbol;Acc:HGNC:29534]	14408	-0.08875083923339844	-0.48191565	Yes	
+row_12	SPECC1	sperm antigen with calponin homology and coiled-coil domains 1 [Source:HGNC Symbol;Acc:HGNC:30615]	14943	-0.10200250148773193	-0.4410091	Yes	
+row_13	RUNX1	RUNX family transcription factor 1 [Source:HGNC Symbol;Acc:HGNC:10471]	16494	-0.16861417889595032	-0.41283315	Yes	
+row_14	GTDC1	glycosyltransferase like domain containing 1 [Source:HGNC Symbol;Acc:HGNC:20887]	16690	-0.18898290395736694	-0.29008833	Yes	
+row_15	SLC22A1	solute carrier family 22 member 1 [Source:HGNC Symbol;Acc:HGNC:10963]	16713	-0.19123725593090057	-0.1555154	Yes	
+row_16	OPN3	opsin 3 [Source:HGNC Symbol;Acc:HGNC:14007]	16889	-0.23710326850414276	0.0026010103	Yes	

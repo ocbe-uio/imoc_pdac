@@ -1,0 +1,18 @@
+NAME	SYMBOL	TITLE	RANK IN GENE LIST	RANK METRIC SCORE	RUNNING ES	CORE ENRICHMENT	
+row_0	ESYT1	extended synaptotagmin 1 [Source:HGNC Symbol;Acc:HGNC:29534]	60	0.25807586312294006	0.17979513	Yes	
+row_1	SEPTIN9	septin 9 [Source:HGNC Symbol;Acc:HGNC:7323]	780	0.16119982302188873	0.25181285	Yes	
+row_2	SPECC1	sperm antigen with calponin homology and coiled-coil domains 1 [Source:HGNC Symbol;Acc:HGNC:30615]	849	0.1576586663722992	0.35979685	Yes	
+row_3	SLC22A1	solute carrier family 22 member 1 [Source:HGNC Symbol;Acc:HGNC:10963]	2408	0.0996445044875145	0.33848944	No	
+row_4	RUNX1	RUNX family transcription factor 1 [Source:HGNC Symbol;Acc:HGNC:10471]	3208	0.07918328046798706	0.34751213	No	
+row_5	PPIL1	peptidylprolyl isomerase like 1 [Source:HGNC Symbol;Acc:HGNC:9260]	5569	0.030934859067201614	0.22998416	No	
+row_6	OPN3	opsin 3 [Source:HGNC Symbol;Acc:HGNC:14007]	7489	-1.229209010489285E-4	0.11663531	No	
+row_7	RNF10	ring finger protein 10 [Source:HGNC Symbol;Acc:HGNC:10055]	7920	-0.006897585466504097	0.09611726	No	
+row_8	GTDC1	glycosyltransferase like domain containing 1 [Source:HGNC Symbol;Acc:HGNC:20887]	9373	-0.031046494841575623	0.032342445	No	
+row_9	BTBD16	BTB domain containing 16 [Source:HGNC Symbol;Acc:HGNC:26340]	9460	-0.032173775136470795	0.050115645	No	
+row_10	YIPF1	Yip1 domain family member 1 [Source:HGNC Symbol;Acc:HGNC:25231]	9955	-0.04049805551767349	0.04968482	No	
+row_11	CACUL1	CDK2 associated cullin domain 1 [Source:HGNC Symbol;Acc:HGNC:23727]	10189	-0.0443829707801342	0.06744218	No	
+row_12	ZMYND11	zinc finger MYND-type containing 11 [Source:HGNC Symbol;Acc:HGNC:16966]	10452	-0.04846549034118652	0.08638558	No	
+row_13	CD2AP	CD2 associated protein [Source:HGNC Symbol;Acc:HGNC:14258]	10743	-0.05352295562624931	0.107266754	No	
+row_14	ACSL6	acyl-CoA synthetase long chain family member 6 [Source:HGNC Symbol;Acc:HGNC:16496]	11335	-0.06435751914978027	0.11805225	No	
+row_15	CCNL2	cyclin L2 [Source:HGNC Symbol;Acc:HGNC:20570]	14331	-0.13110893964767456	0.034153618	No	
+row_16	FOLR1	folate receptor alpha [Source:HGNC Symbol;Acc:HGNC:3791]	15413	-0.16834737360477448	0.089850485	No	

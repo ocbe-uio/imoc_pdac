@@ -1,0 +1,34 @@
+producer_class	xtools.gsea.Gsea
+producer_timestamp	1769698528042
+param	zip_report	false
+param	num	100
+param	scoring_scheme	weighted
+param	norm	meandiv
+param	out	/home/rafrombec/Documents/Computational_Systems_Medicine/Projects/imoc_pdac/results/omics_analysis/RNA_Seq
+param	mode	Max_probe
+param	include_only_symbols	true
+param	set_max	500
+param	gmx	ftp.broadinstitute.org://pub/gsea/msigdb/human/gene_sets/c6.all.v2025.1.Hs.symbols.gmt
+param	plot_top_x	20
+param	nperm	1000
+param	order	descending
+param	rnd_seed	timestamp
+param	rpt_label	moffitt_basal_like
+param	set_min	15
+param	res	/home/rafrombec/Documents/Computational_Systems_Medicine/Projects/imoc_pdac/data/data_omics/rna_seq/GSEA/NormCounts.txt
+param	chip	ftp.broadinstitute.org://pub/gsea/msigdb/human/annotations/Human_Gene_Symbol_with_Remapping_MSigDB.v2025.1.Hs.chip
+param	create_svgs	true
+param	cls	/home/rafrombec/gsea_home/output/jan29/Basal-like_vs_Other.cls#Basal-like_versus_Other
+param	sort	real
+param	create_gcts	false
+param	help	false
+param	save_rnd_lists	false
+param	median	false
+param	metric	Signal2Noise
+param	make_sets	true
+param	rnd_type	no_balance
+param	gui	false
+param	permute	phenotype
+param	collapse	Collapse
+
+file	/home/rafrombec/Documents/Computational_Systems_Medicine/Projects/imoc_pdac/results/omics_analysis/RNA_Seq/moffitt_basal_like.Gsea.1769698528042/index.html

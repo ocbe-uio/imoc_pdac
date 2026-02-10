@@ -1,0 +1,25 @@
+NAME	SYMBOL	TITLE	RANK IN GENE LIST	RANK METRIC SCORE	RUNNING ES	CORE ENRICHMENT	
+row_0	M6PR	mannose-6-phosphate receptor, cation dependent [Source:HGNC Symbol;Acc:HGNC:6752]	90	0.2429651916027069	0.11283523	Yes	
+row_1	STAU1	staufen double-stranded RNA binding protein 1 [Source:HGNC Symbol;Acc:HGNC:11370]	439	0.18729715049266815	0.18334103	Yes	
+row_2	ZC3H18	zinc finger CCCH-type containing 18 [Source:HGNC Symbol;Acc:HGNC:25091]	694	0.16624419391155243	0.24916731	Yes	
+row_3	BMERB1	bMERB domain containing 1 [Source:HGNC Symbol;Acc:HGNC:19213]	1607	0.12443958967924118	0.25575152	Yes	
+row_4	NPHP1	nephrocystin 1 [Source:HGNC Symbol;Acc:HGNC:7905]	1631	0.12344052642583847	0.3144223	Yes	
+row_5	SGTA	small glutamine rich tetratricopeptide repeat co-chaperone alpha [Source:HGNC Symbol;Acc:HGNC:10819]	2040	0.11020568013191223	0.3438892	Yes	
+row_6	FEM1A	fem-1 homolog A [Source:HGNC Symbol;Acc:HGNC:16934]	2244	0.10393708199262619	0.38243058	Yes	
+row_7	WEE1	WEE1 G2 checkpoint kinase [Source:HGNC Symbol;Acc:HGNC:12761]	2276	0.10291432589292526	0.4306461	Yes	
+row_8	IGFBP6	insulin like growth factor binding protein 6 [Source:HGNC Symbol;Acc:HGNC:5475]	2956	0.08499583601951599	0.43182707	Yes	
+row_9	C7orf50	chromosome 7 open reading frame 50 [Source:HGNC Symbol;Acc:HGNC:22421]	3296	0.07720693200826645	0.4493266	Yes	
+row_10	SAR1A	secretion associated Ras related GTPase 1A [Source:HGNC Symbol;Acc:HGNC:10534]	3937	0.06276924908161163	0.4420048	Yes	
+row_11	JCHAIN	joining chain of multimeric IgA and IgM [Source:HGNC Symbol;Acc:HGNC:5713]	4258	0.05631745606660843	0.45046908	Yes	
+row_12	PTH1R	parathyroid hormone 1 receptor [Source:HGNC Symbol;Acc:HGNC:9608]	5413	0.03364745154976845	0.3985887	No	
+row_13	LMO7	LIM domain 7 [Source:HGNC Symbol;Acc:HGNC:6646]	6736	0.011137613095343113	0.32582647	No	
+row_14	PRKD3	protein kinase D3 [Source:HGNC Symbol;Acc:HGNC:9408]	7310	0.0026767090894281864	0.29324293	No	
+row_15	YBX1	Y-box binding protein 1 [Source:HGNC Symbol;Acc:HGNC:8014]	7444	5.372919840738177E-4	0.28563905	No	
+row_16	CCND2	cyclin D2 [Source:HGNC Symbol;Acc:HGNC:1583]	9357	-0.030795147642493248	0.18754598	No	
+row_17	PLPP6	phospholipid phosphatase 6 [Source:HGNC Symbol;Acc:HGNC:23682]	9498	-0.03289966657757759	0.19526646	No	
+row_18	TMOD3	tropomodulin 3 [Source:HGNC Symbol;Acc:HGNC:11873]	9656	-0.03534771502017975	0.20317212	No	
+row_19	TRIM23	tripartite motif containing 23 [Source:HGNC Symbol;Acc:HGNC:660]	10714	-0.052944380789995193	0.16641235	No	
+row_20	TXNDC12	thioredoxin domain containing 12 [Source:HGNC Symbol;Acc:HGNC:24626]	12405	-0.08585496991872787	0.10822401	No	
+row_21	ZBTB16	zinc finger and BTB domain containing 16 [Source:HGNC Symbol;Acc:HGNC:12930]	12561	-0.08904189616441727	0.14236021	No	
+row_22	PPT2	palmitoyl-protein thioesterase 2 [Source:HGNC Symbol;Acc:HGNC:9326]	13027	-0.09866258502006531	0.16284275	No	
+row_23	IFT74	intraflagellar transport 74 [Source:HGNC Symbol;Acc:HGNC:21424]	14635	-0.1400032490491867	0.13589585	No	

@@ -1,0 +1,32 @@
+NAME	SYMBOL	TITLE	RANK IN GENE LIST	RANK METRIC SCORE	RUNNING ES	CORE ENRICHMENT	
+row_0	SNAI2	snail family transcriptional repressor 2 [Source:HGNC Symbol;Acc:HGNC:11094]	470	0.18491891026496887	0.029032005	No	
+row_1	AMH	anti-Mullerian hormone [Source:HGNC Symbol;Acc:HGNC:464]	1025	0.14857307076454163	0.041923013	No	
+row_2	H2AC18	H2A clustered histone 18 [Source:HGNC Symbol;Acc:HGNC:4736]	1411	0.13125626742839813	0.059489656	No	
+row_3	KLHL4	kelch like family member 4 [Source:HGNC Symbol;Acc:HGNC:6355]	2583	0.0945163294672966	0.019263085	No	
+row_4	EXOC3	exocyst complex component 3 [Source:HGNC Symbol;Acc:HGNC:30378]	4244	0.05663932487368584	-0.06153535	No	
+row_5	RALGPS2	Ral GEF with PH domain and SH3 binding motif 2 [Source:HGNC Symbol;Acc:HGNC:30279]	5845	0.025833994150161743	-0.14825262	No	
+row_6	CPLANE1	ciliogenesis and planar polarity effector complex subunit 1 [Source:HGNC Symbol;Acc:HGNC:25801]	5855	0.025606688112020493	-0.14091446	No	
+row_7	PRELID3A	PRELI domain containing 3A [Source:HGNC Symbol;Acc:HGNC:24639]	6347	0.017324039712548256	-0.16463774	No	
+row_8	DSG3	desmoglein 3 [Source:HGNC Symbol;Acc:HGNC:3050]	6412	0.016200609505176544	-0.16344453	No	
+row_9	NAA80	N-alpha-acetyltransferase 80, NatH catalytic subunit [Source:HGNC Symbol;Acc:HGNC:30252]	6509	0.014586778357625008	-0.16464053	No	
+row_10	TMPRSS2	transmembrane serine protease 2 [Source:HGNC Symbol;Acc:HGNC:11876]	6765	0.010674298740923405	-0.1764457	No	
+row_11	TLN2	talin 2 [Source:HGNC Symbol;Acc:HGNC:15447]	7392	0.001358231296762824	-0.21306308	No	
+row_12	PRKN	parkin RBR E3 ubiquitin protein ligase [Source:HGNC Symbol;Acc:HGNC:8607]	8096	-0.009718122892081738	-0.2516663	No	
+row_13	B9D2	B9 domain containing 2 [Source:HGNC Symbol;Acc:HGNC:28636]	8821	-0.02168756164610386	-0.28783292	No	
+row_14	DKFZP434A062	uncharacterized LOC26102 [Source:NCBI gene (formerly Entrezgene);Acc:26102]	8961	-0.024310510605573654	-0.2885841	No	
+row_15	WASHC3	WASH complex subunit 3 [Source:HGNC Symbol;Acc:HGNC:24256]	9268	-0.029416482895612717	-0.29764578	No	
+row_16	KLF10	KLF transcription factor 10 [Source:HGNC Symbol;Acc:HGNC:11810]	10173	-0.044119417667388916	-0.3375666	No	
+row_17	PMCH	pro-melanin concentrating hormone [Source:HGNC Symbol;Acc:HGNC:9109]	11124	-0.06060611829161644	-0.3751414	No	
+row_18	IGFBP5	insulin like growth factor binding protein 5 [Source:HGNC Symbol;Acc:HGNC:5474]	12697	-0.09196748584508896	-0.439875	No	
+row_19	C22orf46P	chromosome 22 open reading frame 46, pseudogene [Source:HGNC Symbol;Acc:HGNC:26294]	13083	-0.10007128864526749	-0.43189356	No	
+row_20	CCN6	cellular communication network factor 6 [Source:HGNC Symbol;Acc:HGNC:12771]	14063	-0.12336251884698868	-0.45189488	Yes	
+row_21	DEPP1	DEPP autophagy regulator 1 [Source:HGNC Symbol;Acc:HGNC:23355]	14289	-0.13002076745033264	-0.42524222	Yes	
+row_22	KIAA0319L	KIAA0319 like [Source:HGNC Symbol;Acc:HGNC:30071]	14482	-0.13542421162128448	-0.3949764	Yes	
+row_23	SERGEF	secretion regulating guanine nucleotide exchange factor [Source:HGNC Symbol;Acc:HGNC:17499]	14606	-0.13891685009002686	-0.35955495	Yes	
+row_24	TENT5A	terminal nucleotidyltransferase 5A [Source:HGNC Symbol;Acc:HGNC:18345]	15412	-0.1683194488286972	-0.355444	Yes	
+row_25	CDH12	cadherin 12 [Source:HGNC Symbol;Acc:HGNC:1751]	15442	-0.16998113691806793	-0.3049133	Yes	
+row_26	FZD4	frizzled class receptor 4 [Source:HGNC Symbol;Acc:HGNC:4042]	15871	-0.19393834471702576	-0.27062428	Yes	
+row_27	ZNF749	zinc finger protein 749 [Source:HGNC Symbol;Acc:HGNC:32783]	15960	-0.1999715268611908	-0.2143661	Yes	
+row_28	DOCK3	dedicator of cytokinesis 3 [Source:HGNC Symbol;Acc:HGNC:2989]	16045	-0.20620158314704895	-0.15595634	Yes	
+row_29	ZNF711	zinc finger protein 711 [Source:HGNC Symbol;Acc:HGNC:13128]	16760	-0.31076687574386597	-0.10267831	Yes	
+row_30	TTR	transthyretin [Source:HGNC Symbol;Acc:HGNC:12405]	16894	-0.3671649694442749	0.002307157	Yes	

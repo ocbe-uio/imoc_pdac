@@ -2,7 +2,7 @@
 This repository contains the data and scripts used in the paper "Biomarker discovery and patient stratification in pancreatic cancer using incomplete multi-omics data".
 
 [**Prerequisites**](#Prerequisites) | [**Data download**](#Data-download) | [**Benchmark steps**](#Benchmark-steps) |  [**Cluster analysis**](#Cluster-analysis) |
- [**Omics Analysis**](#Omics-Analysis) |  [**Predict**](#Use-our-model-to-stratify-patients) 
+ [**PDAC classifications comparison**](#PDAC-classifications-comparison) | [**Omics Analysis**](#Omics-Analysis) |  [**Predict**](#Use-our-model-to-stratify-patients) 
 
 ## Prerequisites
 To reproduce the results from our study, you will need the following software installed on your system: Python (3.11), Octave and R (version 4.0 or higher). 
@@ -75,11 +75,11 @@ sampling = True
 
 The analysis of the final clusters can be reproduced by running the jupyter notebooks in the `/notebooks` folder. This will generate the data used for the figures and supplementary data. The files 
 
-## Comparison with other classifications
+## PDAC classifications comparison
 
 To reproduce the analysis, results, and figures of the comparison of clusters with other PDAC classification taxonomies, open the `.Rproj` file in R. Then run the R script `/notebooks/paper_clusters_analysis.R`.
 
-## Omics Analysis
+## Omics analysis
 
 To reproduce the omics analysis, open the `.Rproj` file in R. Then, run the R scripts in the `/omics_analysis` folder. This will generate the data used for the figures and supplementary data.
 

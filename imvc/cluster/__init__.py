@@ -11,6 +11,6 @@ from .pimvc import PIMVC
 from .omvc import OMVC
 from .opimc import OPIMC
 from .monet import MONET
-from .imscagl import IMSCAGL
+# from .imscagl import IMSCAGL
 from .mrgcn import MRGCN
-from .mkkmik import MKKMIK
+from .mkkm_ik import MKKMIK

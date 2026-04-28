@@ -9,7 +9,7 @@ from imvc.ampute import Amputer
 from imvc.impute import get_observed_view_indicator
 
 from settings import (PROFILES_PATH, DATASET_TABLE_PATH, RANDOM_STATE, probs, amputation_mechanisms, runs_per_alg,
-                      best_combination, views, run_amputation, select_datasets, sampling)
+                      selected_views, views, run_amputation, select_datasets, sampling)
 from src.commons import CommonOperations
 
 parser = argparse.ArgumentParser()
@@ -25,14 +25,18 @@ datasets, two_view_datasets = CommonOperations.get_list_of_datasets(DATASET_TABL
 
 for dataset_name in datasets:
 
-    if best_combination:
-        if isinstance(best_combination, list) and len(best_combination) > 1:
-            binary_combination = ['1' if view in best_combination else '0' for view in views]
+    if selected_views:
+        if isinstance(selected_views, list):
+            binary_combination = ['1' if view in selected_views else '0' for view in views]
             binary_combination = [''.join(binary_combination)]
+        elif isinstance(selected_views, str) and selected_views == 'all':
+            view_combinations = ['1' for _ in views]
+            combinations_matrix = [''.join(view_combinations)]
         else:
-            raise ValueError("best_combination must be a list with at least two views.")
-    elif best_combination == False:
-        binary_combination = [row for row in itertools.product([0, 1], repeat=len(views)) if sum(row) >= 2]
+            raise ValueError("selected_views must be a list with at least one view, or 'all' if using all views..")
+    elif selected_views == False:
+        # all combinations with at least one view
+        binary_combination = [row for row in itertools.product([0, 1], repeat=len(views)) if sum(row) >= 1]
         binary_combination = [''.join(map(str, combination)) for combination in binary_combination]
     else:
         raise TypeError

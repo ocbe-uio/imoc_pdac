@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 from imvc.datasets import LoadDataset
 
-from settings import RANDOM_STATE, TIME_LIMIT
+from settings import RANDOM_STATE, TIME_LIMIT, selected_views
 from src.utils.create_result_table import CreateResultTable
 from src.clustering.run_clustering import RunClustering
 
@@ -28,16 +28,18 @@ class CommonOperations:
 
     @staticmethod
     def get_results_table(datasets, views, n_clusters, algorithms, probs, amputation_mechanisms, imputation,
-                          runs_per_alg, two_view_datasets, best_combination, run_amputation):
+                          runs_per_alg, two_view_datasets, selected_views, run_amputation):
         # options to either run through all combinations or only use a specific one
-        if best_combination:
-            if isinstance(best_combination, list) and len(best_combination) > 1:
-                view_combinations = ['1' if view in best_combination else '0' for view in views]
+        if selected_views:
+            if isinstance(selected_views, list):
+                view_combinations = ['1' if view in selected_views else '0' for view in views]
                 combinations_matrix = [''.join(view_combinations)]
-            elif isinstance(best_combination, str) and best_combination == 'all':
+            elif isinstance(selected_views, str) and selected_views == 'all':
                 view_combinations = ['1' for _ in views]
                 combinations_matrix = [''.join(view_combinations)]
-        elif best_combination == False:
+            else:
+                raise ValueError("selected_views must be a list with at least one view, or 'all' if using all views.")
+        elif selected_views == False:
             view_combinations = [row for row in itertools.product([0, 1], repeat=len(views)) if sum(row) >= 2]
             combinations_matrix = pd.DataFrame(view_combinations, columns=views)
             combinations_matrix = combinations_matrix.apply(lambda row: ''.join(row.astype(str)), axis=1)
@@ -184,14 +186,14 @@ class CommonOperations:
     @staticmethod
     def get_unfinished_results(dataset_table_path, algorithms, probs, amputation_mechanisms, imputation, runs_per_alg,
                                args, subresults_path, logs_file, error_file, results_path, time_results_path,
-                               incomplete_algorithms, views, n_clusters, best_combination, run_amputation, select_datasets):
+                               incomplete_algorithms, views, n_clusters, selected_views, run_amputation, select_datasets):
         datasets, two_view_datasets = CommonOperations.get_list_of_datasets(dataset_table_path, select_datasets)
         indexes_names, results = CommonOperations.get_results_table(datasets=datasets, algorithms=algorithms,
                                                                     probs=probs, views=views, n_clusters=n_clusters,
                                                                     amputation_mechanisms=amputation_mechanisms,
                                                                     imputation=imputation, runs_per_alg=runs_per_alg,
                                                                     two_view_datasets=two_view_datasets,
-                                                                    best_combination=best_combination,
+                                                                    selected_views=selected_views,
                                                                     run_amputation=run_amputation)
         results = CommonOperations.load_benchmarking(args=args, results=results, subresults_path=subresults_path,
                                                      logs_file=logs_file, error_file=error_file,
@@ -209,7 +211,7 @@ class CommonOperations:
     @staticmethod
     def run_script(dataset_table_path, views, n_clusters, algorithms, probs, amputation_mechanisms, imputation, runs_per_alg,
                    args, subresults_path, logs_file, error_file, results_path, time_results_path, incomplete_algorithms,
-                   best_combination, run_amputation, select_datasets):
+                   selected_views, run_amputation, select_datasets):
         indexes_names, results, unfinished_results = CommonOperations.get_unfinished_results(
             dataset_table_path=dataset_table_path,
             views=views, n_clusters=n_clusters,
@@ -224,7 +226,7 @@ class CommonOperations:
             results_path=results_path,
             time_results_path=time_results_path,
             incomplete_algorithms=incomplete_algorithms,
-            best_combination=best_combination,
+            selected_views=selected_views,
             run_amputation=run_amputation,
             select_datasets=select_datasets)
 

@@ -46,7 +46,7 @@ probs = [20, 40, 60, 80]
 imputation = [False]
 
 # These parameters should be changed according to the main README.md file
-best_combination = ["CNA", "Methylation"]       # Set to False if there is no set combination of data types to use (will run all possible combinations of data types)
+selected_views = ["CNA", "Methylation"]       # Set to False if there is no set combination of data types to use (will run all possible combinations of data types)
 run_amputation = False       # Set to False if there will be no amputation happening
 select_datasets = ['TCGA_PDAC_all']       # set to False if using all datasets
 n_clusters = [2]

@@ -43,7 +43,7 @@ python src/scripts/incomplete_algorithms_evaluation.py
 
 ### First benchmark
 ```
-best_combination = False
+selected_views = False
 run_amputation = False
 select_datasets = ['patients_with_all_views']
 n_clusters = [2, 3, 4, 5]   # can be done for each number of clusters individually, e.g.: 2 clusters, 3 clusters, etc.
@@ -53,7 +53,7 @@ sampling = True
 
 ### Second benchmark
 ```
-best_combination = ["CNA", "Methylation"]
+selected_views = ["CNA", "Methylation"]
 run_amputation = True
 select_datasets = ['patients_with_all_views']
 n_clusters = [2]
@@ -63,7 +63,7 @@ sampling = False
 
 ### Final clusters
 ```
-best_combination = ["CNA", "Methylation"]
+selected_views = ["CNA", "Methylation"]
 run_amputation = False
 select_datasets = ['all_patients']
 n_clusters = [2]

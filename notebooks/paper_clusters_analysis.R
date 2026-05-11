@@ -1551,7 +1551,7 @@ add_z_statistic <- function(results) {
     )
 }
 
-# Apply to combined Test 1 results
+# Apply to combined results
 
 results_with_z <- results_all %>%    
   add_z_statistic()
@@ -1563,8 +1563,7 @@ results_with_z %>%
   arrange(desc(p_diff)) %>%
   head(10)
 # If p_diff is consistently < 0.001, the z derivation is correct.
-# If not, survRM2 may have returned a non-symmetric CI and you'll need
-# to extract SE more carefully (see note at end).
+# If not, survRM2 may have returned a non-symmetric CI
 
 # Summary table
 
@@ -1592,7 +1591,7 @@ rmst_imoc_within_stratum <- function(data, time_var, event_var, tau,
   d <- d[complete.cases(d[, c(time_var, event_var, imoc_var)]), ]
   d[[imoc_var]] <- droplevels(factor(d[[imoc_var]]))
   
-  # Code arm: 1 = best (Cluster 1), 0 = worst (Cluster 2) — matches Test 1 convention
+  # Code arm: 1 = best (Cluster 1), 0 = worst (Cluster 2) - matches previous convention
   if (!all(c(imoc_worst, imoc_best) %in% levels(d[[imoc_var]]))) {
     return(tibble(
       stratum = stratum_level, tau = tau, tau_used = NA_real_,

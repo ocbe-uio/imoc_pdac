@@ -12,6 +12,12 @@ library(GSVA)
 library(ComplexUpset)
 library(openxlsx2)
 
+library(lubridate)
+library(ggsurvfit)
+library(gtsummary)
+library(tidycmprsk)
+library(survival)
+library(survRM2)
 
 # To run this script, open the imoc_pdac.Rproj file in the main folder (imoc_pdac)
 
@@ -55,6 +61,11 @@ rna_tcga <- rna_tcga[, which(!colMeans((rna_tcga == 0)) > 0.2)]
 rna_tcga <- as.data.frame(rna_tcga)
 
 rna_tcga$patient <- patient
+
+## Clinical data for survival analysis
+
+clinical_data_file <- read_delim("data/TCGA/omics_data/raw/cancer_data_PAAD_clinical_data.tsv", delim = "\t")
+
 
 ## Function for DGE Analysis
 
@@ -985,11 +996,839 @@ FigYH <- mds %>% ggplot(aes(x = Dim.1, y = Dim.2)) +
   labs(title = "Centroid GSVA MDS on enriched (FDR < 0.25) oncogenic pathways", 
        subtitle = paste("MDS computed on n=", nrow(gsva_avg_z), " enriched oncogenic gene sets", sep = ""))
 
+# 6. Survival Comparison ----
 
-# 6. Figures ----
+
+survival_data <- clinical_data_file %>% select('Patient ID', 
+                                               'Disease Free Status',
+                                               'Overall Survival (Months)', 
+                                               'Overall Survival Status', 
+                                               'Disease Free (Months)')
+
+
+survival_data <- survival_data %>% 
+  mutate(
+    `Overall Survival Status` = recode_values(`Overall Survival Status`, "0:LIVING" ~ 0, "1:DECEASED" ~ 1),
+    `Disease Free Status` = recode_values(`Disease Free Status`, "0:DiseaseFree" ~ 0, "1:Recurred/Progressed" ~ 1)
+  )
+
+survival_data <- survival_data %>% left_join(papers_cluster_df %>% select(PatientID, IMOC, bailey, collisson, moffitt),
+                                             by = c("Patient ID" = "PatientID")) %>% filter(!is.na(IMOC))
+
+survival_data <- survival_data %>% rename(
+  SurvivalTime = `Overall Survival (Months)`,
+  SurvivalStatus = `Overall Survival Status`,
+  DFStime = `Disease Free (Months)`,
+  DFSstatus = `Disease Free Status`
+) %>% mutate(
+  IMOC = as.factor(IMOC),
+  bailey = as.factor(bailey),
+  collisson = as.factor(collisson),
+  moffitt = as.factor(moffitt)
+)
+
+
+### Overal survival ----
+
+IMOC_surv <- 
+  survfit2(Surv(SurvivalTime, SurvivalStatus) ~ IMOC, data = survival_data) %>%
+  ggsurvfit(theme = theme_cowplot()) +
+  labs(
+    title = "IMOC",
+    x = "Time (months)",
+    y = "Survival probability"
+  ) + add_confidence_interval() +
+  add_risktable(risktable_stats = "{n.risk} ({cum.event})") +
+  scale_ggsurvfit(x_scales = list(breaks = seq(0,78,6))) +
+  add_censor_mark() +
+  theme_ggsurvfit_KMunicate()  
+
+bailey_surv <- 
+  survfit2(Surv(SurvivalTime, SurvivalStatus) ~ bailey, data = survival_data) %>%
+  ggsurvfit(theme = theme_cowplot()) +
+  labs(
+    title = "Bailey",
+    x = "Time (months)",
+    y = "Survival probability"
+  ) + add_confidence_interval() +
+  add_risktable(risktable_stats = "{n.risk} ({cum.event})") +
+  scale_ggsurvfit(x_scales = list(breaks = seq(0,78,6))) +
+  add_censor_mark() +
+  scale_color_brewer(type = "qual", palette = 2) +
+  scale_fill_brewer(type = "qual", palette = 2) +
+  theme_ggsurvfit_KMunicate()  
+
+
+collisson_surv <- 
+  survfit2(Surv(SurvivalTime, SurvivalStatus) ~ collisson, data = survival_data) %>%
+  ggsurvfit(theme = theme_cowplot()) +
+  labs(
+    title = "Collisson",
+    x = "Time (months)",
+    y = "Survival probability"
+  ) + add_confidence_interval() +
+  add_risktable(risktable_stats = "{n.risk} ({cum.event})") +
+  scale_ggsurvfit(x_scales = list(breaks = seq(0,78,6))) +
+  add_censor_mark() +
+  scale_color_brewer(type = "qual", palette = 6) +
+  scale_fill_brewer(type = "qual", palette = 6) +
+  theme_ggsurvfit_KMunicate()  
+collisson_surv
+
+moffitt_surv <- 
+  survfit2(Surv(SurvivalTime, SurvivalStatus) ~ moffitt, data = survival_data) %>%
+  ggsurvfit(theme = theme_cowplot()) +
+  labs(
+    title = "Moffitt",
+    x = "Time (months)",
+    y = "Survival probability"
+  ) + add_confidence_interval() +
+  add_risktable(risktable_stats = "{n.risk} ({cum.event})") +
+  scale_ggsurvfit(x_scales = list(breaks = seq(0,78,6))) +
+  add_censor_mark() +
+  scale_color_brewer(type = "qual", palette = 7) +
+  scale_fill_brewer(type = "qual", palette = 7) +
+  theme_ggsurvfit_KMunicate()  
+moffitt_surv
+
+
+### Disease Free Progression ----
+
+IMOC_dfs <- 
+  survfit2(Surv(DFStime, DFSstatus) ~ IMOC, data = survival_data) %>%
+  ggsurvfit(theme = theme_cowplot()) +
+  labs(
+    title = "IMOC",
+    x = "Time (months)",
+    y = "Disease free probability"
+  ) + add_confidence_interval() +
+  add_risktable(risktable_stats = "{n.risk} ({cum.event})") +
+  scale_ggsurvfit(x_scales = list(breaks = seq(0,78,6))) +
+  add_censor_mark() +
+  theme_ggsurvfit_KMunicate()  
+
+
+bailey_dfs <- 
+  survfit2(Surv(DFStime, DFSstatus) ~ bailey, data = survival_data) %>%
+  ggsurvfit(theme = theme_cowplot()) +
+  labs(
+    title = "Bailey",
+    x = "Time (months)",
+    y = "Disease free probability"
+  ) + add_confidence_interval() +
+  add_risktable(risktable_stats = "{n.risk} ({cum.event})") +
+  scale_ggsurvfit(x_scales = list(breaks = seq(0,78,6))) +
+  add_censor_mark() +
+  scale_color_brewer(type = "qual", palette = 2) +
+  scale_fill_brewer(type = "qual", palette = 2) +
+  theme_ggsurvfit_KMunicate()  
+
+
+collisson_dsf <- 
+  survfit2(Surv(DFStime, DFSstatus) ~ collisson, data = survival_data) %>%
+  ggsurvfit(theme = theme_cowplot()) +
+  labs(
+    title = "Collisson",
+    x = "Time (months)",
+    y = "Disease free probability"
+  ) + add_confidence_interval() +
+  add_risktable(risktable_stats = "{n.risk} ({cum.event})") +
+  scale_ggsurvfit(x_scales = list(breaks = seq(0,78,6))) +
+  add_censor_mark() +
+  scale_color_brewer(type = "qual", palette = 6) +
+  scale_fill_brewer(type = "qual", palette = 6) +
+  theme_ggsurvfit_KMunicate()  
+collisson_dsf
+
+moffitt_dsf <- 
+  survfit2(Surv(DFStime, DFSstatus) ~ moffitt, data = survival_data) %>%
+  ggsurvfit(theme = theme_cowplot()) +
+  labs(
+    title = "Moffitt",
+    x = "Time (months)",
+    y = "Desease free probability"
+  ) + add_confidence_interval() +
+  add_risktable(risktable_stats = "{n.risk} ({cum.event})") +
+  scale_ggsurvfit(x_scales = list(breaks = seq(0,78,6))) +
+  add_censor_mark() +
+  scale_color_brewer(type = "qual", palette = 7) +
+  scale_fill_brewer(type = "qual", palette = 7) +
+  theme_ggsurvfit_KMunicate()  
+moffitt_dsf
+
+
+### RMST ----
+
+# Helper: identify worst- and best-prognosis subgroups for a scheme
+
+identify_extreme_groups <- function(data, time_var, event_var, scheme,
+                                    tau_for_ranking) {
+  # Ranks subgroups by their KM-estimated survival probability at tau_for_ranking.
+  # Returns the subgroup names with the lowest (worst) and highest (best) survival.
+  
+  fml <- as.formula(paste0("Surv(", time_var, ", ", event_var, ") ~ ", scheme))
+  km  <- survfit(fml, data = data)
+  
+  # Get survival at tau_for_ranking for each stratum
+  sm <- summary(km, times = tau_for_ranking, extend = TRUE)
+  surv_by_group <- data.frame(
+    group = sub(paste0("^", scheme, "="), "", sm$strata),
+    surv  = sm$surv,
+    stringsAsFactors = FALSE
+  )
+  
+  worst_group <- surv_by_group$group[which.min(surv_by_group$surv)]
+  best_group  <- surv_by_group$group[which.max(surv_by_group$surv)]
+  
+  list(worst = worst_group, best = best_group, ranking = surv_by_group)
+}
+
+# Core function: compute RMST difference at a single tau
+rmst_difference_at_tau <- function(data, time_var, event_var, scheme,
+                                   tau, worst_group = NULL, best_group = NULL,
+                                   ranking_tau = NULL) {
+  # Subset to complete cases
+  d <- data[complete.cases(data[, c(time_var, event_var, scheme)]), ]
+  d[[scheme]] <- droplevels(factor(d[[scheme]]))
+  
+  # Auto-identify extreme groups if not provided
+  if (is.null(worst_group) || is.null(best_group)) {
+    rt <- if (is.null(ranking_tau)) tau else ranking_tau
+    extremes <- identify_extreme_groups(d, time_var, event_var, scheme, rt)
+    worst_group <- extremes$worst
+    best_group  <- extremes$best
+  }
+  
+  # Restrict to the two extreme subgroups
+  d_pair <- d[d[[scheme]] %in% c(worst_group, best_group), ]
+  d_pair[[scheme]] <- droplevels(factor(d_pair[[scheme]]))
+  
+  # survRM2 expects arm coded as 0/1, with arm=1 being the "treatment" group.
+  # We code arm=1 = best (reference), arm=0 = worst, so the RMST difference
+  # arm1 - arm0 = best - worst, which will be POSITIVE for a useful predictor.
+  arm <- ifelse(d_pair[[scheme]] == best_group, 1, 0)
+  
+  # survRM2 requirement: tau must be <= min of the largest observed time per arm
+  max_time_arm0 <- max(d_pair[[time_var]][arm == 0])
+  max_time_arm1 <- max(d_pair[[time_var]][arm == 1])
+  tau_max <- min(max_time_arm0, max_time_arm1)
+  tau_used <- min(tau, tau_max)
+  
+  # Need at least one event per arm for stable estimation
+  events_arm0 <- sum(d_pair[[event_var]][arm == 0])
+  events_arm1 <- sum(d_pair[[event_var]][arm == 1])
+  
+  if (events_arm0 < 1 || events_arm1 < 1 ||
+      length(unique(arm)) < 2 || tau_used <= 0) {
+    return(tibble(
+      scheme       = scheme,
+      tau          = tau,
+      tau_used     = NA_real_,
+      worst_group  = worst_group,
+      best_group   = best_group,
+      n_worst      = sum(arm == 0),
+      n_best       = sum(arm == 1),
+      events_worst = events_arm0,
+      events_best  = events_arm1,
+      rmst_worst   = NA_real_,
+      rmst_best    = NA_real_,
+      rmst_diff    = NA_real_,
+      ci_lower     = NA_real_,
+      ci_upper     = NA_real_,
+      p_value      = NA_real_,
+      note         = "insufficient events or follow-up"
+    ))
+  }
+  
+  fit <- tryCatch(
+    rmst2(time   = d_pair[[time_var]],
+          status = d_pair[[event_var]],
+          arm    = arm,
+          tau    = tau_used),
+    error   = function(e) NULL,
+    warning = function(w) suppressWarnings(
+      rmst2(time   = d_pair[[time_var]],
+            status = d_pair[[event_var]],
+            arm    = arm,
+            tau    = tau_used)
+    )
+  )
+  
+  if (is.null(fit)) {
+    return(tibble(
+      scheme       = scheme, tau = tau, tau_used = tau_used,
+      worst_group  = worst_group, best_group = best_group,
+      n_worst      = sum(arm == 0), n_best = sum(arm == 1),
+      events_worst = events_arm0,   events_best = events_arm1,
+      rmst_worst   = NA_real_, rmst_best = NA_real_,
+      rmst_diff    = NA_real_, ci_lower = NA_real_, ci_upper = NA_real_,
+      p_value      = NA_real_,
+      note         = "rmst2 failed"
+    ))
+  }
+  
+  # Extract per-arm RMST and the unadjusted difference (best - worst)
+  rmst_worst <- fit$RMST.arm0$rmst["Est."]
+  rmst_best  <- fit$RMST.arm1$rmst["Est."]
+  diff_row   <- fit$unadjusted.result["RMST (arm=1)-(arm=0)", ]
+  
+  tibble(
+    scheme       = scheme,
+    tau          = tau,
+    tau_used     = tau_used,
+    worst_group  = worst_group,
+    best_group   = best_group,
+    n_worst      = sum(arm == 0),
+    n_best       = sum(arm == 1),
+    events_worst = events_arm0,
+    events_best  = events_arm1,
+    rmst_worst   = unname(rmst_worst),
+    rmst_best    = unname(rmst_best),
+    rmst_diff    = unname(diff_row["Est."]),
+    ci_lower     = unname(diff_row["lower .95"]),
+    ci_upper     = unname(diff_row["upper .95"]),
+    p_value      = unname(diff_row["p"]),
+    note         = if (tau_used < tau) "tau capped to follow-up" else NA_character_
+  )
+}
+
+# Wrapper: run RMST analysis for one scheme across multiple tau values
+rmst_across_taus <- function(data, time_var, event_var, scheme,
+                             taus, ranking_tau = NULL,
+                             worst_group = NULL, best_group = NULL) {
+  # If ranking_tau not specified, pick a tau in the middle of the range for ranking
+  # (so all tau values use the same worst/best assignment, ensuring consistency)
+  if (is.null(ranking_tau) && (is.null(worst_group) || is.null(best_group))) {
+    d <- data[complete.cases(data[, c(time_var, event_var, scheme)]), ]
+    # Use a mid-range tau, capped by available follow-up
+    ranking_tau <- min(24, quantile(d[[time_var]], 0.75, na.rm = TRUE))
+    extremes <- identify_extreme_groups(d, time_var, event_var, scheme, ranking_tau)
+    worst_group <- extremes$worst
+    best_group  <- extremes$best
+    cat(sprintf("  [%s] worst group = '%s', best group = '%s' (ranked at tau=%.1f)\n",
+                scheme, worst_group, best_group, ranking_tau))
+    # If a ranking_tau is specified without specifying the groups
+  } else if (!is.null(ranking_tau) && (is.null(worst_group) || is.null(best_group))) {
+    d <- data[complete.cases(data[, c(time_var, event_var, scheme)]), ]
+    extremes <- identify_extreme_groups(d, time_var, event_var, scheme, ranking_tau)
+    worst_group <- extremes$worst
+    best_group  <- extremes$best
+    cat(sprintf("  [%s] worst group = '%s', best group = '%s' (ranked at tau=%.1f)\n",
+                scheme, worst_group, best_group, ranking_tau))
+  }
+  
+  bind_rows(lapply(taus, function(tau) {
+    rmst_difference_at_tau(
+      data        = data,
+      time_var    = time_var,
+      event_var   = event_var,
+      scheme      = scheme,
+      tau         = tau,
+      worst_group = worst_group,
+      best_group  = best_group
+    )
+  }))
+}
+
+# Run the analysis
+
+schemes <- c("IMOC", "bailey", "collisson", "moffitt")
+
+# Identify worst groups at 12 months
+for (s in schemes) {
+  rank <- identify_extreme_groups(
+    survival_data,
+    time_var = "SurvivalTime",
+    event_var = "SurvivalStatus",
+    scheme = s,
+    tau_for_ranking = 12
+  )
+  cat(sprintf("Scheme '%s':\nWorst group: '%s' / Best group: '%s'\n", s,rank$worst, rank$best))
+}
+
+for (s in schemes) {
+  rank <- identify_extreme_groups(
+    survival_data,
+    time_var = "DFStime",
+    event_var = "DFSstatus",
+    scheme = s,
+    tau_for_ranking = 12
+  )
+  cat(sprintf("Scheme '%s':\nWorst group: '%s' / Best group: '%s'\n", s,rank$worst, rank$best))
+}
+
+
+taus    <- c(6, 12, 18, 24, 36, 60)  # "Overall" added below
+
+# --- Overall Survival ---
+# "Overall" tau = min of largest observed time across all schemes' extreme pairs
+tau_overall_os <- floor(min(survival_data$SurvivalTime[survival_data$SurvivalStatus == 1] %>%
+                              max(),
+                            max(survival_data$SurvivalTime)))
+taus_os <- c(taus, tau_overall_os)
+cat(sprintf("OS: tau values = %s\n", paste(taus_os, collapse = ", ")))
+
+
+## IMOC
+results_os <- 
+  rmst_across_taus(
+    data      = survival_data,
+    time_var  = "SurvivalTime",
+    event_var = "SurvivalStatus",
+    scheme    = "IMOC",
+    ranking_tau = 12,
+    taus      = taus_os
+  ) 
+
+## Moffitt
+
+results_os <- results_os %>% bind_rows(
+  rmst_across_taus(
+    data      = survival_data,
+    time_var  = "SurvivalTime",
+    event_var = "SurvivalStatus",
+    scheme    = "moffitt",
+    ranking_tau = 12,
+    taus      = taus_os
+  )
+)
+
+## Bailey
+
+types <- c("Immunogenic", "Progenitor", "ADEX")
+
+for (t in types) {
+  results_os <- results_os %>% bind_rows(
+    rmst_across_taus(
+      data      = survival_data,
+      time_var  = "SurvivalTime",
+      event_var = "SurvivalStatus",
+      scheme    = "bailey", 
+      worst_group = "Squamous", 
+      best_group = t,
+      taus      = taus_os
+    )
+  )
+}
+
+## Collisson
+
+types <- c("Classical", "Exocrine")
+
+for (t in types) {
+  results_os <- results_os %>% bind_rows(
+    rmst_across_taus(
+      data      = survival_data,
+      time_var  = "SurvivalTime",
+      event_var = "SurvivalStatus",
+      scheme    = "collisson", 
+      worst_group = "QM", 
+      best_group = t,
+      taus      = taus_os
+    )
+  )
+}
+
+results_os <- results_os %>% mutate(
+  endpoint = "Overall survival", .before = 1
+)
+
+# --- Disease-Free Survival ---
+tau_overall_dfs <- floor(min(survival_data$DFStime[survival_data$DFSstatus == 1] %>%
+                               max(),
+                             max(survival_data$DFStime, na.rm = TRUE), na.rm = TRUE))
+taus_dfs <- c(taus, tau_overall_dfs)
+cat(sprintf("\nDFS: tau values = %s\n", paste(taus_dfs, collapse = ", ")))
+
+
+## IMOC
+results_dfs <- 
+  rmst_across_taus(
+    data      = survival_data,
+    time_var  = "DFStime",
+    event_var = "DFSstatus",
+    scheme    = "IMOC",
+    ranking_tau = 12,
+    taus      = taus_os
+  ) 
+
+## Moffitt
+
+results_dfs <- results_dfs %>% bind_rows(
+  rmst_across_taus(
+    data      = survival_data,
+    time_var  = "DFStime",
+    event_var = "DFSstatus",
+    scheme    = "moffitt",
+    ranking_tau = 12,
+    taus      = taus_os
+  )
+)
+
+## Bailey
+
+types <- c("Immunogenic", "Progenitor", "ADEX")
+
+for (t in types) {
+  results_dfs <- results_dfs %>% bind_rows(
+    rmst_across_taus(
+      data      = survival_data,
+      time_var  = "DFStime",
+      event_var = "DFSstatus",,
+      scheme    = "bailey", 
+      worst_group = "Squamous", 
+      best_group = t,
+      taus      = taus_os
+    )
+  )
+}
+
+## Collisson
+
+types <- c("Classical", "Exocrine")
+
+for (t in types) {
+  results_dfs <- results_dfs %>% bind_rows(
+    rmst_across_taus(
+      data      = survival_data,
+      time_var  = "DFStime",
+      event_var = "DFSstatus",
+      scheme    = "collisson", 
+      worst_group = "QM", 
+      best_group = t,
+      taus      = taus_os
+    )
+  )
+}
+
+results_dfs <- results_dfs %>% mutate(
+  endpoint = "Disease free progression", .before = 1
+)
+
+
+
+# --- Combine and apply BH correction (within endpoint × scheme family) ---
+results_all <- bind_rows(results_os, results_dfs) %>%
+  group_by(endpoint, scheme) %>%
+  mutate(p_adj_bh = p.adjust(p_value, method = "BH")) %>%
+  ungroup()
+
+# --- View results ---
+print(results_all, n = Inf)
+
+results_all <- results_all %>% mutate(
+  scheme = str_to_title(scheme) %>% str_replace("Imoc", "IMOC")
+) %>% mutate(
+  Comparison = paste0(scheme, " (", best_group, " vs. ", worst_group,")")
+) %>% mutate(
+  endpoint = factor(endpoint, levels = c("Overall survival", "Disease free progression")),
+  scheme = factor(scheme, levels = c("IMOC", "Bailey", "Collisson", "Moffitt")),
+  Comparison = factor(Comparison, 
+                      levels = c("IMOC (Cluster 1 vs. Cluster 2)", 
+                                 "Bailey (ADEX vs. Squamous)",
+                                 "Bailey (Immunogenic vs. Squamous)",
+                                 "Bailey (Progenitor vs. Squamous)",
+                                 "Collisson (Classical vs. QM)",
+                                 "Collisson (Exocrine vs. QM)",
+                                 "Moffitt (Classical vs. Basal-like)"))
+)
+
+
+# Compute z-statistic from RMST difference and CI
+
+# survRM2 returns CI as: estimate ± 1.96 × SE
+# So SE = (upper - lower) / (2 × 1.96), and z = estimate / SE.
+# This works for any analysis where the CI was constructed via normal
+# approximation (which survRM2 uses).
+
+add_z_statistic <- function(results) {
+  results %>%
+    mutate(
+      se     = (ci_upper - ci_lower) / (2 * 1.96),
+      z_stat = rmst_diff / se,
+      # Two-sided p-value from z (sanity check vs survRM2's reported p)
+      p_from_z = 2 * pnorm(-abs(z_stat))
+    )
+}
+
+# Apply to combined Test 1 results
+
+results_with_z <- results_all %>%    
+  add_z_statistic()
+
+# Quick sanity check: p_from_z should match p_value to within rounding
+results_with_z %>%
+  select(endpoint, scheme, tau, rmst_diff, se, z_stat, p_value, p_from_z) %>%
+  mutate(p_diff = abs(p_value - p_from_z)) %>%
+  arrange(desc(p_diff)) %>%
+  head(10)
+# If p_diff is consistently < 0.001, the z derivation is correct.
+# If not, survRM2 may have returned a non-symmetric CI and you'll need
+# to extract SE more carefully (see note at end).
+
+# Summary table
+
+z_summary <- results_with_z %>%
+  select(endpoint, scheme, Comparison, tau,
+         rmst_diff, se, z_stat, p_value, p_adj_bh) %>%
+  mutate(across(c(rmst_diff, se, z_stat), \(x) round(x, 3))) %>%
+  arrange(endpoint, tau, desc(z_stat))
+
+print(z_summary, n = Inf)
+
+
+### RMST difference within stratum ----
+
+
+# Compute IMOC RMST difference within a single stratum
+
+rmst_imoc_within_stratum <- function(data, time_var, event_var, tau,
+                                     stratum_var, stratum_level,
+                                     imoc_var = "IMOC",
+                                     imoc_worst = "Cluster 2",
+                                     imoc_best  = "Cluster 1") {
+  # Subset to this stratum
+  d <- data[data[[stratum_var]] == stratum_level, ]
+  d <- d[complete.cases(d[, c(time_var, event_var, imoc_var)]), ]
+  d[[imoc_var]] <- droplevels(factor(d[[imoc_var]]))
+  
+  # Code arm: 1 = best (Cluster 1), 0 = worst (Cluster 2) — matches Test 1 convention
+  if (!all(c(imoc_worst, imoc_best) %in% levels(d[[imoc_var]]))) {
+    return(tibble(
+      stratum = stratum_level, tau = tau, tau_used = NA_real_,
+      n_worst = sum(d[[imoc_var]] == imoc_worst, na.rm = TRUE),
+      n_best  = sum(d[[imoc_var]] == imoc_best,  na.rm = TRUE),
+      events_worst = NA_integer_, events_best = NA_integer_,
+      rmst_diff = NA_real_, se = NA_real_,
+      ci_lower = NA_real_, ci_upper = NA_real_, p_value = NA_real_,
+      note = "missing IMOC level in stratum"
+    ))
+  }
+  
+  arm <- ifelse(d[[imoc_var]] == imoc_best, 1, 0)
+  
+  # Tau capping
+  max_t0 <- max(d[[time_var]][arm == 0])
+  max_t1 <- max(d[[time_var]][arm == 1])
+  tau_used <- min(tau, max_t0, max_t1)
+  
+  events_worst <- sum(d[[event_var]][arm == 0])
+  events_best  <- sum(d[[event_var]][arm == 1])
+  n_worst <- sum(arm == 0)
+  n_best  <- sum(arm == 1)
+  
+  if (is.na(tau_used) || events_worst < 1 || events_best < 1 || n_worst < 2 || n_best < 2 ||
+      tau_used <= 0) {
+    return(tibble(
+      stratum = stratum_level, tau = tau, tau_used = tau_used,
+      n_worst = n_worst, n_best = n_best,
+      events_worst = events_worst, events_best = events_best,
+      rmst_diff = NA_real_, se = NA_real_,
+      ci_lower = NA_real_, ci_upper = NA_real_, p_value = NA_real_,
+      note = "insufficient events or sample size"
+    ))
+  }
+  
+  fit <- tryCatch(
+    suppressWarnings(rmst2(time = d[[time_var]],
+                           status = d[[event_var]],
+                           arm = arm, tau = tau_used)),
+    error = function(e) NULL
+  )
+  
+  if (is.null(fit)) {
+    return(tibble(
+      stratum = stratum_level, tau = tau, tau_used = tau_used,
+      n_worst = n_worst, n_best = n_best,
+      events_worst = events_worst, events_best = events_best,
+      rmst_diff = NA_real_, se = NA_real_,
+      ci_lower = NA_real_, ci_upper = NA_real_, p_value = NA_real_,
+      note = "rmst2 failed"
+    ))
+  }
+  
+  diff_row <- fit$unadjusted.result["RMST (arm=1)-(arm=0)", ]
+  est <- unname(diff_row["Est."])
+  lo  <- unname(diff_row["lower .95"])
+  hi  <- unname(diff_row["upper .95"])
+  # Recover SE from the 95% CI (survRM2 uses normal-approx CI: est ± 1.96*SE)
+  se  <- (hi - lo) / (2 * 1.96)
+  
+  tibble(
+    stratum = stratum_level, tau = tau, tau_used = tau_used,
+    n_worst = n_worst, n_best = n_best,
+    events_worst = events_worst, events_best = events_best,
+    rmst_diff = est, se = se,
+    ci_lower = lo, ci_upper = hi,
+    p_value = unname(diff_row["p"]),
+    note = if (tau_used < tau) "tau capped to follow-up" else NA_character_
+  )
+}
+
+# Pool within-stratum RMST differences via inverse-variance weighting
+
+pool_rmst_strata <- function(stratum_results) {
+  # Standard fixed-effects inverse-variance meta-analytic pooling.
+  # Strata with NA RMST/SE are dropped before pooling.
+  valid <- stratum_results %>%
+    filter(!is.na(rmst_diff), !is.na(se), se > 0)
+  
+  if (nrow(valid) == 0) {
+    return(tibble(
+      pooled_rmst_diff = NA_real_, pooled_se = NA_real_,
+      pooled_ci_lower = NA_real_, pooled_ci_upper = NA_real_,
+      pooled_p_value = NA_real_, n_strata_pooled = 0L,
+      n_strata_total = nrow(stratum_results)
+    ))
+  }
+  
+  w <- 1 / valid$se^2
+  pooled_est <- sum(w * valid$rmst_diff) / sum(w)
+  pooled_se  <- sqrt(1 / sum(w))
+  z <- pooled_est / pooled_se
+  p <- 2 * pnorm(-abs(z))
+  
+  # Cochran's Q test for heterogeneity
+  Q_stat <- sum(w * (valid$rmst_diff - pooled_est)^2)
+  Q_df   <- nrow(valid) - 1
+  Q_p    <- if (Q_df > 0) pchisq(Q_stat, df = Q_df, lower.tail = FALSE) else NA_real_
+  # I-squared
+  I2     <- if (Q_df > 0) max(0, (Q_stat - Q_df) / Q_stat) * 100 else NA_real_
+  
+  tibble(
+    pooled_rmst_diff = pooled_est,
+    pooled_se        = pooled_se,
+    pooled_ci_lower  = pooled_est - 1.96 * pooled_se,
+    pooled_ci_upper  = pooled_est + 1.96 * pooled_se,
+    pooled_p_value   = p,
+    Q_stat           = Q_stat,
+    Q_df             = Q_df,
+    Q_p              = Q_p,
+    I2               = I2,
+    n_strata_pooled  = nrow(valid),
+    n_strata_total   = nrow(stratum_results)
+  )
+}
+
+
+# Run "added value" analysis for IMOC adjusted by one taxonomy at one tau
+
+imoc_added_value <- function(data, time_var, event_var, tau,
+                             taxonomy_var,
+                             imoc_var = "IMOC",
+                             imoc_worst = "Cluster 2",
+                             imoc_best  = "Cluster 1") {
+  d <- data[complete.cases(data[, c(time_var, event_var, imoc_var, taxonomy_var)]), ]
+  d[[taxonomy_var]] <- droplevels(factor(d[[taxonomy_var]]))
+  strata <- levels(d[[taxonomy_var]])
+  
+  per_stratum <- bind_rows(lapply(strata, function(s) {
+    rmst_imoc_within_stratum(
+      data = d, time_var = time_var, event_var = event_var,
+      tau = tau, stratum_var = taxonomy_var, stratum_level = s,
+      imoc_var = imoc_var, imoc_worst = imoc_worst, imoc_best = imoc_best
+    )
+  })) %>%
+    mutate(taxonomy = taxonomy_var, .before = 1)
+  
+  pooled <- pool_rmst_strata(per_stratum) %>%
+    mutate(taxonomy = taxonomy_var, tau = tau, .before = 1)
+  
+  list(per_stratum = per_stratum, pooled = pooled)
+}
+
+
+# Run across taus and taxonomies
+run_test2 <- function(data, time_var, event_var, taus,
+                      taxonomies = c("bailey", "collisson", "moffitt"),
+                      imoc_var = "IMOC",
+                      imoc_worst = "Cluster 2",
+                      imoc_best  = "Cluster 1",
+                      endpoint_label) {
+  
+  grid <- expand.grid(taxonomy = taxonomies, tau = taus,
+                      stringsAsFactors = FALSE)
+  
+  per_stratum_all <- list()
+  pooled_all      <- list()
+  
+  for (i in seq_len(nrow(grid))) {
+    tx <- grid$taxonomy[i]
+    tu <- grid$tau[i]
+    res <- imoc_added_value(
+      data = data, time_var = time_var, event_var = event_var,
+      tau = tu, taxonomy_var = tx,
+      imoc_var = imoc_var, imoc_worst = imoc_worst, imoc_best = imoc_best
+    )
+    per_stratum_all[[i]] <- res$per_stratum %>% mutate(tau = tu, .after = taxonomy)
+    pooled_all[[i]]      <- res$pooled
+  }
+  
+  list(
+    per_stratum = bind_rows(per_stratum_all) %>%
+      mutate(endpoint = endpoint_label, .before = 1),
+    pooled      = bind_rows(pooled_all) %>%
+      mutate(endpoint = endpoint_label, .before = 1) %>%
+      group_by(endpoint, taxonomy) %>%
+      mutate(p_adj_bh = p.adjust(pooled_p_value, method = "BH")) %>%
+      ungroup()
+  )
+}
+
+
+# Use the same tau grids as before
+tau_overall_os <- floor(min(
+  max(survival_data$SurvivalTime[survival_data$SurvivalStatus == 1]),
+  max(survival_data$SurvivalTime)
+))
+taus_os <- c(6, 12, 18, 24, 36, 60, tau_overall_os)
+
+tau_overall_dfs <- floor(min(
+  max(survival_data$DFStime[survival_data$DFSstatus == 1], na.rm = TRUE),
+  max(survival_data$DFStime, na.rm = TRUE),
+  na.rm = TRUE
+))
+taus_dfs <- c(6, 12, 18, 24, 36, 60, tau_overall_dfs)
+
+# --- Overall Survival ---
+test2_os <- run_test2(
+  data           = survival_data,
+  taxonomies = "moffitt", 
+  time_var       = "SurvivalTime",
+  event_var      = "SurvivalStatus",
+  taus           = taus_os,
+  endpoint_label = "Overall survival"
+)
+
+# --- Disease-Free Survival ---
+test2_dfs <- run_test2(
+  data = survival_data,
+  taxonomies = "moffitt",
+  time_var = "DFStime",
+  event_var = "DFSstatus",
+  taus = taus_dfs,
+  endpoint_label = "Disease-free survival"
+)
+
+# --- Combine ---
+test2_per_stratum <- bind_rows(test2_os$per_stratum, test2_dfs$per_stratum)
+test2_per_stratum <- test2_per_stratum %>% group_by(endpoint, stratum) %>%  
+  mutate(p_adj_bh = p.adjust(p_value, method = "BH")) %>%
+  ungroup()
+
+
+# --- View ---
+
+cat("\n=== PER-STRATUM RESULTS ===\n")
+print(test2_per_stratum, n = Inf)
+
+
+# 7. Figures ----
 
 height <- 11.69
 width <- 8.27
+
+## Omics analysis
 
 FigXD <- grImport2::readPicture("figures/omics_analysis/CorPlotAllGenes.svg")
 FigXD <- grImport2::pictureGrob(FigXD)
@@ -1037,8 +1876,118 @@ FigY <- plot_grid(plotlist = list(FigYA, FigYB[[4]], FigYC, FigYD, FigYE, FigYF[
 
 ggsave(plot = FigY, filename = "figures/omics_analysis/FigSubtypesSig.pdf", height = 2.6*height, width = 2.6*width)
 
+## Survival analysis
 
-# 7. Model to test uniqueness ----
+
+plot_grid(
+  ggsurvfit_build(IMOC_surv),
+  ggsurvfit_build(bailey_surv),
+  ggsurvfit_build(collisson_surv),
+  ggsurvfit_build(moffitt_surv),
+  ncol = 2
+)
+ggsave("figures/OS_curves_classifications.pdf", height = heigth, width = width*2.5)
+
+
+plot_grid(
+  ggsurvfit_build(IMOC_dfs),
+  ggsurvfit_build(bailey_dfs),
+  ggsurvfit_build(collisson_dsf),
+  ggsurvfit_build(moffitt_dsf),
+  ncol = 2
+)
+
+ggsave("figures/DFS_curves_classifications.pdf", height = heigth, width = width*2.5)
+
+
+(RMST_Diff <- 
+    results_all %>% filter(tau_used <= 36) %>% 
+    ggplot(aes(x = tau_used, y = rmst_diff, group = Comparison)) +
+    geom_segment(
+      aes(y = ci_lower, yend = ci_upper, x = tau_used, color = Comparison),
+      arrow = arrow(
+        angle = 90,
+        length = unit(0.01, "npc"),
+        ends = "both"
+      ), position = position_dodge(width = 2), alpha = 0.5)  +
+    geom_point(aes(shape = scheme, color = Comparison), position = position_dodge(width = 2), size = 3) +
+    geom_text(aes(y = ci_upper, label = paste0("p=",round(p_adj_bh,3)), 
+                  color = Comparison), show.legend = FALSE, size = 3,
+              position = position_dodge(width = 2), angle = 45, hjust = 0, vjust = -0.5) +
+    geom_hline(yintercept = 0, lty = 2, lwd = 0.25) +
+    scale_x_continuous(breaks = round(unique(results_all$tau_used), 0), name = "Time (months)") +
+    scale_color_brewer(type = "qual", palette = 2) +
+    scale_shape_manual(name = "Classification", values = c(19,15, 18, 17)) + 
+    theme_cowplot(font_size = 20) +
+    labs(
+      title = "RMST differences between worst- and best-prognosis subgroups",
+      x = "Time (months)",
+      y = expression(Delta~"RMST (\u00B1 95% CI)")
+    ) +  facet_wrap( ~ endpoint, ncol = 1) #+ theme(legend.position = "top")
+)
+
+
+
+(RMST_zval <- 
+  ggplot(results_with_z %>% filter(tau <= 36),  # match 36-month window
+         aes(x = tau, y = z_stat,
+             color = Comparison,
+             shape = scheme,
+             group = Comparison)) +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "grey50") +
+  geom_hline(yintercept = c(-1.96, 1.96), linetype = "dotted", color = "grey70") +
+  geom_line(alpha = 0.6) +
+  geom_point(size = 2.5) +
+  facet_wrap(~ endpoint, ncol = 1) +
+  scale_x_continuous(breaks = c(6, 12, 18, 24, 36)) +
+  labs(
+    title = "Signal-to-noise ratio by comparison",
+    x = "Time (months)",
+    y = expression("Z-statistic"~(hat(Delta)/widehat(SE))),
+    color = "Comparison",
+    shape = "Classification",
+    caption = "Dotted lines at z = \u00B1 1.96 mark the threshold for nominal significance (p ~ 0.05).",
+  ) +
+  scale_shape_manual(values = c(19,15, 18, 17)) +
+  scale_color_brewer(type = "qual", palette = 2) +
+  theme_cowplot(font_size = 20) #+ theme(legend.position = "top")
+)
+plot_grid(RMST_Diff, RMST_zval, ncol = 1, labels = "AUTO")
+ggsave("figures/RMST_Classification.pdf", height = heigth*2, width = width*2.5)
+
+
+(rmst_diff_strata <- 
+  test2_per_stratum %>% mutate(
+    endpoint = factor(endpoint, levels = c("Overall survival", "Disease-free survival"))
+  ) %>%
+  ggplot(aes(x = tau_used, y = rmst_diff, group = stratum)) +
+  geom_segment(
+    aes(y = ci_lower, yend = ci_upper, x = tau_used),
+    arrow = arrow(
+      angle = 90,
+      length = unit(0.01, "npc"),
+      ends = "both"
+    ), color = "gray50", position = position_dodge(width = 1.5))  +
+  geom_point(aes(shape = stratum, fill = p_adj_bh),color = "gray50", size = 5,
+             position = position_dodge(width = 1.5)) +
+  geom_text(aes(x = tau_used, y = ci_upper, label = paste0("p=",round(p_adj_bh, 3)), hjust = 0, vjust = -0.5),
+            position = position_dodge(width = 1.5), angle = 45, color = "gray50", size = 5) +
+  geom_hline(yintercept = 0, lty = 2, lwd = 0.25) +
+  scale_x_continuous(breaks = round(unique(test2_per_stratum$tau_used), 0), name = "Time (months)") +
+  scale_shape_manual(name = "Moffitt subtype", values = c(22,23)) +
+  scale_fill_gradient(name = "Adj. p-value", high = "#fee5d9", low = "firebrick") +
+  theme_cowplot(font_size = 20) +
+  labs(
+    title = "Moffitt IMOC RMST difference within each subtype (Cluster 2 vs. Cluster 1)",
+    x = "Time (months)",
+    y = expression(Delta~"RMST (\u00B1 95% CI)")
+  ) +  facet_wrap( ~ endpoint, ncol = 1)
+)
+
+ggsave("figures/RMST_Diff_Moffitt.pdf",plot = rmst_diff_strata, height = heigth, width = width*2)
+
+
+# 8. Model to test uniqueness ----
 
 meta <- gsva.es_df_long %>% select(-c(Pathway, GSVA_Score)) %>% group_by(patient, cluster, bailey, collisson, moffitt) %>% unique() %>% ungroup()
 
@@ -1105,7 +2054,8 @@ top10 %>% mutate(Pathway = fct_reorder(Pathway, logFC, .desc = F)) %>% ggplot(ae
   theme(title = element_text(face = "bold"), strip.text = element_text(face = "bold", size = 16))
 ggsave("figures/omics_analysis/limma_pathways.pdf", width = 2.5*width, height = height)
 
-# 8. Data S3 ----
+
+# 9. Data S3 ----
 
 DataS3 <- list(GSVA_Score = gsva.es_df)
 
@@ -1118,7 +2068,7 @@ for(i in names(DataS3)) {
 
 wb$save("results/DataS3.xlsx")
 
-# 9. Data S4 ---- 
+# 10. Data S4 ---- 
 
 ADEX <- bailey_DEGs$ADEXvsOther
 Squamous <- bailey_DEGs$SquamousvsOther 
@@ -1146,7 +2096,7 @@ for(i in names(DataS4)) {
 
 wb$save("results/DataS4.xlsx")
 
-# 10. Data S5 ---- 
+# 11. Data S5 ---- 
 
 folders <- list.dirs("results/omics_analysis/RNA_Seq/subtypes_GSEA", recursive = FALSE, full.names = TRUE)
 
@@ -1209,7 +2159,7 @@ for(i in names(DataS5)) {
 
 wb$save("results/DataS5.xlsx")
 
-# 11. Data S6 ----
+# 12. Data S6 ----
 
 limma_gsva_bailey
 
@@ -1225,3 +2175,14 @@ for(i in names(DataS6)) {
 }
 
 wb$save("results/DataS6.xlsx")
+
+
+# 13. Data S7 ----
+
+write_xlsx(results_with_z, "results/DataS7.xlsx")
+
+# 14. Data S8 ----
+
+write_xlsx(test2_per_stratum, "results/DataS8.xlsx")
+
+

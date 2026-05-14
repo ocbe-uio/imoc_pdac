@@ -26,7 +26,7 @@ datasets, two_view_datasets = CommonOperations.get_list_of_datasets(DATASET_TABL
 for dataset_name in datasets:
 
     if selected_views:
-        if isinstance(selected_views, list):
+        if isinstance(selected_views, list) and len(selected_views) > 1:
             binary_combination = ['1' if view in selected_views else '0' for view in views]
             binary_combination = [''.join(binary_combination)]
         elif isinstance(selected_views, str) and selected_views == 'all':

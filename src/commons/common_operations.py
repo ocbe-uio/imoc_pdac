@@ -31,7 +31,7 @@ class CommonOperations:
                           runs_per_alg, two_view_datasets, selected_views, run_amputation):
         # options to either run through all combinations or only use a specific one
         if selected_views:
-            if isinstance(selected_views, list):
+            if isinstance(selected_views, list) and len(selected_views) > 1:
                 view_combinations = ['1' if view in selected_views else '0' for view in views]
                 combinations_matrix = [''.join(view_combinations)]
             elif isinstance(selected_views, str) and selected_views == 'all':

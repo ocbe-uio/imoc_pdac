@@ -20,6 +20,7 @@ BiocManager::install("foreign")
 BiocManager::install("MASS")
 BiocManager::install("nlme")
 BiocManager::install("survival")
+BiocManager::install("TCGAbiolinks")
 
 BiocManager::install("maftools")
 
@@ -45,7 +46,8 @@ library(dplyr)
 ##  SCRIPT  ##
 ##############
 
-# data directory
+# set data directory to download_data.R location
+setwd("../imoc_pdac/data")
 folder_data <- "TCGA/omics_data"
 folder_raw_data <- file.path(folder_data, "raw")
 

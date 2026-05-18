@@ -119,7 +119,7 @@ exportClass(cancer_data, dir = out_dir, fmt = "csv", ext = ".csv")
 row_data_cna <- as.data.frame(rowData(cancer_data[[1]]))
 assay_data_cna <- as.data.frame(assay(cancer_data[[1]]))
 merged_data_cna <- cbind(row_data_cna, assay_data_cna)
-write.csv(merged_data_cna, file = "TCGA/omics_data/raw/cna_data_peaks.csv", row.names = FALSE)
+write.csv(merged_data_cna, file = "TCGA/omics_data/raw/cancer_data_PAAD_CNA_GISTIC-20160128.csv", row.names = FALSE)
 
 # Methylation data (genes associated with methylation sites)
 row_data_methyl <- as.data.frame(rowData(cancer_data[[6]]))

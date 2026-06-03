@@ -109,7 +109,7 @@ class LoadDataset:
         data_path = os.path.join(DATA_FOLDER, 'TCGA', 'omics_data', 'preprocessed', dataset_name)
         data_files = [filename for filename in os.listdir(data_path)]
         data_files = sorted(data_files)
-        data_files = [os.path.join(data_path, filename) for filename in data_files if dataset_name in filename]
+        data_files = [os.path.join(data_path, filename) for filename in data_files]
         Xs = [pd.read_csv(filename, index_col=0) for filename in data_files]    # check that files are in correct format
         output = (Xs,)
         if return_y:

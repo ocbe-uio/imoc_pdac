@@ -69,7 +69,7 @@ cnv_new = cnv_new.apply(pd.to_numeric)
 
 print("Converting to files...")
 dataframes = [RNAseq_new, RPPA_new, miRNA_new, methylation_new, mutations_new, cnv_new]
-if complete_sample_set == False:
+if not complete_sample_set:
     partial_samples = RPPA_new.index.intersection(miRNA_new.index).intersection(RNAseq_new.index).intersection(methylation_new.index).intersection(mutations_new.index).intersection(cnv_new.index)
     RNAseq_partial, RPPA_partial, miRNA_partial, methylation_partial, mutations_partial, cnv_partial = [df.loc[partial_samples] for df in dataframes]
     if not os.path.exists("TCGA/omics_data/preprocessed/patients_with_all_views"):
@@ -80,16 +80,16 @@ if complete_sample_set == False:
     methylation_partial.to_csv('TCGA/omics_data/preprocessed/patients_with_all_views/TCGA_PDAC_subset_Methylation.csv', index=True)
     mutations_partial.to_csv('TCGA/omics_data/preprocessed/patients_with_all_views/TCGA_PDAC_subset_Mutation.csv', index=True)
     cnv_partial.to_csv('TCGA/omics_data/preprocessed/patients_with_all_views/TCGA_PDAC_subset_CNA.csv', index=True)
-elif complete_sample_set == True:
+elif complete_sample_set:
     complete_samples = pd.concat(dataframes, axis=0, join='outer').index.unique()
     RNAseq_complete, RPPA_complete, miRNA_complete, methylation_complete, mutations_complete, cnv_complete = [df.reindex(complete_samples) for df in dataframes]
     if not os.path.exists("TCGA/omics_data/preprocessed/all_patients"):
         os.makedirs("TCGA/omics_data/preprocessed/all_patients")
-    RNAseq_complete.to_csv('TCGA/omics_data/preprocessed/all_patients/TCGA_PDAC_RNAseq.csv', index=True)
-    RPPA_complete.to_csv('TCGA/omics_data/preprocessed/all_patients/TCGA_PDAC_RPPA.csv', index=True)
-    miRNA_complete.to_csv('TCGA/omics_data/preprocessed/all_patients/TCGA_PDAC_miRNA.csv', index=True)
-    methylation_complete.to_csv('TCGA/omics_data/preprocessed/all_patients/TCGA_PDAC_Methylation.csv', index=True)
-    mutations_complete.to_csv('TCGA/omics_data/preprocessed/all_patients/TCGA_PDAC_Mutation.csv', index=True)
-    cnv_complete.to_csv('TCGA/omics_data/preprocessed/all_patients/TCGA_PDAC_CNA.csv', index=True)
+    RNAseq_complete.to_csv('TCGA/omics_data/preprocessed/all_patients/TCGA_PDAC_all_RNAseq.csv', index=True)
+    RPPA_complete.to_csv('TCGA/omics_data/preprocessed/all_patients/TCGA_PDAC_all_RPPA.csv', index=True)
+    miRNA_complete.to_csv('TCGA/omics_data/preprocessed/all_patients/TCGA_PDAC_all_miRNA.csv', index=True)
+    methylation_complete.to_csv('TCGA/omics_data/preprocessed/all_patients/TCGA_PDAC_all_Methylation.csv', index=True)
+    mutations_complete.to_csv('TCGA/omics_data/preprocessed/all_patients/TCGA_PDAC_all_Mutation.csv', index=True)
+    cnv_complete.to_csv('TCGA/omics_data/preprocessed/all_patients/TCGA_PDAC_all_CNA.csv', index=True)
 
 print("Completed successfully!")

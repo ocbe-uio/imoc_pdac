@@ -1,1 +1,0 @@
-Result files after running first, second and final set of experiments (`src/scripts/incomplete_algorithms_evaluation.py` with required settings):

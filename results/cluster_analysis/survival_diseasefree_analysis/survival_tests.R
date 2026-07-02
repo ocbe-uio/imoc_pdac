@@ -5,12 +5,17 @@ library("survRM2")
 library("logrankHeinze")
 library("dplyr")
 library("survival")
+library("tidyverse")
+library("rms")
+library("cowplot")
+
 
 wd <- ".../imo_clustering/results/cluster_analysis"    # edit to set working directory
 setwd(wd)
 
 
-clusters_survival <- read.csv('survival_final_clusters.csv')
+
+clusters_survival <- read.csv('results/cluster_analysis/survival_diseasefree_analysis/survival_final_clusters.csv')
 pdac_survival <- clusters_survival[, c("Patient.ID", "Overall.Survival.Status", 
                                        "Overall.Survival..Months.", "Cluster", "Weights")]
 row.names(pdac_survival) <- pdac_survival$Patient.ID
@@ -119,4 +124,5 @@ print(survival_rmst_y5)
 
 fit.unstrat_y5 <- coxph(Surv(SurvivalMonths, SurvivalStatus) ~ Cluster, data=pdac_survival_y5, weights=Weights)
 cox.zph(fit.unstrat_y5)
+
 

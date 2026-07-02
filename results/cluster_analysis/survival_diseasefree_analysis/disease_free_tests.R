@@ -5,11 +5,14 @@ library("survRM2")
 library("logrankHeinze")
 library("dplyr")
 library("survival")
+library("tidyverse")
+library("rms")
+library("cowplot")
 
 wd <- ".../imo_clustering/results/cluster_analysis"    # edit to set working directory
 setwd(wd)
 
-clusters_diseasefree <- read.csv('disease_free_final_clusters.csv')
+clusters_diseasefree <- read.csv('results/cluster_analysis/survival_diseasefree_analysis/disease_free_final_clusters.csv')
 pdac_diseasefree <- clusters_diseasefree[, c("Patient.ID", "Disease.Free.Status",
                                              "Disease.Free..Months.", "Cluster")]
 row.names(pdac_diseasefree) <- pdac_diseasefree$Patient.ID

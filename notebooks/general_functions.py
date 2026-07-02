@@ -267,10 +267,11 @@ def measure_robustness(results):
         for i, miss_row in matching_rows.iterrows():
             miss_idx = miss_row["sorted_y_pred_idx"]
             miss_pred = miss_row["sorted_y_pred"]
-            if base_idx != miss_idx:
-                continue
-            matches = sum(1 for b, m in zip(base_pred, miss_pred) if b == m)
-            robustness_score = matches / len(base_pred)
-            results.at[i, "robustness"] = robustness_score
+            common_patients = list(set(base_idx) & set(miss_idx))
+            common_patients_sorted = sorted(common_patients)
+            base_filtered = [base_pred[base_idx.index(p)] for p in common_patients_sorted]
+            miss_filtered = [miss_pred[miss_idx.index(p)] for p in common_patients_sorted]
+            ami = adjusted_mutual_info_score(base_filtered, miss_filtered)
+            results.at[i, "robustness"] = ami
         results.at[base_row.name, "robustness"] = 1
     return results

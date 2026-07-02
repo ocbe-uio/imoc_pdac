@@ -44,6 +44,8 @@ class MKKMIK(BaseEstimator, ClassifierMixin):
         Engine to use for computing the model. Current options are 'matlab'.
     verbose : bool, default=False
         Verbosity mode.
+    clean_space : bool, default=True
+        If clean_space is True, the session will be closed after fitting the model.
 
     Attributes
     ----------
@@ -84,7 +86,8 @@ class MKKMIK(BaseEstimator, ClassifierMixin):
 
     def __init__(self, n_clusters: int = 8, kernel_initialization: str = "zeros",
                  kernel: callable = kernels.Sum(kernels.DotProduct(), kernels.WhiteKernel()),
-                 qnorm: float = 2., random_state: int = None, engine: str = "matlab", verbose=False):
+                 qnorm: float = 2., random_state: int = None, engine: str = "matlab",
+                 verbose=False, clean_space: bool= True,):
 
         kernel_initializations = ['zeros', 'mean', 'knn', 'em', 'laplacian']
         if kernel_initialization not in kernel_initializations:
@@ -102,6 +105,7 @@ class MKKMIK(BaseEstimator, ClassifierMixin):
             raise ModuleNotFoundError(error_message)
         self.engine = engine
         self.verbose = verbose
+        self.clean_space = clean_space
         self.kernel_initializations = {"zeros": "algorithm2", "mean": "algorithm3", "knn": "algorithm0",
                                        "em": "algorithm6", "laplacian": "algorithm4"}
 
@@ -127,11 +131,12 @@ class MKKMIK(BaseEstimator, ClassifierMixin):
         if self.engine == "matlab":
             matlab_folder = dirname(__file__)
             matlab_folder = os.path.join(matlab_folder, "_" + (os.path.basename(__file__).split(".")[0]))
+            self._matlab_folder = matlab_folder
             matlab_files = [x for x in os.listdir(matlab_folder) if x.endswith(".m")]
-            oc = oct2py.Oct2Py(temp_dir=matlab_folder)
+            self._oc = oct2py.Oct2Py(temp_dir=matlab_folder)
             for matlab_file in matlab_files:
                 with open(os.path.join(matlab_folder, matlab_file)) as f:
-                    oc.eval(f.read())
+                    self._oc.eval(f.read())
 
             if isinstance(Xs[0], pd.DataFrame):
                 transformed_Xs = [X.values for X in Xs]
@@ -145,11 +150,14 @@ class MKKMIK(BaseEstimator, ClassifierMixin):
             kernel = self.kernel_initializations[self.kernel_initialization]
 
             if self.random_state is not None:
-                oc.rand('seed', self.random_state)
-            H_normalized,gamma,obj,KA = oc.myabsentmultikernelclustering(transformed_Xs, s, self.n_clusters,
+                self._oc.rand('seed', self.random_state)
+            H_normalized,gamma,obj,KA = self._oc.myabsentmultikernelclustering(transformed_Xs, s, self.n_clusters,
                                                                          self.qnorm, kernel, nout=4)
             KA = KA[:, 0]
             obj = obj[0]
+
+            if self.clean_space:
+                self._clean_space()
         else:
             raise ValueError(f"Invalid engine. Expected one of {self._engines_options}.")
 
@@ -198,3 +206,9 @@ class MKKMIK(BaseEstimator, ClassifierMixin):
 
         labels = self.fit(Xs)._predict(Xs)
         return labels
+
+    def _clean_space(self):
+        [os.remove(os.path.join(self._matlab_folder, x)) for x in ["reader.mat", "writer.mat"]]
+        self._oc.exit()
+        del self._oc
+        return None
